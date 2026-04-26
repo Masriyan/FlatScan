@@ -1,0 +1,427 @@
+{
+  "tool": "FlatScan",
+  "version": "0.1.0",
+  "mode": "deep",
+  "target": "/home/sudo3rs/Documents/PrivateTools/FlatScan/sample/mercuristealer",
+  "file_name": "mercuristealer",
+  "size": 60416,
+  "analyzed_bytes": 60416,
+  "truncated_analysis": false,
+  "duration": "6.068936ms",
+  "file_type": "PE executable",
+  "mime_hint": "application/octet-stream",
+  "hashes": {
+    "md5": "d90bbc14a5483f4fe900af5267553377",
+    "sha1": "88e93e2d57e7be1ccddda4c12d02d50d63616f25",
+    "sha256": "ee77c05139a72dc3f1c86391c2bb0c16f198249ae4f099adf3f27ec3a7f0cf4b",
+    "sha512": "298819b332c92887fc637e6b53de6cd65b2dbfd956aaef424fcdd33e368c1723c5a1135862ded443083391c46c069311f67f04040bc398dfc7895c4176cfeba4"
+  },
+  "entropy": 6.446655272294394,
+  "entropy_assessment": "normal",
+  "strings_total": 788,
+  "strings_truncated": false,
+  "suspicious_strings": [
+    "Decrypt",
+    "BCryptEncrypt",
+    "BCryptDecrypt",
+    "DecryptWithKey",
+    "encryptedData",
+    "vmware",
+    "SYSTEM\\CurrentControlSet\\Enum\\SCSI\\Disk\u0026Ven_VMware_\u0026Prod_VMware_Virtual_S",
+    "SOFTWARE\\VMWare, Inc.\\VMWare Tools",
+    "HARDWARE\\ACPI\\DSDT\\VBOX_",
+    "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e",
+    "BCrypt.BCryptDecrypt() (get size) failed with status code: {0}",
+    "BCrypt.BCryptDecrypt(): authentication tag mismatch",
+    "BCrypt.BCryptDecrypt() failed with status code:{0}",
+    "\"encrypted_key\":\"(.*?)\"",
+    "Unable to decrypt"
+  ],
+  "functions": [
+    {
+      "name": "CryptDecrypt",
+      "family": "cryptography",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "CryptEncrypt",
+      "family": "cryptography",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "BCryptDecrypt",
+      "family": "cryptography",
+      "severity": "Medium",
+      "source": "strings/imports"
+    }
+  ],
+  "iocs": {
+    "urls": [
+      "http://ip-api.com//json/",
+      "https://cdn.discordapp.com/avatars/",
+      "https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e",
+      "https://discordapp.com/api/v8/users/@me",
+      "https://i.imgur.com/vgxBhmx.png",
+      "https://ip4.seeip.org",
+      "https://www.countryflags.io/"
+    ],
+    "domains": [
+      "cdn.discordapp.com",
+      "discord.com",
+      "discordapp.com",
+      "github.com",
+      "i.imgur.com",
+      "ip-api.com",
+      "ip4.seeip.org",
+      "myapplication.app",
+      "roblox.com",
+      "system.io",
+      "system.net",
+      "www.countryflags.io"
+    ],
+    "ipv4": [
+      "0.0.0.0",
+      "1.0.0.0"
+    ]
+  },
+  "pe": {
+    "machine": "i386",
+    "timestamp": "2021-12-05T02:12:39Z",
+    "subsystem": "windows-console",
+    "image_base": "0x400000",
+    "entry_point": "0xba9e",
+    "managed_runtime": true,
+    "imports": [
+      "_CorExeMain:mscoree.dll"
+    ],
+    "import_hash": "ca9c1a21c844044339d322ce95f7ca48",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_address": 8192,
+        "raw_offset": 512,
+        "raw_size": 39936,
+        "entropy": 5.45839506078942,
+        "executable": true,
+        "writable": false
+      },
+      {
+        "name": ".rsrc",
+        "virtual_address": 49152,
+        "raw_offset": 40448,
+        "raw_size": 19456,
+        "entropy": 7.81540728220369,
+        "executable": false,
+        "writable": false
+      },
+      {
+        "name": ".reloc",
+        "virtual_address": 73728,
+        "raw_offset": 59904,
+        "raw_size": 512,
+        "entropy": 0.08153941234324169,
+        "executable": false,
+        "writable": false
+      }
+    ],
+    "has_certificate": false
+  },
+  "findings": [
+    {
+      "severity": "High",
+      "category": "Exfiltration",
+      "title": "Discord webhook exfiltration endpoint",
+      "evidence": "https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e",
+      "score": 28,
+      "tactic": "Exfiltration",
+      "technique": "Exfiltration Over Web Service (T1567)",
+      "recommendation": "Revoke the webhook, preserve it as an IOC, and search proxy/EDR telemetry for POST traffic to the endpoint."
+    },
+    {
+      "severity": "High",
+      "category": "Credential Access",
+      "title": "Chromium credential decryption workflow",
+      "evidence": "encrypted_key and Windows crypto/decrypt routines are referenced",
+      "score": 26,
+      "tactic": "Credential Access",
+      "technique": "Credentials from Web Browsers (T1555.003)",
+      "recommendation": "Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry."
+    },
+    {
+      "severity": "High",
+      "category": "Evasion",
+      "title": "Explicit VM fingerprinting registry checks",
+      "evidence": "VMware or VirtualBox registry/device identifiers are embedded",
+      "score": 20,
+      "tactic": "Defense Evasion",
+      "technique": "Virtualization/Sandbox Evasion (T1497)",
+      "recommendation": "Treat VM-check strings as an anti-analysis signal; repeat dynamic analysis with hardened sandbox artifacts."
+    },
+    {
+      "severity": "High",
+      "category": "Persistence",
+      "title": "Windows persistence indicator",
+      "evidence": "Run keys, service creation, scheduled task, or startup folder strings are present",
+      "score": 20,
+      "tactic": "Persistence",
+      "technique": "Registry Run Keys / Startup Folder (T1547.001)",
+      "recommendation": "Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed."
+    },
+    {
+      "severity": "High",
+      "category": "Credential Access",
+      "title": "Discord account/API access indicators",
+      "evidence": "Discord user API/avatar/webhook strings are embedded",
+      "score": 18,
+      "tactic": "Credential Access",
+      "technique": "Credentials from Web Browsers (T1555.003)",
+      "recommendation": "Reset exposed Discord tokens and hunt for unauthorized API calls from affected hosts."
+    },
+    {
+      "severity": "Medium",
+      "category": "Packing",
+      "title": "High-entropy .NET resource section",
+      "evidence": ".rsrc entropy 7.82",
+      "score": 14,
+      "offset": 40448,
+      "tactic": "Defense Evasion",
+      "technique": "Obfuscated Files or Information (T1027)",
+      "recommendation": "Inspect .NET resources for embedded payloads, compressed configuration, or encrypted strings."
+    },
+    {
+      "severity": "Medium",
+      "category": "Network",
+      "title": "Command-and-control style network strings",
+      "evidence": "URLs appear alongside bot, API, webhook, or user-agent strings",
+      "score": 12,
+      "tactic": "Command and Control",
+      "technique": "Web Service (T1102)",
+      "recommendation": "Review HTTP telemetry for the listed URLs and any adjacent API/webhook traffic."
+    },
+    {
+      "severity": "Medium",
+      "category": "Evasion",
+      "title": "Sandbox or analyst tool awareness",
+      "evidence": "virtualization, debugger, or analyst tool strings are present",
+      "score": 11,
+      "tactic": "Defense Evasion",
+      "technique": "Virtualization/Sandbox Evasion (T1497)",
+      "recommendation": "Run the sample in an isolated lab with VM artifact controls varied, and correlate with dynamic anti-analysis behavior."
+    },
+    {
+      "severity": "Medium",
+      "category": "Packing",
+      "title": "High-entropy PE section",
+      "evidence": ".rsrc entropy 7.82",
+      "score": 10,
+      "offset": 40448
+    },
+    {
+      "severity": "Low",
+      "category": "IOC",
+      "title": "High IOC density",
+      "evidence": "21 total IOCs extracted",
+      "score": 4
+    },
+    {
+      "severity": "Info",
+      "category": "PE",
+      "title": "Managed .NET executable",
+      "evidence": "PE imports _CorExeMain from mscoree.dll",
+      "score": 0,
+      "tactic": "Discovery",
+      "technique": "Software Discovery (T1518)",
+      "recommendation": "Review .NET strings, resources, and configuration artifacts; managed malware often stores behavior in metadata and resources."
+    }
+  ],
+  "profile": {
+    "classification": "Likely malicious",
+    "malware_type": [
+      "Browser credential stealer",
+      "Discord token/webhook stealer",
+      "Information stealer",
+      "Persistent Windows malware"
+    ],
+    "confidence": "High",
+    "confidence_score": 100,
+    "business_impact": [
+      "Anti-analysis behavior may reduce sandbox fidelity and delay detection.",
+      "Credential and session-token exposure risk, including browser-stored secrets and Discord account/API tokens.",
+      "Potential data exfiltration over a trusted cloud/web service, which may bypass simple domain allow-list assumptions.",
+      "Potential host persistence through Windows startup mechanisms, increasing dwell-time risk."
+    ],
+    "key_capabilities": [
+      ".NET managed payload",
+      "Credential and token collection",
+      "Cryptographic secret handling",
+      "Sandbox and VM awareness",
+      "Webhook-based exfiltration",
+      "Windows startup persistence"
+    ],
+    "recommended_actions": [
+      "Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry.",
+      "Inspect .NET resources for embedded payloads, compressed configuration, or encrypted strings.",
+      "Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed.",
+      "Reset exposed Discord tokens and hunt for unauthorized API calls from affected hosts.",
+      "Review .NET strings, resources, and configuration artifacts; managed malware often stores behavior in metadata and resources.",
+      "Review HTTP telemetry for the listed URLs and any adjacent API/webhook traffic.",
+      "Revoke the webhook, preserve it as an IOC, and search proxy/EDR telemetry for POST traffic to the endpoint.",
+      "Run the sample in an isolated lab with VM artifact controls varied, and correlate with dynamic anti-analysis behavior.",
+      "Treat VM-check strings as an anti-analysis signal; repeat dynamic analysis with hardened sandbox artifacts."
+    ],
+    "ttps": [
+      {
+        "tactic": "Command and Control",
+        "technique": "Web Service (T1102)",
+        "id": "T1102",
+        "severity": "Medium",
+        "confidence": "Medium",
+        "evidence": "URLs appear alongside bot, API, webhook, or user-agent strings",
+        "finding": "Command-and-control style network strings"
+      },
+      {
+        "tactic": "Credential Access",
+        "technique": "Credentials from Web Browsers (T1555.003)",
+        "id": "T1555.003",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "encrypted_key and Windows crypto/decrypt routines are referenced",
+        "finding": "Chromium credential decryption workflow"
+      },
+      {
+        "tactic": "Credential Access",
+        "technique": "Credentials from Web Browsers (T1555.003)",
+        "id": "T1555.003",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "Discord user API/avatar/webhook strings are embedded",
+        "finding": "Discord account/API access indicators"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Obfuscated Files or Information (T1027)",
+        "id": "T1027",
+        "severity": "Medium",
+        "confidence": "Medium",
+        "evidence": ".rsrc entropy 7.82",
+        "finding": "High-entropy .NET resource section"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Virtualization/Sandbox Evasion (T1497)",
+        "id": "T1497",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "VMware or VirtualBox registry/device identifiers are embedded",
+        "finding": "Explicit VM fingerprinting registry checks"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Virtualization/Sandbox Evasion (T1497)",
+        "id": "T1497",
+        "severity": "Medium",
+        "confidence": "Medium",
+        "evidence": "virtualization, debugger, or analyst tool strings are present",
+        "finding": "Sandbox or analyst tool awareness"
+      },
+      {
+        "tactic": "Discovery",
+        "technique": "Software Discovery (T1518)",
+        "id": "T1518",
+        "severity": "Info",
+        "confidence": "Info",
+        "evidence": "PE imports _CorExeMain from mscoree.dll",
+        "finding": "Managed .NET executable"
+      },
+      {
+        "tactic": "Exfiltration",
+        "technique": "Exfiltration Over Web Service (T1567)",
+        "id": "T1567",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e",
+        "finding": "Discord webhook exfiltration endpoint"
+      },
+      {
+        "tactic": "Persistence",
+        "technique": "Registry Run Keys / Startup Folder (T1547.001)",
+        "id": "T1547.001",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "Run keys, service creation, scheduled task, or startup folder strings are present",
+        "finding": "Windows persistence indicator"
+      }
+    ],
+    "crypto_indicators": [
+      {
+        "primitive": "Chromium encrypted_key workflow",
+        "source": "application strings",
+        "purpose": "Extract and decrypt Chromium Local State browser secret material",
+        "confidence": "High",
+        "evidence": "encrypted_key/DecryptWithKey strings"
+      },
+      {
+        "primitive": "Windows CNG BCrypt",
+        "source": "strings/API references",
+        "purpose": "Browser credential or payload decryption/encryption",
+        "confidence": "High",
+        "evidence": "BCryptDecrypt/BCryptEncrypt strings"
+      },
+      {
+        "primitive": "BCryptDecrypt",
+        "source": "strings/imports",
+        "purpose": "Cryptographic operation reference",
+        "confidence": "Medium",
+        "evidence": "cryptography"
+      },
+      {
+        "primitive": "CryptDecrypt",
+        "source": "strings/imports",
+        "purpose": "Cryptographic operation reference",
+        "confidence": "Medium",
+        "evidence": "cryptography"
+      },
+      {
+        "primitive": "CryptEncrypt",
+        "source": "strings/imports",
+        "purpose": "Cryptographic operation reference",
+        "confidence": "Medium",
+        "evidence": "cryptography"
+      },
+      {
+        "primitive": "Encoding/obfuscation layer",
+        "source": "decoded strings",
+        "purpose": "Static obfuscation or configuration wrapping",
+        "confidence": "Medium",
+        "evidence": "0 decoded artifacts"
+      },
+      {
+        "primitive": "Symmetric crypto markers",
+        "source": "application strings",
+        "purpose": "Possible AES-GCM or authenticated decryption logic",
+        "confidence": "Medium",
+        "evidence": "AES/GCM/tag/IV/nonce style strings"
+      },
+      {
+        "primitive": "Windows CryptoAPI/DPAPI",
+        "source": "strings/API references",
+        "purpose": "Protected secret handling or decryption",
+        "confidence": "Medium",
+        "evidence": "CryptDecrypt/CryptEncrypt/CryptUnprotectData strings"
+      }
+    ],
+    "executive_assessment": "The sample should be treated as malware with likely credential-theft and exfiltration capability. From a management perspective, the priority is containment, token and password rotation, IOC blocking, and confirmation of host exposure."
+  },
+  "risk_score": 100,
+  "verdict": "Likely malicious",
+  "debug_log": [
+    "scan started at 2026-04-26T14:48:59Z",
+    "retained 60416 bytes for analysis; truncated=false",
+    "detected file type: PE executable; mime hint: application/octet-stream",
+    "extracted 788 strings; total candidates=788; truncated=false",
+    "decoded artifacts: 0"
+  ]
+}

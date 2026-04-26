@@ -1,0 +1,134 @@
+FlatScan 0.1.0 report
+Target: /home/sudo3rs/Documents/PrivateTools/FlatScan/sample/mercuristealer
+Mode: deep
+Verdict: Likely malicious (100/100)
+File type: PE executable
+MIME hint: application/octet-stream
+Size: 59.0 KiB (60416 bytes)
+Analyzed bytes: 59.0 KiB
+Entropy: 6.45/8.00 - normal
+Strings: 788
+Duration: 6.068936ms
+
+Malware profile:
+- Classification: Likely malicious
+- Confidence: High (100/100)
+- Likely type: Browser credential stealer, Discord token/webhook stealer, Information stealer, Persistent Windows malware
+- Capabilities: .NET managed payload, Credential and token collection, Cryptographic secret handling, Sandbox and VM awareness, Webhook-based exfiltration, Windows startup persistence
+- MITRE TTPs mapped: 9
+- Crypto indicators: 8
+- Assessment: The sample should be treated as malware with likely credential-theft and exfiltration capability. From a management perspective, the priority is containment, token and password rotation, IOC blocking, and confirmation of host exposure.
+
+Hashes:
+- MD5: d90bbc14a5483f4fe900af5267553377
+- SHA1: 88e93e2d57e7be1ccddda4c12d02d50d63616f25
+- SHA256: ee77c05139a72dc3f1c86391c2bb0c16f198249ae4f099adf3f27ec3a7f0cf4b
+- SHA512: 298819b332c92887fc637e6b53de6cd65b2dbfd956aaef424fcdd33e368c1723c5a1135862ded443083391c46c069311f67f04040bc398dfc7895c4176cfeba4
+- PE import hash: ca9c1a21c844044339d322ce95f7ca48
+
+Findings: 11
+- [High] Exfiltration: Discord webhook exfiltration endpoint (https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e) score=28
+  ATT&CK: Exfiltration / Exfiltration Over Web Service (T1567)
+  Recommendation: Revoke the webhook, preserve it as an IOC, and search proxy/EDR telemetry for POST traffic to the endpoint.
+- [High] Credential Access: Chromium credential decryption workflow (encrypted_key and Windows crypto/decrypt routines are referenced) score=26
+  ATT&CK: Credential Access / Credentials from Web Browsers (T1555.003)
+  Recommendation: Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry.
+- [High] Evasion: Explicit VM fingerprinting registry checks (VMware or VirtualBox registry/device identifiers are embedded) score=20
+  ATT&CK: Defense Evasion / Virtualization/Sandbox Evasion (T1497)
+  Recommendation: Treat VM-check strings as an anti-analysis signal; repeat dynamic analysis with hardened sandbox artifacts.
+- [High] Persistence: Windows persistence indicator (Run keys, service creation, scheduled task, or startup folder strings are present) score=20
+  ATT&CK: Persistence / Registry Run Keys / Startup Folder (T1547.001)
+  Recommendation: Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed.
+- [High] Credential Access: Discord account/API access indicators (Discord user API/avatar/webhook strings are embedded) score=18
+  ATT&CK: Credential Access / Credentials from Web Browsers (T1555.003)
+  Recommendation: Reset exposed Discord tokens and hunt for unauthorized API calls from affected hosts.
+- [Medium] Packing: High-entropy .NET resource section (.rsrc entropy 7.82) score=14 offset=0x9e00
+  ATT&CK: Defense Evasion / Obfuscated Files or Information (T1027)
+  Recommendation: Inspect .NET resources for embedded payloads, compressed configuration, or encrypted strings.
+- [Medium] Network: Command-and-control style network strings (URLs appear alongside bot, API, webhook, or user-agent strings) score=12
+  ATT&CK: Command and Control / Web Service (T1102)
+  Recommendation: Review HTTP telemetry for the listed URLs and any adjacent API/webhook traffic.
+- [Medium] Evasion: Sandbox or analyst tool awareness (virtualization, debugger, or analyst tool strings are present) score=11
+  ATT&CK: Defense Evasion / Virtualization/Sandbox Evasion (T1497)
+  Recommendation: Run the sample in an isolated lab with VM artifact controls varied, and correlate with dynamic anti-analysis behavior.
+- [Medium] Packing: High-entropy PE section (.rsrc entropy 7.82) score=10 offset=0x9e00
+- [Low] IOC: High IOC density (21 total IOCs extracted) score=4
+- [Info] PE: Managed .NET executable (PE imports _CorExeMain from mscoree.dll)
+  ATT&CK: Discovery / Software Discovery (T1518)
+  Recommendation: Review .NET strings, resources, and configuration artifacts; managed malware often stores behavior in metadata and resources.
+
+Suspicious functions/APIs: 3
+- [Medium] CryptDecrypt (cryptography, strings/imports)
+- [Medium] CryptEncrypt (cryptography, strings/imports)
+- [Medium] BCryptDecrypt (cryptography, strings/imports)
+
+IOCs: 21 total
+
+URLs:
+- http://ip-api.com//json/
+- https://cdn.discordapp.com/avatars/
+- https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e
+- https://discordapp.com/api/v8/users/@me
+- https://i.imgur.com/vgxBhmx.png
+- https://ip4.seeip.org
+- https://www.countryflags.io/
+
+Domains:
+- cdn.discordapp.com
+- discord.com
+- discordapp.com
+- github.com
+- i.imgur.com
+- ip-api.com
+- ip4.seeip.org
+- myapplication.app
+- roblox.com
+- system.io
+- system.net
+- www.countryflags.io
+
+IPv4:
+- 0.0.0.0
+- 1.0.0.0
+
+PE details:
+- Machine: i386
+- Timestamp: 2021-12-05T02:12:39Z
+- Subsystem: windows-console
+- Image base: 0x400000
+- Entry point: 0xba9e
+- Managed .NET runtime: true
+- Certificate table present: false
+
+Sections:
+- .text raw=0x200 size=39936 entropy=5.46 flags=X
+- .rsrc raw=0x9e00 size=19456 entropy=7.82 flags=-
+- .reloc raw=0xea00 size=512 entropy=0.08 flags=-
+
+PE imports: 1 stored
+- _CorExeMain:mscoree.dll
+
+Suspicious strings:
+- Decrypt
+- BCryptEncrypt
+- BCryptDecrypt
+- DecryptWithKey
+- encryptedData
+- vmware
+- SYSTEM\CurrentControlSet\Enum\SCSI\Disk&Ven_VMware_&Prod_VMware_Virtual_S
+- SOFTWARE\VMWare, Inc.\VMWare Tools
+- HARDWARE\ACPI\DSDT\VBOX_
+- SOFTWARE\Microsoft\Windows\CurrentVersion\Run
+- https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e
+- BCrypt.BCryptDecrypt() (get size) failed with status code: {0}
+- BCrypt.BCryptDecrypt(): authentication tag mismatch
+- BCrypt.BCryptDecrypt() failed with status code:{0}
+- "encrypted_key":"(.*?)"
+- Unable to decrypt
+
+Debug log:
+- scan started at 2026-04-26T14:48:59Z
+- retained 60416 bytes for analysis; truncated=false
+- detected file type: PE executable; mime hint: application/octet-stream
+- extracted 788 strings; total candidates=788; truncated=false
+- decoded artifacts: 0

@@ -1,0 +1,32 @@
+# FlatScan IOC Export
+target=/home/sudo3rs/Documents/PrivateTools/FlatScan/sample/mercuristealer
+sha256=ee77c05139a72dc3f1c86391c2bb0c16f198249ae4f099adf3f27ec3a7f0cf4b
+verdict=Likely malicious
+risk_score=100
+
+[urls]
+http://ip-api.com//json/
+https://cdn.discordapp.com/avatars/
+https://discord.com/api/webhooks/916761581130489898/1CYGjUXn8d32Ju3UPg9zytSEyvPzaB1aXQhFvkHjipi_WnYU1XfqIqvCYbuhVxLYUE2e
+https://discordapp.com/api/v8/users/@me
+https://i.imgur.com/vgxBhmx.png
+https://ip4.seeip.org
+https://www.countryflags.io/
+
+[domains]
+cdn.discordapp.com
+discord.com
+discordapp.com
+github.com
+i.imgur.com
+ip-api.com
+ip4.seeip.org
+myapplication.app
+roblox.com
+system.io
+system.net
+www.countryflags.io
+
+[ipv4]
+0.0.0.0
+1.0.0.0
