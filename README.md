@@ -1,61 +1,128 @@
 # FlatScan
 
-Repository: https://github.com/Masriyan/FlatScan
+> **Static malware analysis and reporting — for analysts and CISO audiences alike.**
 
-FlatScan is a static malware analysis and reporting tool written in Go. It is designed for analysts who need fast triage, IOC extraction, suspicious capability detection, executive reporting, and hunting-rule handoff without executing the sample.
+[![Go Version](https://img.shields.io/badge/go-1.22%2B-blue)](https://golang.org/dl/)
+[![License](https://img.shields.io/badge/license-see%20repo-lightgrey)](https://github.com/Masriyan/FlatScan)
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS%20%7C%20windows-informational)](https://github.com/Masriyan/FlatScan)
+[![Static Analysis](https://img.shields.io/badge/analysis-static%20only-green)](https://github.com/Masriyan/FlatScan)
 
-FlatScan reads a file, hashes it, identifies the format, extracts strings, decodes suspicious encoded data, extracts IOCs, inspects executable/container metadata, scores findings, enriches them into a malware profile, and produces text, JSON, PDF, IOC, and YARA outputs.
+Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
 
-## Why FlatScan Exists
+---
 
-Malware triage often has two audiences:
+FlatScan is a static malware analysis and reporting tool written in Go. It is built for analysts who need fast triage, IOC extraction, suspicious capability detection, executive reporting, and hunting-rule handoff — **without executing the sample**.
 
-- Analysts need technical evidence: hashes, strings, imports, IOCs, entropy, sections, decoded data, TTPs, and hunting content.
-- CISO/management readers need concise risk context: what it likely is, why it matters, what business impact exists, and what actions are recommended.
+FlatScan reads a file, hashes it, identifies the format, extracts strings, decodes suspicious encoded data, extracts IOCs, inspects executable and container metadata, scores findings, enriches them into a malware profile, and produces text, JSON, PDF, IOC, and YARA outputs.
 
-FlatScan tries to serve both. It does static analysis for safety and speed, then converts the result into both machine-readable output and management-ready reporting.
+---
 
-## Important Safety Note
+## Why FlatScan
 
-FlatScan performs static analysis only. It does not execute samples. That reduces risk, but it does not make malware handling safe by itself.
+Malware triage typically has two audiences with competing needs:
 
-Recommended handling:
+| Audience | What They Need |
+|---|---|
+| **Analyst / IR engineer** | Hashes, strings, imports, IOCs, entropy, sections, decoded data, TTPs, hunting content |
+| **CISO / management** | Risk context, likely malware type, business impact, recommended actions |
 
-- Work inside an isolated malware-analysis VM.
-- Do not double-click or execute samples.
-- Keep samples password-protected when sharing.
-- Store reports separately from live malware.
-- Treat generated findings as triage evidence, not a final clean/malicious verdict by themselves.
+FlatScan serves both. Static analysis keeps it safe and fast. The enriched malware profile converts raw evidence into management-ready reporting — in the same tool, from the same run.
+
+---
+
+## Safety Notice
+
+> FlatScan performs **static analysis only**. It does not execute samples.
+
+That reduces risk, but does not make malware handling safe by itself. Always work inside an isolated VM, do not execute samples, and store reports separately from live malware. See [security.md](security.md) for the full safe-handling workflow.
+
+---
 
 ## Features
 
-- Full-file MD5, SHA1, SHA256, and SHA512 hashing.
-- File type and MIME hint detection.
-- ASCII and UTF-16LE string extraction.
-- IOC extraction for URLs, domains, IPv4, IPv6, emails, hashes, CVEs, registry keys, Windows paths, and Unix paths.
-- Suspicious base64, hex, and URL-percent decoding with nested decode depth control.
-- Entropy scoring and high-entropy region detection.
-- PE analysis: imports, sections, timestamp, subsystem, certificate table presence, overlay, import hash, and .NET runtime detection.
-- ELF and Mach-O import/section inspection.
-- ZIP/APK/JAR/Office Open XML entry inspection without extracting entries to disk.
-- Behavioral signatures for injection, downloader behavior, persistence, Discord webhook exfiltration, browser credential theft, VM/sandbox awareness, script obfuscation, credential access, ransomware strings, packers, and high IOC density.
-- Malware profile enrichment with likely malware type, confidence, key capabilities, business impact, recommended actions, MITRE-style TTPs, and cryptography indicators.
-- CISO/management-ready PDF report.
-- Text report modes: `minimal`, `Summary`, and `Full`.
-- JSON output for automation.
-- IOC text export for quick handoff.
-- YARA hunting rule export.
-- Startup ASCII banner and progress display, with automation-friendly disable flags.
+### Hashing and Identification
+- Full-file MD5, SHA1, SHA256, and SHA512
+- File type and MIME hint detection
+- Import hash (PE)
+
+### String and IOC Extraction
+- ASCII and UTF-16LE string extraction
+- IOC extraction: URLs, domains, IPv4, IPv6, emails, MD5, SHA1, SHA256, SHA512, CVEs, registry keys, Windows paths, Unix paths
+
+### Decoding and Deobfuscation
+- Suspicious base64, hex, and URL-percent decoding
+- Nested decode depth control (up to 5 layers)
+- Secondary IOC extraction from decoded artifacts
+
+### Entropy and Packing
+- Full-file entropy scoring
+- High-entropy region detection
+
+### Executable and Container Parsing
+
+| Format | Details Extracted |
+|---|---|
+| **PE (Windows)** | Imports, sections, timestamp, subsystem, image base, entry point, import hash, certificate table presence, overlay, .NET detection |
+| **ELF (Linux)** | Class, machine type, imports, sections |
+| **Mach-O (macOS)** | CPU type, imports, sections |
+| **ZIP / APK / JAR / Office** | Entry inspection without disk extraction, path traversal detection, macro indicators, archive bomb heuristics |
+
+### Behavioral Signatures
+- Process injection API chains
+- Dynamic API resolution
+- Downloader and C2 network strings
+- Discord webhook exfiltration
+- Browser credential decryption (Chromium DPAPI)
+- Windows and Linux persistence indicators
+- Suspicious PowerShell, script host, and LOLBin use
+- Ransomware-style strings
+- Credential and crypto wallet theft
+- VM / sandbox awareness and anti-debugging
+- Security tooling bypass indicators
+- Packer and protector markers
+- High IOC density scoring
+
+### Malware Profile Enrichment
+- Likely malware type and confidence score
+- Key capabilities summary
+- Business impact assessment
+- Recommended response actions
+- MITRE-style TTP entries
+- Cryptography and secret-handling indicators (BCrypt, DPAPI, Chromium encrypted_key, AES/GCM markers)
+
+### Output Formats
+- Text report: `minimal`, `Summary`, `Full`
+- JSON for automation pipelines
+- PDF for CISO and analyst handoff
+- IOC text export for quick triage handoff
+- YARA hunting rule export
+
+---
 
 ## Quick Start
 
-Build:
+### Build
 
 ```bash
+git clone https://github.com/Masriyan/FlatScan
+cd FlatScan
 go build -o flatscan .
 ```
 
-Run a deep scan with all useful outputs:
+### Verify
+
+```bash
+./flatscan --version
+./flatscan --help
+```
+
+### Fast Triage
+
+```bash
+./flatscan -m quick -f sample.bin --report-mode Summary
+```
+
+### Full Analyst Run
 
 ```bash
 ./flatscan -m deep \
@@ -69,90 +136,119 @@ Run a deep scan with all useful outputs:
   --debug
 ```
 
-Automation-friendly run without splash/progress:
+### Automation / CI
 
 ```bash
-./flatscan -m deep -f sample.exe --report-mode Full --json reports/sample.json --no-progress
+./flatscan -m deep -f sample.exe \
+  --report-mode minimal \
+  --json reports/sample.json \
+  --no-progress
 ```
+
+---
 
 ## Output Types
 
-| Output | Flag | Purpose |
-| --- | --- | --- |
-| Text report | `--report PATH` | Human-readable report. Honors `--report-mode`. |
-| JSON report | `--json PATH` | Complete structured result for automation and pipelines. |
-| PDF report | `--pdf PATH` | CISO/management-ready report with executive summary, MITRE matrix, impact, actions, IOCs, crypto notes, and technical appendix. |
-| IOC export | `--extract-ioc PATH` | Categorized IOC text file. |
-| YARA rule | `--yara PATH` | Auto-generated hunting rule from high-signal strings, IOCs, hashes, and malware profile. |
-| Stdout | default | Text report is printed to stdout when `--report` is not supplied. |
+| Output | Flag | Audience | Purpose |
+|---|---|---|---|
+| Text report | `--report PATH` | Analyst | Human-readable triage report. Honors `--report-mode`. |
+| JSON report | `--json PATH` | Automation | Structured result for pipelines, SIEMs, ticketing. |
+| PDF report | `--pdf PATH` | CISO / leadership | Executive summary, MITRE matrix, business impact, IOCs. |
+| IOC export | `--extract-ioc PATH` | Analyst | Categorized IOC text file for quick handoff. |
+| YARA rule | `--yara PATH` | Threat hunter | Auto-generated hunting rule from high-signal strings. |
+| Stdout | *(default)* | Analyst | Text report printed when `--report` is not set. |
+
+---
 
 ## Scan Modes
 
-| Mode | Purpose |
-| --- | --- |
-| `quick` | Fast triage. Hashes, type, strings, IOCs, decoding, and key signatures. |
-| `standard` | More complete static scan with entropy regions and ZIP-family entry inspection. |
-| `deep` | Highest built-in static depth. Larger import/string/decode limits and richer profile/reporting results. |
+| Mode | Use Case | Depth |
+|---|---|---|
+| `quick` | Fast triage, first pass | Hashes, strings, IOCs, key signatures |
+| `standard` | Normal analyst review | Adds entropy regions, ZIP-family entry inspection |
+| `deep` | Final report, high-priority sample | Largest import/string/decode limits, richest profile |
+
+---
 
 ## Report Modes
 
-| Report Mode | Use Case |
-| --- | --- |
-| `minimal` | Short verdict, score, file type, SHA256, finding count, IOC count. |
-| `Summary` | Analyst-friendly triage summary with top findings and IOC overview. |
-| `Full` | Full report with hashes, findings, IOCs, decoded artifacts, executable/container details, suspicious strings, and debug log when enabled. |
+| Mode | Use Case | Contents |
+|---|---|---|
+| `minimal` | Shell scripts, CI output | Verdict, score, file type, SHA256, finding count |
+| `Summary` | Terminal triage | Top findings, IOC overview, suspicious strings |
+| `Full` | Analyst handoff | All hashes, full findings, IOCs, decoded artifacts, format details, debug log |
 
-## Example: Deep Malware Report
-
-```bash
-./flatscan -m deep \
-  -f /path/to/suspicious.bin \
-  --report-mode Full \
-  --report reports/suspicious.full.txt \
-  --extract-ioc reports/suspicious.iocs.txt \
-  --json reports/suspicious.report.json \
-  --pdf reports/suspicious.ciso.pdf \
-  --yara reports/suspicious.yar \
-  --debug
-```
+---
 
 ## How FlatScan Works Internally
 
-FlatScan uses a static pipeline:
+FlatScan uses a linear static analysis pipeline:
 
-1. Parse CLI options and initialize progress output.
-2. Read the target file safely and compute full-file hashes.
-3. Retain up to `--max-analyze-bytes` for in-memory analysis while hashing the full file.
-4. Detect file type and MIME hint.
-5. Calculate full-file entropy and optional high-entropy regions.
-6. Extract ASCII and UTF-16LE strings.
-7. Extract IOCs from raw strings.
-8. Decode suspicious base64, hex, and URL-percent artifacts.
-9. Extract IOCs again from decoded artifacts.
-10. Match behavioral and malware-family-style static indicators.
-11. Inspect supported executable/container formats.
-12. Score findings and assign a verdict.
-13. Build an enriched malware profile with likely type, confidence, business impact, key capabilities, MITRE-style TTPs, crypto indicators, and response recommendations.
-14. Render requested outputs.
+```
+CLI parse → File read + Hash → File type detect → Entropy
+→ String extract → IOC extract → Decode artifacts → IOC extract (decoded)
+→ Behavioral signatures → Format parse (PE/ELF/Mach-O/Archive)
+→ Score + Verdict → Profile enrich (TTPs, crypto, impact)
+→ Render outputs (text / JSON / PDF / IOC / YARA)
+```
+
+All stages read bytes. No stage executes the target.
+
+---
+
+## Score Reference
+
+| Score | Verdict | Recommended Action |
+|---|---|---|
+| 0–9 | No strong indicators | Not a clean verdict. Review context. |
+| 10–29 | Low suspicion | Weak indicators. Correlate with endpoint telemetry. |
+| 30–54 | Suspicious | Meaningful evidence. Correlate before escalating. |
+| 55–79 | High suspicion | Treat as high risk. Escalate and monitor. |
+| 80–100 | Likely malicious | Multiple high-confidence indicators. Prioritize containment. |
+
+> A low score is **not a clean verdict**. Static analysis can miss packed, staged, or encrypted behavior.
+
+---
 
 ## Limitations
 
-- Static analysis can miss environment-gated, packed, staged, encrypted, or dynamically generated behavior.
-- Hashes cannot be decoded or reversed. FlatScan can classify hash-looking values as IOCs, but it cannot recover original data from a real cryptographic hash.
-- The generated YARA rule is a starting point for hunting and should be reviewed before deployment.
-- MITRE mapping is static-evidence mapping, not proof that the behavior executed.
-- PDF reports are generated by FlatScan's internal PDF writer and intentionally avoid external dependencies.
+- Static analysis cannot detect environment-gated, packed, staged, encrypted, or dynamically generated behavior.
+- Hashes are classified as IOCs but cannot be reversed.
+- YARA rules are hunting starting points and must be reviewed before production deployment.
+- MITRE mappings reflect static evidence, not confirmed executed behavior.
+- PDF generation uses FlatScan's internal writer with no external dependencies.
+
+---
 
 ## Documentation
 
-- Installation: [install.md](install.md)
-- Usage guide: [usage.md](usage.md)
-- Contributing: [contributing.md](contributing.md)
-- Security policy: [security.md](security.md)
-- Changelog: [changelog.md](changelog.md)
+| Document | Purpose |
+|---|---|
+| [install.md](install.md) | Build, install, cross-compile, lab setup |
+| [usage.md](usage.md) | Flags, modes, outputs, interpretation |
+| [security.md](security.md) | Safe sample handling, responsible use, reporting security issues |
+| [contributing.md](contributing.md) | Dev workflow, adding detections, PR guidance |
+| [changelog.md](changelog.md) | Release history |
+
+---
+
+## Recommended Analyst Workflow
+
+```
+1. Receive sample → hash and verify receipt
+2. Transfer to isolated malware-analysis VM
+3. Run FlatScan quick scan → triage verdict
+4. If suspicious/high: run FlatScan deep scan → full outputs
+5. Review IOC export → pivot in threat intel platform
+6. Review YARA rule → validate, tune, deploy to hunting stack
+7. Share PDF with CISO/management if escalation is needed
+8. Continue with sandbox, RE, or endpoint telemetry as warranted
+```
+
+---
 
 ## Project URL
 
-Use this URL for issues, releases, documentation, and source references:
+Issues, releases, documentation, and source:
 
-https://github.com/Masriyan/FlatScan
+[https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
