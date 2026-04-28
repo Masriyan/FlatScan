@@ -13,7 +13,15 @@ func EnrichAnalysisProfile(result *ScanResult, stringsFound []ExtractedString) {
 	if result == nil {
 		return
 	}
-	corpus := buildCorpus(stringsFound, result.DecodedArtifacts, 16*1024*1024)
+	corpus := buildCorpus(stringsFound, result.DecodedArtifacts, defaultMaxCorpusBytes)
+	EnrichAnalysisProfileWithCorpus(result, stringsFound, corpus)
+}
+
+// EnrichAnalysisProfileWithCorpus uses a pre-built corpus string.
+func EnrichAnalysisProfileWithCorpus(result *ScanResult, stringsFound []ExtractedString, corpus string) {
+	if result == nil {
+		return
+	}
 	profile := AnalysisProfile{
 		Classification:      reportClassification(*result),
 		Confidence:          confidenceLabel(result.RiskScore),
@@ -102,6 +110,16 @@ func buildCryptoIndicators(result ScanResult, corpus string) []CryptoIndicator {
 		if strings.Contains(strings.ToLower(fn.Family), "cryptography") {
 			add(fn.Name, fn.Source, "Cryptographic operation reference", fn.Severity, fn.Family)
 		}
+		if strings.Contains(strings.ToLower(fn.Family), "android crypto") {
+			add(fn.Name, fn.Source, "Android/Java cryptography reference", fn.Severity, fn.Family)
+		}
+	}
+	for _, dex := range result.DEXFiles {
+		for _, hit := range dex.APIHits {
+			if hit.Category == "crypto" {
+				add(hit.Indicator, "DEX strings: "+dex.Name, "Android/Java cryptography reference", hit.Severity, "Static DEX API/string indicator")
+			}
+		}
 	}
 
 	sort.SliceStable(indicators, func(i, j int) bool {
@@ -115,14 +133,34 @@ func buildCryptoIndicators(result ScanResult, corpus string) []CryptoIndicator {
 
 func businessImpact(result ScanResult, corpus string) []string {
 	var impact []string
-	if hasFinding(result.Findings, "Credential Access") || hasAny(corpus, "encrypted_key", "discordapp.com/api/v8/users/@me") {
+	if isAndroidPackage(result) {
+		impact = append(impact, "Potentially risky Android application; validate requested permissions, embedded payloads, and network destinations before installation or distribution.")
+		if result.APK != nil {
+			dangerous := androidPermissionsByMinimumRisk(result.APK.Permissions, "Medium")
+			if len(dangerous) > 0 {
+				impact = append(impact, fmt.Sprintf("Android permission exposure includes %d dangerous or special permissions across categories such as %s.", len(dangerous), strings.Join(firstAndroidPermissionCategories(dangerous, 4), ", ")))
+			}
+			if unguarded := exportedComponentsWithoutPermission(result.APK); len(unguarded) > 0 {
+				impact = append(impact, fmt.Sprintf("%d exported Android components appear unguarded and may expand IPC, deep-link, or intent attack surface.", len(unguarded)))
+			}
+		}
+	}
+	if hasFindingTitle(result.Findings, "Executable payload inside archive") {
+		impact = append(impact, "Archive/container includes executable payloads; treat it as a potential dropper or packaged malware delivery artifact until the embedded binaries are reverse engineered.")
+	}
+	if len(result.CarvedArtifacts) > 0 {
+		impact = append(impact, "Embedded artifact carving found additional payload-like content by offset and hash; preserve the original container and analyze carved hashes in an isolated lab.")
+	}
+	if hasFinding(result.Findings, "Credential Access") || (!isAndroidPackage(result) && hasAny(corpus, "encrypted_key", "discordapp.com/api/v8/users/@me")) {
 		impact = append(impact, "Credential and session-token exposure risk, including browser-stored secrets and Discord account/API tokens.")
 	}
 	if hasFinding(result.Findings, "Exfiltration") || firstMatchingURL(result.IOCs.URLs, "discord.com/api/webhooks") != "" {
 		impact = append(impact, "Potential data exfiltration over a trusted cloud/web service, which may bypass simple domain allow-list assumptions.")
 	}
-	if hasFinding(result.Findings, "Persistence") {
+	if hasFindingTitle(result.Findings, "Windows persistence indicator") {
 		impact = append(impact, "Potential host persistence through Windows startup mechanisms, increasing dwell-time risk.")
+	} else if hasFindingTitle(result.Findings, "Linux persistence indicator") {
+		impact = append(impact, "Potential Unix/Linux persistence indicators; validate whether paths are application resources or operational scripts.")
 	}
 	if hasFinding(result.Findings, "Evasion") {
 		impact = append(impact, "Anti-analysis behavior may reduce sandbox fidelity and delay detection.")
@@ -135,40 +173,101 @@ func businessImpact(result ScanResult, corpus string) []string {
 
 func keyCapabilities(result ScanResult, corpus string) []string {
 	var caps []string
+	if isAndroidPackage(result) {
+		caps = append(caps, "Android application package")
+		if result.APK != nil {
+			if len(androidPermissionsByMinimumRisk(result.APK.Permissions, "Medium")) > 0 {
+				caps = append(caps, "Dangerous Android permission access")
+			}
+			if len(exportedComponentsWithoutPermission(result.APK)) > 0 {
+				caps = append(caps, "Unguarded exported Android components")
+			}
+			if len(result.APK.NativeLibraries) > 0 {
+				caps = append(caps, "Packaged Android native code")
+			}
+			if len(result.APK.EmbeddedPayloads) > 0 {
+				caps = append(caps, "Embedded secondary Android payloads")
+			}
+		}
+	}
+	if hasAndroidDEXHit(result, "sms") {
+		caps = append(caps, "Android SMS access")
+	}
+	if hasFindingTitle(result.Findings, "Android accessibility service capability") {
+		caps = append(caps, "Android accessibility service behavior")
+	}
+	if hasFindingTitle(result.Findings, "Android device administrator capability") {
+		caps = append(caps, "Android device administrator behavior")
+	}
+	if hasAndroidDEXHit(result, "dynamic-code") {
+		caps = append(caps, "Android dynamic code loading")
+	}
+	if hasAndroidDEXHit(result, "runtime-exec") {
+		caps = append(caps, "Android runtime command execution")
+	}
 	if hasFinding(result.Findings, "Credential Access") {
 		caps = append(caps, "Credential and token collection")
 	}
 	if hasFinding(result.Findings, "Exfiltration") {
 		caps = append(caps, "Webhook-based exfiltration")
 	}
-	if hasFinding(result.Findings, "Persistence") {
+	if hasFindingTitle(result.Findings, "Windows persistence indicator") {
 		caps = append(caps, "Windows startup persistence")
+	} else if hasFindingTitle(result.Findings, "Linux persistence indicator") {
+		caps = append(caps, "Unix/Linux persistence artifact references")
 	}
 	if hasFinding(result.Findings, "Evasion") {
 		caps = append(caps, "Sandbox and VM awareness")
 	}
-	if len(result.Profile.CryptoIndicators) > 0 || hasAny(corpus, "decrypt", "encrypted_key", "bcryptdecrypt") {
+	if len(result.Profile.CryptoIndicators) > 0 || (!isAndroidPackage(result) && hasAny(corpus, "decrypt", "encrypted_key", "bcryptdecrypt")) {
 		caps = append(caps, "Cryptographic secret handling")
 	}
 	if result.PE != nil && result.PE.ManagedRuntime {
 		caps = append(caps, ".NET managed payload")
+	}
+	if len(result.CarvedArtifacts) > 0 {
+		caps = append(caps, "Embedded artifact carrier")
+	}
+	if len(result.ConfigArtifacts) > 0 {
+		caps = append(caps, "Static configuration artifacts")
 	}
 	return uniqueSorted(caps)
 }
 
 func malwareType(profile AnalysisProfile, result ScanResult, corpus string) []string {
 	var types []string
+	for _, family := range result.FamilyMatches {
+		if family.Confidence == "High" || family.Confidence == "Medium-High" {
+			types = append(types, family.Family)
+		}
+	}
 	if hasFinding(result.Findings, "Credential Access") && hasFinding(result.Findings, "Exfiltration") {
 		types = append(types, "Information stealer")
 	}
 	if hasAny(corpus, "discord.com/api/webhooks", "discordapp.com/api/v8/users/@me") {
 		types = append(types, "Discord token/webhook stealer")
 	}
-	if hasAny(corpus, "encrypted_key", "login data", "cookies", "chromium", "chrome") || hasFindingTitle(result.Findings, "Chromium credential decryption workflow") {
+	if !isAndroidPackage(result) && (hasAny(corpus, "encrypted_key", "login data", "cookies", "chromium", "chrome") || hasFindingTitle(result.Findings, "Chromium credential decryption workflow")) {
 		types = append(types, "Browser credential stealer")
 	}
-	if hasFinding(result.Findings, "Persistence") {
+	if hasFindingTitle(result.Findings, "Windows persistence indicator") {
 		types = append(types, "Persistent Windows malware")
+	}
+	if isAndroidPackage(result) && result.RiskScore >= 55 {
+		types = append(types, "Android high-risk application")
+		types = append(types, "Suspicious Android application")
+	}
+	if isAndroidPackage(result) && hasAndroidDEXHit(result, "sms") {
+		types = append(types, "Android SMS-risk application")
+	}
+	if isAndroidPackage(result) && (hasFindingTitle(result.Findings, "Android accessibility service capability") || hasFindingTitle(result.Findings, "Android overlay capability")) {
+		types = append(types, "Android overlay/accessibility-risk application")
+	}
+	if isAndroidPackage(result) && hasFindingTitle(result.Findings, "Dynamic DEX or class loading references") {
+		types = append(types, "Android dynamic-code-loading application")
+	}
+	if len(types) == 0 && isArchiveLike(result) && result.RiskScore >= 55 {
+		types = append(types, "Suspicious archive/dropper")
 	}
 	if len(types) == 0 && result.RiskScore >= 55 {
 		types = append(types, "Suspicious executable")
@@ -179,6 +278,12 @@ func malwareType(profile AnalysisProfile, result ScanResult, corpus string) []st
 func executiveAssessment(result ScanResult) string {
 	if result.RiskScore >= 80 && (hasFinding(result.Findings, "Credential Access") || hasFinding(result.Findings, "Exfiltration")) {
 		return "The sample should be treated as malware with likely credential-theft and exfiltration capability. From a management perspective, the priority is containment, token and password rotation, IOC blocking, and confirmation of host exposure."
+	}
+	if isAndroidPackage(result) && result.RiskScore >= 55 {
+		return "The APK contains suspicious static indicators. Prioritize Android permission review, embedded payload inspection, network-destination validation, and dynamic analysis in an isolated Android lab before making a final disposition."
+	}
+	if isAndroidPackage(result) && result.APK != nil && len(exportedComponentsWithoutPermission(result.APK)) > 0 {
+		return "The APK did not reach a high malware score, but it exposes Android-specific review points. Management should require manifest permission validation, exported-component review, and controlled Android lab testing before deployment."
 	}
 	return executiveNarrative(result)
 }
@@ -254,4 +359,30 @@ func hasFindingTitle(findings []Finding, title string) bool {
 		}
 	}
 	return false
+}
+
+func firstAndroidPermissionCategories(values []AndroidPermission, limit int) []string {
+	seen := map[string]struct{}{}
+	var out []string
+	for _, permission := range values {
+		category := permission.Category
+		if category == "" {
+			category = permission.Protection
+		}
+		if category == "" {
+			continue
+		}
+		if _, ok := seen[category]; ok {
+			continue
+		}
+		seen[category] = struct{}{}
+		out = append(out, category)
+		if limit > 0 && len(out) >= limit {
+			break
+		}
+	}
+	if len(out) == 0 {
+		return []string{"unspecified"}
+	}
+	return out
 }

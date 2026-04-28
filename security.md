@@ -1,200 +1,281 @@
 # Security Policy
 
-Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
+Repository: https://github.com/Masriyan/FlatScan
+
+FlatScan is a malware-analysis utility. Security handling matters both for the tool itself and for the samples analyzed with it.
 
 ---
 
-FlatScan is a malware analysis utility. Security handling matters both for the tool itself and for the samples analyzed with it.
+## Table of Contents
+
+- [Security Scope](#security-scope)
+- [Threat Model](#threat-model)
+- [Reporting Security Issues](#reporting-security-issues)
+- [Safe Malware Handling](#safe-malware-handling)
+- [Static Analysis Disclaimer](#static-analysis-disclaimer)
+- [Output Security](#output-security)
+- [IOC Safety](#ioc-safety)
+- [Network Behavior](#network-behavior)
+- [Dependency Policy](#dependency-policy)
+- [Responsible Use](#responsible-use)
+
+---
+
+## Security Scope
+
+Security reports may include:
+
+| Category | Examples |
+|----------|---------|
+| **Unsafe Sample Handling** | Any behavior that could execute a target sample |
+| **Parser Crashes** | Panics or crashes on malformed files |
+| **Resource Exhaustion** | Crafted samples causing excessive memory or CPU |
+| **Unsafe File Writes** | Incorrect output paths or unsafe file operations |
+| **Data Exposure** | Report generation exposing unintended data |
+| **IOC Triage Errors** | Benign infrastructure emitted as blocking indicators |
+| **Future Dependency Issues** | Vulnerabilities in any added dependencies |
+
+> **FlatScan is intended to perform static analysis only.** Any behavior that executes a target sample is considered a **critical security issue**.
 
 ---
 
 ## Threat Model
 
-FlatScan's primary threat surface is the **malicious input file**. The tool reads and parses untrusted bytes from adversary-controlled samples. Relevant risks:
+```mermaid
+graph TD
+    subgraph "Attack Surface"
+        A[Malformed PE Files] -->|Parser bugs| B[Scanner Crash]
+        C[Archive Bombs] -->|Memory exhaustion| D[OOM Kill]
+        E[Crafted Strings] -->|Regex DoS| F[CPU Spin]
+        G[Path Traversal] -->|File carving| H[Unexpected Writes]
+    end
+    
+    subgraph "Mitigations"
+        B --> I[Panic Recovery]
+        D --> J["--max-analyze-bytes Cap"]
+        F --> K[String Length Limits]
+        H --> L[No Disk Extraction]
+    end
+    
+    subgraph "Out of Scope"
+        M[Sample Execution]
+        N[Network Enrichment]
+        O[Sandbox Escapes]
+    end
+    
+    style M fill:#e94560,color:#fff
+    style N fill:#e94560,color:#fff
+```
 
-| Threat | Severity | Mitigation |
-|---|---|---|
-| Crafted file triggers parser bug → crash | Medium | Use an isolated VM; run inside a container |
-| Crafted file causes resource exhaustion (memory, CPU) | Medium | `--max-analyze-bytes` and `--max-archive-files` limits apply |
-| Generated report contains live C2 URLs | Low | Treat all reports as sensitive; do not click embedded links |
-| Report output written to unsafe path | Low | Review `--report`, `--json`, `--pdf`, `--yara` paths before running |
-| Sample accidentally executed | Critical | FlatScan is static-only; accidental exec would be a critical bug — report it |
-| Sensitive strings extracted into shared reports | Medium | Review reports before sharing; redact tokens and victim-specific data |
+### Mitigations
+
+| Threat | Mitigation |
+|--------|-----------|
+| **Malformed input crashes** | `recover()` in scan pipeline, graceful error reporting |
+| **Memory exhaustion** | `--max-analyze-bytes` cap (default 256MB), `--max-archive-files` (500), `--max-carves` (80) |
+| **Regex DoS** | String extraction limits (30K–250K by mode), min-string-length filter |
+| **Archive bombs** | Entry count limits, no recursive extraction to disk |
+| **Path traversal** | Safe carving reports offsets only — no file extraction |
+| **Sensitive data leakage** | Reports contain extracted strings — treated as incident artifacts |
 
 ---
 
-## Scope of Security Reports
+## Reporting Security Issues
 
-Security issues in scope:
+Report issues through: https://github.com/Masriyan/FlatScan
 
-- Bugs that cause unsafe or incorrect sample handling
-- Parser crashes or panics on malformed or adversarially crafted files
-- Resource exhaustion (CPU, memory, disk) from crafted inputs
-- Incorrect output paths or unsafe file writes
-- Report generation bugs that expose unintended data
-- Any behavior that executes a target sample (critical — report immediately)
-- Vulnerabilities introduced by future dependency additions
+> ⚠️ **If the issue includes sensitive details**, do not post live malware, private tokens, credentials, victim data, or exploit payloads publicly. Provide a minimal reproducer when possible.
 
-Out of scope (as intended behavior):
+### Response Process
 
-- False negatives — FlatScan missing a malicious sample
-- False positives — FlatScan flagging benign content
-- Low-scoring results on packed or obfuscated samples (static analysis limitation)
-
----
-
-## Reporting a Security Issue
-
-Open an issue or contact the maintainer through the repository:
-
-[https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
-
-When reporting:
-- Provide a minimal reproducer (a small crafted file, not a live malware sample)
-- Describe the expected vs. actual behavior
-- Include the OS, Go version, and FlatScan version
-- **Do not post live malware, private tokens, credentials, victim data, or exploit payloads publicly**
+```mermaid
+graph LR
+    A[Report Filed] --> B[Triage]
+    B --> C{Severity?}
+    C -->|Critical| D[Immediate Fix]
+    C -->|High| E[Next Release]
+    C -->|Medium/Low| F[Tracked Issue]
+    D --> G[Advisory Published]
+    E --> G
+```
 
 ---
 
 ## Safe Malware Handling
 
-### Analyst VM Checklist
+### Recommended Analyst Workflow
 
-| Step | Detail |
-|---|---|
-| Use an isolated VM | No production access; air-gapped preferred |
-| Take a snapshot before analysis | Roll back cleanly after each sample |
-| Disable shared clipboard | Prevents accidental paste of malicious strings to host |
-| Disable shared folders unless required | Limits escape risk from crafted file paths |
-| Do not run samples on production hosts | Even static analysis should stay in the lab |
-| Keep samples in a dedicated directory | Separate from tools, reports, and code |
-| Do not open samples in GUI tools | GUI apps may execute embedded content or macros |
-| Use password-protected archives for transfer | Prevents accidental execution during file transfer (`password: infected` is standard) |
-| Keep reports and samples separated | Incident artifacts should be stored and handled differently from live malware |
-
-### Recommended Directory Structure
-
+```mermaid
+graph TD
+    subgraph "Safe Analysis Workflow"
+        A[Receive Sample] --> B[Transfer via Password Archive]
+        B --> C[Import to Isolated VM]
+        C --> D[Snapshot VM State]
+        D --> E[Run FlatScan]
+        E --> F[Review Reports]
+        F --> G{Verdict?}
+        G -->|Malicious| H[Escalate + Contain]
+        G -->|Suspicious| I[Sandbox Analysis]
+        G -->|Clean| J[Document + Archive]
+        H --> K[Revert VM Snapshot]
+        I --> K
+        J --> K
+    end
 ```
-/malware-lab/
-├── samples/          # Live malware — password-protected archives
-│   └── 2024-q4/
-├── reports/          # FlatScan outputs — treat as sensitive artifacts
-│   └── <sha256>/
-├── tools/            # FlatScan binary and other analysis tools
-└── quarantine/       # Extracted samples during active analysis
-```
+
+| Recommendation | Reason |
+|----------------|--------|
+| Use an isolated VM | Prevent host compromise |
+| Keep VM snapshotted | Revert after analysis |
+| Disable shared clipboard/folders | Prevent sample escape |
+| Don't run samples on production hosts | Contain risk |
+| Dedicated sample storage directory | Organization |
+| Don't open samples with GUI tools | Prevent active content execution |
+| Password-protect shared samples | Prevent accidental execution |
+| Separate reports from raw samples | Prevent confusion |
 
 ---
 
-## Static Analysis Limitations and Disclaimers
+## Static Analysis Disclaimer
 
-FlatScan does not execute target samples. It reads bytes and parses metadata. This reduces risk but does not eliminate it.
+FlatScan does **not** execute target samples. It reads bytes and parses metadata. However:
 
-Specific limitations:
+| Limitation | Impact |
+|-----------|--------|
+| **File parsers can have bugs** | Malformed inputs might trigger unexpected behavior |
+| **Malformed inputs can consume resources** | High memory or CPU usage possible |
+| **Static analysis can miss behavior** | Environment-gated, packed, or staged malware won't be detected |
+| **Clean report ≠ clean file** | A low-score report is NOT proof the file is benign |
 
-- **File parsers can have bugs.** Malformed PE, ZIP, or ELF structures may trigger unexpected behavior.
-- **Malformed inputs can exhaust resources.** Zip bombs, oversized headers, and recursive structures can cause high memory or CPU usage. FlatScan applies limits, but edge cases exist.
-- **Static analysis can miss behavior.** Environment-gated, staged, packed, or dynamically generated code will not appear in a static scan.
-- **A clean-looking report is not a clean verdict.** A score of 0–9 means no strong static indicators, not that the file is benign.
+> **Use FlatScan as one component** in a broader workflow that includes sandboxing, reverse engineering, endpoint telemetry, network monitoring, and threat intelligence.
 
-Use FlatScan as one component in a broader workflow:
+### Analysis Confidence Hierarchy
 
-```
-FlatScan (static) → Sandbox (behavioral) → RE (deep dive) → EDR/NDR telemetry → Threat intel
+```mermaid
+graph BT
+    A["Static Analysis<br/>(FlatScan)"] -->|complements| B["Dynamic Sandbox<br/>(ANY.RUN, Joe Sandbox)"]
+    B -->|complements| C["Reverse Engineering<br/>(IDA, Ghidra)"]
+    C -->|complements| D["Endpoint Telemetry<br/>(EDR Logs)"]
+    D -->|complements| E["Network Analysis<br/>(PCAP, DNS)"]
+    E -->|complements| F["Threat Intelligence<br/>(STIX, YARA)"]
 ```
 
 ---
 
 ## Output Security
 
-Generated reports are sensitive incident artifacts and must be handled accordingly.
+### Sensitive Content in Reports
 
-Reports may contain:
+Generated reports may contain:
 
-| Content | Risk if Exposed |
-|---|---|
-| C2 URLs | Operational details about active threat infrastructure |
-| Webhook tokens | Active exfiltration endpoint credentials |
-| API paths and keys | Potentially active credentials |
-| Registry keys | Specific persistence mechanisms |
-| Internal file paths | Victim environment details |
-| Extracted strings with secrets | Embedded credentials or configuration |
-| Hashes and metadata | Sample fingerprints useful to adversaries tracking detection |
+```mermaid
+mindmap
+  root((Report<br/>Contents))
+    Network IOCs
+      C2 URLs
+      Webhook Tokens
+      API Endpoints
+    File Artifacts
+      Registry Keys
+      Internal Paths
+      Embedded Strings
+    Identity
+      MSIX Publisher
+      Certificate Metadata
+      Package Names
+    Technical
+      Payload Hashes
+      Carved Offsets
+      Decoded Secrets
+```
 
-**Before sharing a report:**
-- Review for embedded tokens and credentials
-- Review for victim-specific data (hostnames, usernames, internal paths)
-- Redact or replace sensitive fields as appropriate
-- Apply TLP/sharing labels appropriate for your organization
+> ⚠️ **Handle reports as sensitive incident artifacts.** Do not publish reports without reviewing them for exposed tokens or victim-specific data.
+
+### Output Format Security
+
+| Format | Risk | Mitigation |
+|--------|------|-----------|
+| **PDF** | May contain clickable malicious URLs | Don't click links from malware reports on production systems |
+| **HTML** | May contain URLs in IOC cards | Static HTML — no JavaScript execution of URLs |
+| **STIX** | Contains IOC indicators | Review before feeding to automated blocklists |
+| **YARA** | May contain sensitive strings | Review before deploying to production |
+| **Sigma** | May contain detection logic | Review field names against your SIEM schema |
+| **JSON** | Complete scan data | Contains all extracted strings and IOCs |
 
 ---
 
-## YARA Rule Safety
+## IOC Safety
 
-FlatScan generates YARA rules with `--yara`. These rules are hunting starting points, not production-ready signatures.
+### IOC Suppression Pipeline
 
-Before deploying generated YARA rules:
+```mermaid
+graph TD
+    A[Extracted IOCs] --> B{Built-in Triage}
+    B -->|PKI/OCSP/CRL| C[Suppressed]
+    B -->|XML Schema/OID| C
+    B -->|Loopback/Broadcast| C
+    B -->|Clean| D[Active IOCs]
+    
+    E["--ioc-allowlist"] --> F{User Triage}
+    D --> F
+    F -->|Match| C
+    F -->|Clean| G[Report IOCs]
+    
+    C --> H["suppression_log<br/>(auditable in JSON)"]
+```
 
-1. Review the rule logic and string selections manually
-2. Test against known-good corpora to measure false positive rate
-3. Test against known-malicious samples to confirm detection
-4. Validate with your YARA engine (syntax and performance)
-5. Apply appropriate scope limits (do not deploy broad rules to endpoint blocking without testing)
+### Before Using IOC Exports for Blocking
 
-Generated rules may contain:
-- Sensitive URLs or C2 strings
-- Paths or registry keys that are environment-specific
-- Strings that are too broad or too narrow for production use
-
----
-
-## PDF Report Safety
-
-PDF reports are generated locally by FlatScan's internal PDF writer. No external PDF libraries or cloud services are used.
-
-- **Do not click embedded links** in PDF reports on production systems. Reports may contain live C2 URLs.
-- Store PDF reports as sensitive artifacts alongside other incident documentation.
-- Apply access controls appropriate to the sensitivity of the case.
+| Step | Action |
+|------|--------|
+| 1 | Review `iocs.pe_hashes` first — embedded payload hashes are highest value |
+| 2 | Review suppressed values if you need certificate or publisher pivoting |
+| 3 | Extend suppression with `--ioc-allowlist` for your environment |
+| 4 | **Never** block schema, OCSP, CRL, or cert-provider domains without independent malicious context |
 
 ---
 
 ## Network Behavior
 
-Current FlatScan analysis is fully local and static. **It does not contact external services by default.**
-
-If future enrichment features are added (e.g., VirusTotal lookups, threat intel enrichment), they will be:
-- Explicitly opt-in — disabled by default
-- Clearly documented in the changelog and usage guide
-- Safe for sensitive incident data (no automatic sample submission)
-- Configurable or disableable for offline and air-gapped environments
+| Version | Network Activity |
+|---------|-----------------|
+| **Current (0.3.0)** | **None.** All analysis is local and static. |
+| **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---
 
 ## Dependency Policy
 
-FlatScan currently uses the Go standard library only. No third-party Go modules are used or required.
+```mermaid
+graph LR
+    A["Current: Zero Dependencies"] --> B{Adding New?}
+    B -->|Must| C[Well-maintained library]
+    B -->|Must| D[Pinned versions]
+    B -->|Must| E[Documented rationale]
+    B -->|Must| F[Parser/archive libraries reviewed carefully]
+```
 
-If dependencies are added in the future:
-- Prefer well-maintained, narrowly scoped libraries
-- Pin to specific versions; vendor if possible
-- Document the dependency and the reason it was added
-- Pay extra attention to parser and archive-handling libraries, which are the highest-risk surface area
+The project currently uses **the Go standard library only**. No third-party Go modules. If dependencies are added:
+
+| Requirement | Reason |
+|-------------|--------|
+| Well-maintained libraries | Ongoing security patches |
+| Pinned versions | Reproducible builds |
+| Documented rationale | Clear need for the dependency |
+| Careful review of parser libraries | Parser bugs are the primary attack surface |
 
 ---
 
 ## Responsible Use
 
-FlatScan is built for:
-- Defensive malware analysis
-- Incident response and triage
-- Threat hunting
-- Security research and education
+FlatScan is intended for:
 
-**Do not use FlatScan to:**
-- Improve malware evasion or packing techniques
-- Assist in developing or deploying malware
-- Conduct unauthorized analysis of systems or files you do not own or have explicit permission to analyze
-- Bypass detection mechanisms on systems you do not control
+| ✅ Approved Use | ❌ Prohibited Use |
+|----------------|-----------------|
+| Defensive malware analysis | Improving malware deployment |
+| Incident response | Evasion development |
+| Threat hunting | Unauthorized system access |
+| Security education | Offensive operations without authorization |
+| Blue team operations | Data exfiltration |
 
-Misuse of this tool may violate applicable laws and organizational policies.
+> **Do not use FlatScan to improve malware deployment, evasion, or unauthorized activity.**

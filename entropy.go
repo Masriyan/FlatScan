@@ -42,8 +42,45 @@ func HighEntropyRegions(data []byte, window, step int, threshold float64, limit 
 		return nil
 	}
 	regions := make([]EntropyRegion, 0)
+
+	// For the first window, compute full histogram.
+	var counts [256]int
+	for _, b := range data[:window] {
+		counts[b]++
+	}
+
+	computeEntropy := func() float64 {
+		length := float64(window)
+		var entropy float64
+		for _, count := range counts {
+			if count == 0 {
+				continue
+			}
+			p := float64(count) / length
+			entropy -= p * math.Log2(p)
+		}
+		return entropy
+	}
+
 	for offset := 0; offset+window <= len(data); offset += step {
-		entropy := ShannonEntropy(data[offset : offset+window])
+		if offset > 0 {
+			// Incrementally update histogram: remove bytes leaving the window,
+			// add bytes entering the window. This is O(step) per iteration
+			// instead of O(window), a significant win when step < window.
+			prevStart := offset - step
+			newEnd := offset + window
+			for i := prevStart; i < offset && i < len(data); i++ {
+				counts[data[i]]--
+			}
+			prevEnd := prevStart + window
+			if prevEnd > newEnd {
+				prevEnd = newEnd
+			}
+			for i := prevEnd; i < newEnd && i < len(data); i++ {
+				counts[data[i]]++
+			}
+		}
+		entropy := computeEntropy()
 		if entropy >= threshold {
 			regions = append(regions, EntropyRegion{
 				Offset:  int64(offset),

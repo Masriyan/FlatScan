@@ -25,19 +25,19 @@ func ExtractStrings(data []byte, minLen, limit int) ([]ExtractedString, int, boo
 		results = append(results, ExtractedString{Value: value, Offset: offset, Encoding: encoding})
 	}
 
+	// ASCII string extraction — direct slice indexing avoids per-string
+	// buffer allocation (previously thousands of make([]byte,0,64) per scan).
 	for i := 0; i < len(data); {
 		if !isASCIIStringByte(data[i]) {
 			i++
 			continue
 		}
 		start := i
-		buf := make([]byte, 0, 64)
 		for i < len(data) && isASCIIStringByte(data[i]) {
-			buf = append(buf, data[i])
 			i++
 		}
-		if len(buf) >= minLen {
-			add(string(buf), int64(start), "ascii")
+		if i-start >= minLen {
+			add(string(data[start:i]), int64(start), "ascii")
 		}
 	}
 

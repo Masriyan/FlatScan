@@ -57,6 +57,7 @@ func renderFullReport(result ScanResult) string {
 	writeFunctions(&b, result.Functions)
 	writeIOCsFull(&b, result.IOCs)
 	writeDecodedFull(&b, result.DecodedArtifacts)
+	writeAdvancedDetails(&b, result)
 	writeFormatDetails(&b, result)
 	writeArchiveEntries(&b, result.ArchiveEntries)
 	if len(result.SuspiciousStrings) > 0 {
@@ -194,6 +195,9 @@ func writeFunctions(b *strings.Builder, functions []FunctionHit) {
 
 func writeIOCSummary(b *strings.Builder, iocs IOCSet) {
 	fmt.Fprintf(b, "\nIOCs: %d total\n", IOCCount(iocs))
+	if len(iocs.PEHashes) > 0 {
+		fmt.Fprintf(b, "- Embedded PE hashes (%d): %s\n", len(iocs.PEHashes), strings.Join(firstPEHashSummaries(iocs.PEHashes, 3), ", "))
+	}
 	writeCategorySummary(b, "URLs", iocs.URLs)
 	writeCategorySummary(b, "Domains", iocs.Domains)
 	writeCategorySummary(b, "IPv4", iocs.IPv4)
@@ -203,6 +207,9 @@ func writeIOCSummary(b *strings.Builder, iocs IOCSet) {
 	writeCategorySummary(b, "Registry keys", iocs.RegistryKeys)
 	writeCategorySummary(b, "Windows paths", iocs.WindowsPaths)
 	writeCategorySummary(b, "Unix paths", iocs.UnixPaths)
+	if iocs.SuppressedCount > 0 {
+		fmt.Fprintf(b, "- Suppressed as known-benign/contextual: %d\n", iocs.SuppressedCount)
+	}
 }
 
 func writeCategorySummary(b *strings.Builder, name string, values []string) {
@@ -219,6 +226,7 @@ func writeCategorySummary(b *strings.Builder, name string, values []string) {
 
 func writeIOCsFull(b *strings.Builder, iocs IOCSet) {
 	fmt.Fprintf(b, "\nIOCs: %d total\n", IOCCount(iocs))
+	writePEHashIOCSection(b, iocs.PEHashes)
 	writeIOCSection(b, "URLs", iocs.URLs)
 	writeIOCSection(b, "Domains", iocs.Domains)
 	writeIOCSection(b, "IPv4", iocs.IPv4)
@@ -232,6 +240,45 @@ func writeIOCsFull(b *strings.Builder, iocs IOCSet) {
 	writeIOCSection(b, "Registry keys", iocs.RegistryKeys)
 	writeIOCSection(b, "Windows paths", iocs.WindowsPaths)
 	writeIOCSection(b, "Unix paths", iocs.UnixPaths)
+	if iocs.SuppressedCount > 0 {
+		fmt.Fprintf(b, "\nSuppressed IOCs: %d\n", iocs.SuppressedCount)
+		if iocs.SuppressionReason != "" {
+			fmt.Fprintf(b, "- Reason: %s\n", iocs.SuppressionReason)
+		}
+		for i, item := range iocs.SuppressionLog {
+			if i >= 80 {
+				fmt.Fprintf(b, "- ... %d more suppressed values omitted\n", len(iocs.SuppressionLog)-i)
+				break
+			}
+			fmt.Fprintf(b, "- [%s] %s (%s)\n", item.Type, item.Value, item.Reason)
+		}
+	}
+}
+
+func writePEHashIOCSection(b *strings.Builder, values []PEHashIOC) {
+	if len(values) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "\nEmbedded PE payload hashes:\n")
+	for _, value := range values {
+		fmt.Fprintf(b, "- [%s] %s sha256=%s", value.Tier, value.Path, value.SHA256)
+		if value.Size > 0 {
+			fmt.Fprintf(b, " size=%d", value.Size)
+		}
+		if value.CompressedSize > 0 {
+			fmt.Fprintf(b, " compressed=%d ratio=%.3f", value.CompressedSize, value.CompressionRatio)
+		}
+		if value.Entropy > 0 {
+			fmt.Fprintf(b, " entropy=%.2f", value.Entropy)
+		}
+		if value.CarvedOffset != "" {
+			fmt.Fprintf(b, " offset=%s", value.CarvedOffset)
+		}
+		if value.Note != "" {
+			fmt.Fprintf(b, " note=%s", value.Note)
+		}
+		fmt.Fprintln(b)
+	}
 }
 
 func writeIOCSection(b *strings.Builder, name string, values []string) {
@@ -255,11 +302,206 @@ func writeDecodedFull(b *strings.Builder, artifacts []DecodedArtifact) {
 	}
 }
 
+func writeAdvancedDetails(b *strings.Builder, result ScanResult) {
+	if len(result.FamilyMatches) > 0 {
+		fmt.Fprintf(b, "\nFamily classifier: %d hypotheses\n", len(result.FamilyMatches))
+		for _, match := range result.FamilyMatches {
+			fmt.Fprintf(b, "- [%s] %s (%s) score=%d", match.Confidence, match.Family, match.Category, match.Score)
+			if len(match.Evidence) > 0 {
+				fmt.Fprintf(b, " evidence=%s", strings.Join(match.Evidence, "; "))
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if len(result.RulePacks) > 0 {
+		fmt.Fprintf(b, "\nRule packs: %d\n", len(result.RulePacks))
+		for _, pack := range result.RulePacks {
+			fmt.Fprintf(b, "- %s rules=%d fired=%d", nonEmpty(pack.Name, pack.Path), pack.RulesLoaded, pack.RulesFired)
+			if len(pack.Warnings) > 0 {
+				fmt.Fprintf(b, " warnings=%s", strings.Join(pack.Warnings, " | "))
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if len(result.ConfigArtifacts) > 0 {
+		fmt.Fprintf(b, "\nCrypto/config artifacts: %d\n", len(result.ConfigArtifacts))
+		for _, artifact := range result.ConfigArtifacts {
+			fmt.Fprintf(b, "- [%s] %s from %s: %s", artifact.Confidence, artifact.Type, artifact.Source, artifact.Preview)
+			if artifact.Evidence != "" {
+				fmt.Fprintf(b, " (%s)", artifact.Evidence)
+			}
+			if IOCCount(artifact.IOCs) > 0 {
+				fmt.Fprintf(b, " iocs=%d", IOCCount(artifact.IOCs))
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if len(result.CarvedArtifacts) > 0 {
+		fmt.Fprintf(b, "\nCarved artifacts: %d\n", len(result.CarvedArtifacts))
+		for _, artifact := range result.CarvedArtifacts {
+			fmt.Fprintf(b, "- %s offset=0x%x length=%d sha256=%s entropy=%.2f", artifact.Type, artifact.Offset, artifact.Length, artifact.SHA256, artifact.Entropy)
+			if artifact.Preview != "" {
+				fmt.Fprintf(b, " preview=%s", artifact.Preview)
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if result.Similarity.FlatHash != "" {
+		fmt.Fprintln(b, "\nSimilarity hashes:")
+		if formatted := strings.TrimSpace(formatSimilarity(result.Similarity)); formatted != "" {
+			for _, line := range strings.Split(formatted, "\n") {
+				fmt.Fprintf(b, "- %s\n", line)
+			}
+		}
+	}
+	if len(result.ExternalTools) > 0 {
+		fmt.Fprintf(b, "\nExternal tool integration: %d tools\n", len(result.ExternalTools))
+		for _, tool := range result.ExternalTools {
+			fmt.Fprintf(b, "- %s status=%s found=%v", tool.Name, tool.Status, tool.Found)
+			if tool.Output != "" {
+				fmt.Fprintf(b, " output=%s", previewString(tool.Output, 160))
+			}
+			if tool.Error != "" {
+				fmt.Fprintf(b, " error=%s", tool.Error)
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if len(result.Plugins) > 0 {
+		fmt.Fprintf(b, "\nAnalysis plugins: %d\n", len(result.Plugins))
+		for _, plugin := range result.Plugins {
+			fmt.Fprintf(b, "- %s status=%s", plugin.Name, plugin.Status)
+			if plugin.Summary != "" {
+				fmt.Fprintf(b, " summary=%s", plugin.Summary)
+			}
+			if len(plugin.Warnings) > 0 {
+				fmt.Fprintf(b, " warnings=%s", strings.Join(plugin.Warnings, " | "))
+			}
+			fmt.Fprintln(b)
+		}
+	}
+	if result.Case != nil {
+		fmt.Fprintf(b, "\nCase database:\n- Case ID: %s\n- Stored: %v\n- Path: %s\n", result.Case.CaseID, result.Case.Stored, result.Case.DatabasePath)
+		if len(result.Case.RelatedHashes) > 0 {
+			fmt.Fprintf(b, "- Related hashes: %s\n", strings.Join(result.Case.RelatedHashes, ", "))
+		}
+	}
+}
+
 func writeFormatDetails(b *strings.Builder, result ScanResult) {
 	if len(result.HighEntropyRegions) > 0 {
 		fmt.Fprintln(b, "\nHigh entropy regions:")
 		for _, region := range result.HighEntropyRegions {
 			fmt.Fprintf(b, "- offset=0x%x length=%d entropy=%.2f\n", region.Offset, region.Length, region.Entropy)
+		}
+	}
+
+	if result.APK != nil {
+		fmt.Fprintln(b, "\nAPK details:")
+		if result.APK.PackageName != "" {
+			fmt.Fprintf(b, "- Package: %s\n", result.APK.PackageName)
+		}
+		if result.APK.VersionName != "" || result.APK.VersionCode != "" {
+			fmt.Fprintf(b, "- Version: name=%s code=%s\n", result.APK.VersionName, result.APK.VersionCode)
+		}
+		if result.APK.MinSDK != "" || result.APK.TargetSDK != "" {
+			fmt.Fprintf(b, "- SDK: min=%s target=%s\n", result.APK.MinSDK, result.APK.TargetSDK)
+		}
+		fmt.Fprintf(b, "- Manifest format: %s\n", result.APK.ManifestFormat)
+		fmt.Fprintf(b, "- APK entries: %d\n", result.APK.FileCount)
+		if len(result.APK.Permissions) > 0 {
+			fmt.Fprintf(b, "\nAndroid permissions: %d\n", len(result.APK.Permissions))
+			for _, permission := range result.APK.Permissions {
+				detail := permission.Name
+				if permission.Risk != "" {
+					detail += " risk=" + permission.Risk
+				}
+				if permission.Category != "" {
+					detail += " category=" + permission.Category
+				}
+				if permission.Protection != "" {
+					detail += " protection=" + permission.Protection
+				}
+				fmt.Fprintf(b, "- %s\n", detail)
+			}
+		}
+		if len(result.APK.ExportedComponents) > 0 {
+			fmt.Fprintf(b, "\nExported Android components: %d\n", len(result.APK.ExportedComponents))
+			for _, component := range result.APK.ExportedComponents {
+				fmt.Fprintf(b, "- %s %s", component.Type, component.Name)
+				if component.Permission != "" {
+					fmt.Fprintf(b, " permission=%s", component.Permission)
+				}
+				if !component.ExportedDeclared {
+					fmt.Fprint(b, " exported=inferred-from-intent-filter")
+				}
+				fmt.Fprintln(b)
+				if len(component.IntentActions) > 0 {
+					fmt.Fprintf(b, "  Actions: %s\n", strings.Join(component.IntentActions, ", "))
+				}
+			}
+		}
+		if len(result.APK.NativeLibraries) > 0 {
+			fmt.Fprintf(b, "\nNative libraries: %d\n", len(result.APK.NativeLibraries))
+			writeList(b, result.APK.NativeLibraries, 120)
+		}
+		if len(result.APK.EmbeddedPayloads) > 0 {
+			fmt.Fprintf(b, "\nEmbedded APK payloads: %d\n", len(result.APK.EmbeddedPayloads))
+			writeList(b, result.APK.EmbeddedPayloads, 120)
+		}
+		if len(result.APK.NetworkSecurityConfig) > 0 {
+			fmt.Fprintf(b, "\nNetwork security config references: %d\n", len(result.APK.NetworkSecurityConfig))
+			writeList(b, result.APK.NetworkSecurityConfig, 80)
+		}
+		if len(result.APK.SignatureFiles) > 0 {
+			fmt.Fprintf(b, "\nAPK signature files: %d\n", len(result.APK.SignatureFiles))
+			writeList(b, result.APK.SignatureFiles, 40)
+		}
+	}
+	if len(result.DEXFiles) > 0 {
+		fmt.Fprintf(b, "\nDEX analysis: %d file(s)\n", len(result.DEXFiles))
+		for _, dex := range result.DEXFiles {
+			fmt.Fprintf(b, "- %s version=%s strings=%d parsed=%d", dex.Name, dex.Version, dex.StringsTotal, dex.StringsParsed)
+			if dex.StringsTruncated {
+				fmt.Fprint(b, " truncated=true")
+			}
+			fmt.Fprintln(b)
+			if len(dex.APIHits) > 0 {
+				for _, hit := range dex.APIHits {
+					fmt.Fprintf(b, "  [%s] %s: %s\n", hit.Severity, hit.Category, hit.Indicator)
+				}
+			}
+			if IOCCount(dex.IOCs) > 0 {
+				fmt.Fprintf(b, "  IOCs in DEX strings: %d\n", IOCCount(dex.IOCs))
+			}
+		}
+	}
+
+	if result.MSIX != nil {
+		fmt.Fprintln(b, "\nMSIX/AppX metadata:")
+		if result.MSIX.IdentityName != "" {
+			fmt.Fprintf(b, "- Identity name: %s\n", result.MSIX.IdentityName)
+		}
+		if result.MSIX.IdentityPublisher != "" {
+			fmt.Fprintf(b, "- Publisher: %s trusted=%v\n", result.MSIX.IdentityPublisher, result.MSIX.PublisherTrusted)
+		}
+		if result.MSIX.IdentityVersion != "" {
+			fmt.Fprintf(b, "- Version: %s\n", result.MSIX.IdentityVersion)
+		}
+		if len(result.MSIX.DeclaredExecutables) > 0 {
+			fmt.Fprintf(b, "- Declared executables: %s\n", strings.Join(result.MSIX.DeclaredExecutables, ", "))
+		}
+		if len(result.MSIX.Capabilities) > 0 {
+			fmt.Fprintf(b, "- Capabilities: %s\n", strings.Join(result.MSIX.Capabilities, ", "))
+		}
+		if len(result.MSIX.UndeclaredExecutables) > 0 {
+			fmt.Fprintf(b, "- Undeclared executables: %s\n", strings.Join(result.MSIX.UndeclaredExecutables, ", "))
+		}
+		if result.MSIX.SignatureSHA256 != "" {
+			fmt.Fprintf(b, "- AppxSignature.p7x: sha256=%s size=%d status=%s\n", result.MSIX.SignatureSHA256, result.MSIX.SignatureSize, result.MSIX.SignatureParseStatus)
+		}
+		if len(result.MSIX.CertificateSubjects) > 0 {
+			fmt.Fprintf(b, "- Certificate subjects: %s\n", strings.Join(result.MSIX.CertificateSubjects, " | "))
 		}
 	}
 
@@ -331,6 +573,21 @@ func writeArchiveEntries(b *strings.Builder, entries []ArchiveEntry) {
 	fmt.Fprintf(b, "\nArchive entries: %d\n", len(entries))
 	for _, entry := range entries {
 		fmt.Fprintf(b, "- %s size=%d compressed=%d", entry.Name, entry.Size, entry.CompressedSize)
+		if entry.CompressionRatio > 0 {
+			fmt.Fprintf(b, " ratio=%.3f", entry.CompressionRatio)
+		}
+		if entry.Offset > 0 {
+			fmt.Fprintf(b, " offset=0x%x", entry.Offset)
+		}
+		if entry.Type != "" {
+			fmt.Fprintf(b, " type=%s", entry.Type)
+		}
+		if entry.Entropy > 0 {
+			fmt.Fprintf(b, " entropy=%.2f", entry.Entropy)
+		}
+		if entry.SHA256 != "" {
+			fmt.Fprintf(b, " sha256=%s", entry.SHA256)
+		}
 		if entry.SuspiciousReason != "" {
 			fmt.Fprintf(b, " reason=%s", entry.SuspiciousReason)
 		}
@@ -350,10 +607,14 @@ func WriteIOCFile(path string, result ScanResult) error {
 	fmt.Fprintf(&b, "sha256=%s\n", result.Hashes.SHA256)
 	fmt.Fprintf(&b, "verdict=%s\n", result.Verdict)
 	fmt.Fprintf(&b, "risk_score=%d\n", result.RiskScore)
+	if result.IOCs.SuppressedCount > 0 {
+		fmt.Fprintf(&b, "suppressed_iocs=%d\n", result.IOCs.SuppressedCount)
+	}
 	if IOCCount(result.IOCs) == 0 {
 		fmt.Fprintln(&b, "\n# No IOCs extracted")
 		return os.WriteFile(path, []byte(b.String()), 0o644)
 	}
+	writePEHashExportSection(&b, result.IOCs.PEHashes)
 	writeIOCExportSection(&b, "urls", result.IOCs.URLs)
 	writeIOCExportSection(&b, "domains", result.IOCs.Domains)
 	writeIOCExportSection(&b, "ipv4", result.IOCs.IPv4)
@@ -368,6 +629,36 @@ func WriteIOCFile(path string, result ScanResult) error {
 	writeIOCExportSection(&b, "windows_paths", result.IOCs.WindowsPaths)
 	writeIOCExportSection(&b, "unix_paths", result.IOCs.UnixPaths)
 	return os.WriteFile(path, []byte(b.String()), 0o644)
+}
+
+func writePEHashExportSection(b *strings.Builder, values []PEHashIOC) {
+	if len(values) == 0 {
+		return
+	}
+	fmt.Fprintln(b, "\n[pe_hashes]")
+	for _, value := range values {
+		fmt.Fprintf(b, "%s path=%s tier=%s", value.SHA256, value.Path, value.Tier)
+		if value.Note != "" {
+			fmt.Fprintf(b, " note=%q", value.Note)
+		}
+		fmt.Fprintln(b)
+	}
+}
+
+func firstPEHashSummaries(values []PEHashIOC, limit int) []string {
+	var out []string
+	for i, value := range values {
+		if limit > 0 && i >= limit {
+			out = append(out, fmt.Sprintf("%d more", len(values)-i))
+			break
+		}
+		sha := value.SHA256
+		if len(sha) > 12 {
+			sha = sha[:12]
+		}
+		out = append(out, fmt.Sprintf("%s=%s", value.Path, sha))
+	}
+	return out
 }
 
 func writeIOCExportSection(b *strings.Builder, name string, values []string) {

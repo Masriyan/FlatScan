@@ -49,8 +49,13 @@ var apiPatterns = []apiPattern{
 }
 
 func AnalyzePatterns(result *ScanResult, stringsFound []ExtractedString, cfg Config) {
-	corpus := buildCorpus(stringsFound, result.DecodedArtifacts, 32*1024*1024)
+	corpus := buildCorpus(stringsFound, result.DecodedArtifacts, defaultMaxCorpusBytes)
+	AnalyzePatternsWithCorpus(result, stringsFound, cfg, corpus)
+}
 
+// AnalyzePatternsWithCorpus runs all signature/pattern matching using a
+// pre-built corpus string. Use this when the corpus is shared across modules.
+func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedString, cfg Config, corpus string) {
 	for _, api := range apiPatterns {
 		if strings.Contains(corpus, api.Needle) {
 			result.Functions = append(result.Functions, FunctionHit{
@@ -92,10 +97,10 @@ func AnalyzePatterns(result *ScanResult, stringsFound []ExtractedString, cfg Con
 	if hasAny(corpus, "discordapp.com/api/v8/users/@me", "discord.com/api/v", "cdn.discordapp.com/avatars") && hasAny(corpus, "token", "authorization", "webhook", "avatar") {
 		AddFindingDetailed(result, "High", "Credential Access", "Discord account/API access indicators", "Discord user API/avatar/webhook strings are embedded", 18, 0, "Credential Access", "Credentials from Web Browsers (T1555.003)", "Reset exposed Discord tokens and hunt for unauthorized API calls from affected hosts.")
 	}
-	if hasAny(corpus, "hkey_current_user\\software\\microsoft\\windows\\currentversion\\run", "hklm\\software\\microsoft\\windows\\currentversion\\run", "software\\microsoft\\windows\\currentversion\\run", "createservice", "schtasks", "\\startup\\") {
+	if !isAndroidPackage(*result) && hasAny(corpus, "hkey_current_user\\software\\microsoft\\windows\\currentversion\\run", "hklm\\software\\microsoft\\windows\\currentversion\\run", "software\\microsoft\\windows\\currentversion\\run", "createservice", "schtasks", "\\startup\\") {
 		AddFindingDetailed(result, "High", "Persistence", "Windows persistence indicator", "Run keys, service creation, scheduled task, or startup folder strings are present", 20, 0, "Persistence", "Registry Run Keys / Startup Folder (T1547.001)", "Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed.")
 	}
-	if hasAny(corpus, "/etc/cron", "crontab", "/etc/systemd/system", "authorized_keys", "ld_preload", ".bashrc", ".profile") {
+	if !isAndroidPackage(*result) && hasAny(corpus, "/etc/cron", "crontab", "/etc/systemd/system", "authorized_keys", "ld_preload", ".bashrc", ".profile") {
 		AddFinding(result, "Medium", "Persistence", "Linux persistence indicator", "cron, systemd, SSH, preload, or shell profile paths are present", 12, 0)
 	}
 	if hasAny(corpus, "powershell") && hasAny(corpus, "-enc", "-encodedcommand", "frombase64string", "downloadstring", "invoke-expression", " iex ") {
@@ -113,15 +118,15 @@ func AnalyzePatterns(result *ScanResult, stringsFound []ExtractedString, cfg Con
 	if hasAny(corpus, "\"encrypted_key\"", "encrypted_key", "decryptwithkey", "unable to decrypt") && hasAny(corpus, "bcryptdecrypt", "cryptunprotectdata", "dpapi", "decrypt") {
 		AddFindingDetailed(result, "High", "Credential Access", "Chromium credential decryption workflow", "encrypted_key and Windows crypto/decrypt routines are referenced", 26, 0, "Credential Access", "Credentials from Web Browsers (T1555.003)", "Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry.")
 	}
-	if hasAny(corpus, "upx0", "upx1", "upx!", ".aspack", "themida", "vmprotect", "enigma protector", "mpress") {
+	if isNativeExecutableLike(*result) && hasAny(corpus, "upx0", "upx1", "upx!", ".aspack", "themida", "vmprotect", "enigma protector", "mpress") {
 		AddFinding(result, "Medium", "Packing", "Known packer or protector marker", "UPX, ASPack, Themida, VMProtect, Enigma, or MPRESS marker present", 13, 0)
 	}
-	if result.Entropy >= 7.70 {
+	if !isArchiveLike(*result) && result.Entropy >= 7.70 {
 		AddFinding(result, "High", "Packing", "Very high file entropy", fmt.Sprintf("overall entropy %.2f/8.00", result.Entropy), 18, 0)
-	} else if result.Entropy >= 7.20 {
+	} else if !isArchiveLike(*result) && result.Entropy >= 7.20 {
 		AddFinding(result, "Medium", "Packing", "High file entropy", fmt.Sprintf("overall entropy %.2f/8.00", result.Entropy), 10, 0)
 	}
-	if len(result.HighEntropyRegions) >= 3 {
+	if !isArchiveLike(*result) && len(result.HighEntropyRegions) >= 3 {
 		AddFinding(result, "Medium", "Packing", "Multiple high-entropy regions", fmt.Sprintf("%d high-entropy regions found", len(result.HighEntropyRegions)), 10, 0)
 	}
 	if len(result.DecodedArtifacts) > 0 {
@@ -176,7 +181,7 @@ func suspiciousStringSamples(stringsFound []ExtractedString, limit int) []string
 		"hkey_current_user", "hkey_local_machine", "\\currentversion\\run",
 		"bitcoin", "monero", ".onion", "decrypt", "encrypt", "ransom",
 		"lsass", "sekurlsa", "mimikatz", "wallet.dat", "discord.com/api/webhooks",
-		"amsi", "etw", "defender", "vbox", "vmware", "x64dbg", "ollydbg",
+		"amsi", "etweventwrite", "defender", "vbox", "vmware", "x64dbg", "ollydbg",
 	}
 	var out []string
 	seen := make(map[string]struct{})

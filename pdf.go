@@ -35,7 +35,10 @@ func WritePDFReport(path string, result ScanResult) error {
 	doc := newPDFReport(result.FileName)
 	doc.titlePage(result)
 	doc.executiveDashboard(result)
+	doc.finalAnalystAssessment(result)
 	doc.managementActions(result)
+	doc.evidenceSummary(result)
+	doc.advancedEvidence(result)
 	doc.mitreMatrix(result)
 	doc.priorityFindings(result)
 	doc.cryptoAssessment(result)
@@ -51,6 +54,7 @@ func WritePDFReport(path string, result ScanResult) error {
 	}
 
 	doc.section("Indicators of Compromise")
+	doc.peHashSection(result.IOCs.PEHashes)
 	doc.iocSection("URLs", result.IOCs.URLs)
 	doc.iocSection("Domains", result.IOCs.Domains)
 	doc.iocSection("IPv4", result.IOCs.IPv4)
@@ -64,6 +68,10 @@ func WritePDFReport(path string, result ScanResult) error {
 	doc.iocSection("Registry keys", result.IOCs.RegistryKeys)
 	doc.iocSection("Windows paths", result.IOCs.WindowsPaths)
 	doc.iocSection("Unix paths", result.IOCs.UnixPaths)
+	if result.IOCs.SuppressedCount > 0 {
+		doc.subsection("Suppressed contextual IOCs")
+		doc.bullet(fmt.Sprintf("%d extracted values were suppressed by the IOC triage allowlist. These are retained in JSON for auditability, but excluded from hunting/blocking sections.", result.IOCs.SuppressedCount))
+	}
 
 	doc.section("Executable and Container Details")
 	doc.formatDetails(result)
@@ -227,6 +235,24 @@ func (p *pdfReport) iocSection(name string, values []string) {
 	p.y -= 3
 }
 
+func (p *pdfReport) peHashSection(values []PEHashIOC) {
+	if len(values) == 0 {
+		return
+	}
+	p.subsection(fmt.Sprintf("Embedded PE payload hashes (%d)", len(values)))
+	header := []string{"Tier", "Path", "SHA256", "Entropy"}
+	widths := []float64{52, 142, 260, 62}
+	p.tableHeader(header, widths)
+	for i, value := range values {
+		entropy := ""
+		if value.Entropy > 0 {
+			entropy = fmt.Sprintf("%.2f", value.Entropy)
+		}
+		p.tableRow([]string{value.Tier, value.Path, value.SHA256, entropy}, widths, i)
+	}
+	p.y -= 6
+}
+
 func (p *pdfReport) monoBullet(text string) {
 	for index, line := range wrapPDFText(text, 82) {
 		p.ensure(14)
@@ -239,6 +265,113 @@ func (p *pdfReport) monoBullet(text string) {
 }
 
 func (p *pdfReport) formatDetails(result ScanResult) {
+	if result.MSIX != nil {
+		p.subsection("MSIX/AppX metadata")
+		p.kv("Identity", result.MSIX.IdentityName)
+		p.kv("Publisher", fmt.Sprintf("%s trusted=%v", result.MSIX.IdentityPublisher, result.MSIX.PublisherTrusted))
+		p.kv("Version", result.MSIX.IdentityVersion)
+		if len(result.MSIX.DeclaredExecutables) > 0 {
+			p.kv("Declared executables", strings.Join(result.MSIX.DeclaredExecutables, ", "))
+		}
+		if len(result.MSIX.UndeclaredExecutables) > 0 {
+			p.kv("Undeclared executables", strings.Join(result.MSIX.UndeclaredExecutables, ", "))
+		}
+		if len(result.MSIX.Capabilities) > 0 {
+			p.kv("Capabilities", strings.Join(result.MSIX.Capabilities, ", "))
+		}
+		if result.MSIX.SignatureSHA256 != "" {
+			p.kv("AppxSignature.p7x", fmt.Sprintf("sha256=%s size=%d status=%s", result.MSIX.SignatureSHA256, result.MSIX.SignatureSize, result.MSIX.SignatureParseStatus))
+		}
+	}
+	if result.APK != nil {
+		p.subsection("Android APK details")
+		p.kv("Package", result.APK.PackageName)
+		if result.APK.VersionName != "" || result.APK.VersionCode != "" {
+			p.kv("Version", fmt.Sprintf("name=%s code=%s", result.APK.VersionName, result.APK.VersionCode))
+		}
+		if result.APK.MinSDK != "" || result.APK.TargetSDK != "" {
+			p.kv("SDK", fmt.Sprintf("min=%s target=%s", result.APK.MinSDK, result.APK.TargetSDK))
+		}
+		p.kv("Manifest format", result.APK.ManifestFormat)
+		p.kv("APK entries", fmt.Sprintf("%d", result.APK.FileCount))
+		if len(result.APK.Permissions) > 0 {
+			p.subsection(fmt.Sprintf("Android permissions (%d)", len(result.APK.Permissions)))
+			for i, permission := range result.APK.Permissions {
+				if i >= 55 {
+					p.bullet(fmt.Sprintf("%d additional permissions omitted from PDF.", len(result.APK.Permissions)-i))
+					break
+				}
+				line := permission.Name
+				if permission.Risk != "" {
+					line += " | risk=" + permission.Risk
+				}
+				if permission.Category != "" {
+					line += " | category=" + permission.Category
+				}
+				p.bullet(line)
+			}
+		}
+		if len(result.APK.ExportedComponents) > 0 {
+			p.subsection(fmt.Sprintf("Exported Android components (%d)", len(result.APK.ExportedComponents)))
+			for i, component := range result.APK.ExportedComponents {
+				if i >= 35 {
+					p.bullet(fmt.Sprintf("%d additional exported components omitted from PDF.", len(result.APK.ExportedComponents)-i))
+					break
+				}
+				line := fmt.Sprintf("%s %s", component.Type, component.Name)
+				if component.Permission != "" {
+					line += " | permission=" + component.Permission
+				}
+				if !component.ExportedDeclared {
+					line += " | exported inferred from intent-filter"
+				}
+				p.bullet(line)
+				if len(component.IntentActions) > 0 {
+					p.monoBullet("Actions: " + strings.Join(component.IntentActions, ", "))
+				}
+			}
+		}
+		if len(result.APK.NativeLibraries) > 0 {
+			p.subsection(fmt.Sprintf("Native libraries (%d)", len(result.APK.NativeLibraries)))
+			for i, value := range result.APK.NativeLibraries {
+				if i >= 45 {
+					p.bullet(fmt.Sprintf("%d additional native libraries omitted from PDF.", len(result.APK.NativeLibraries)-i))
+					break
+				}
+				p.monoBullet(value)
+			}
+		}
+		if len(result.APK.EmbeddedPayloads) > 0 {
+			p.subsection(fmt.Sprintf("Embedded Android payloads (%d)", len(result.APK.EmbeddedPayloads)))
+			for i, value := range result.APK.EmbeddedPayloads {
+				if i >= 35 {
+					p.bullet(fmt.Sprintf("%d additional embedded payloads omitted from PDF.", len(result.APK.EmbeddedPayloads)-i))
+					break
+				}
+				p.monoBullet(value)
+			}
+		}
+	}
+	if len(result.DEXFiles) > 0 {
+		p.subsection(fmt.Sprintf("DEX analysis (%d file(s))", len(result.DEXFiles)))
+		for i, dex := range result.DEXFiles {
+			if i >= 12 {
+				p.bullet(fmt.Sprintf("%d additional DEX files omitted from PDF.", len(result.DEXFiles)-i))
+				break
+			}
+			line := fmt.Sprintf("%s version=%s strings=%d parsed=%d", dex.Name, dex.Version, dex.StringsTotal, dex.StringsParsed)
+			if dex.StringsTruncated {
+				line += " truncated=true"
+			}
+			p.bullet(line)
+			for _, hit := range dex.APIHits {
+				p.monoBullet(fmt.Sprintf("[%s] %s - %s", hit.Severity, hit.Category, hit.Indicator))
+			}
+			if IOCCount(dex.IOCs) > 0 {
+				p.monoBullet(fmt.Sprintf("IOCs in DEX strings: %d", IOCCount(dex.IOCs)))
+			}
+		}
+	}
 	if result.PE != nil {
 		p.subsection("PE details")
 		p.kv("Machine", result.PE.Machine)
@@ -327,6 +460,21 @@ func (p *pdfReport) executiveDashboard(result ScanResult) {
 	}
 }
 
+func (p *pdfReport) finalAnalystAssessment(result ScanResult) {
+	p.section("Final Analyst Assessment")
+	p.metricCards([]metricCard{
+		{"Disposition", reportClassification(result), riskBand(result.RiskScore)},
+		{"Priority", decisionPriority(result), "triage queue"},
+		{"Confidence", nonEmpty(result.Profile.Confidence, confidenceLabel(result.RiskScore)), "static evidence"},
+		{"Scope", scopeSummary(result), "evidence surface"},
+	})
+	p.paragraph(nonEmpty(result.Profile.ExecutiveAssessment, executiveNarrative(result)))
+	p.subsection("Decision points")
+	for _, point := range analystDecisionPoints(result) {
+		p.bullet(point)
+	}
+}
+
 func (p *pdfReport) managementActions(result ScanResult) {
 	p.section("Management Actions")
 	actions := result.Profile.RecommendedActions
@@ -351,6 +499,77 @@ func (p *pdfReport) managementActions(result ScanResult) {
 			break
 		}
 		p.bullet(action)
+	}
+}
+
+func (p *pdfReport) evidenceSummary(result ScanResult) {
+	p.section("Evidence Summary")
+	if len(result.Findings) == 0 {
+		p.bullet("No strong static indicators were found. Static analysis alone cannot prove the file is benign.")
+		return
+	}
+	p.paragraph("This table condenses the strongest static evidence into management-readable meaning. Use the detailed findings and JSON output for analyst follow-up.")
+	header := []string{"Severity", "Evidence", "Why it matters"}
+	widths := []float64{62, 228, 226}
+	for i, finding := range result.Findings {
+		if i == 0 {
+			p.tableHeader(header, widths)
+		}
+		if i >= 14 {
+			p.tableRow([]string{"", "", fmt.Sprintf("%d additional evidence rows omitted from PDF.", len(result.Findings)-i)}, widths, i)
+			break
+		}
+		evidence := finding.Category + ": " + finding.Title
+		if finding.Evidence != "" {
+			evidence += " - " + finding.Evidence
+		}
+		p.tableRow([]string{finding.Severity, evidence, managementMeaningForFinding(finding)}, widths, i)
+	}
+	p.y -= 8
+}
+
+func (p *pdfReport) advancedEvidence(result ScanResult) {
+	if len(result.FamilyMatches)+len(result.ConfigArtifacts)+len(result.CarvedArtifacts) == 0 && result.Similarity.FlatHash == "" {
+		return
+	}
+	p.section("Advanced Analysis")
+	if len(result.FamilyMatches) > 0 {
+		p.subsection("Family classifier")
+		for i, family := range result.FamilyMatches {
+			if i >= 8 {
+				p.bullet(fmt.Sprintf("%d additional family hypotheses omitted.", len(result.FamilyMatches)-i))
+				break
+			}
+			p.bullet(fmt.Sprintf("[%s] %s (%s): %s", family.Confidence, family.Family, family.Category, strings.Join(family.Evidence, ", ")))
+		}
+	}
+	if len(result.ConfigArtifacts) > 0 {
+		p.subsection("Crypto/config artifacts")
+		for i, artifact := range result.ConfigArtifacts {
+			if i >= 10 {
+				p.bullet(fmt.Sprintf("%d additional config artifacts omitted.", len(result.ConfigArtifacts)-i))
+				break
+			}
+			p.bullet(fmt.Sprintf("[%s] %s: %s", artifact.Confidence, artifact.Type, artifact.Preview))
+		}
+	}
+	if len(result.CarvedArtifacts) > 0 {
+		p.subsection("Safe carved artifacts")
+		for i, artifact := range result.CarvedArtifacts {
+			if i >= 10 {
+				p.bullet(fmt.Sprintf("%d additional carved artifacts omitted.", len(result.CarvedArtifacts)-i))
+				break
+			}
+			p.monoBullet(fmt.Sprintf("%s offset=0x%x sha256=%s entropy=%.2f", artifact.Type, artifact.Offset, artifact.SHA256, artifact.Entropy))
+		}
+	}
+	if result.Similarity.FlatHash != "" {
+		p.subsection("Similarity hashes")
+		for _, line := range strings.Split(strings.TrimSpace(formatSimilarity(result.Similarity)), "\n") {
+			if line != "" {
+				p.monoBullet(line)
+			}
+		}
 	}
 }
 
@@ -419,6 +638,9 @@ func (p *pdfReport) huntingGuidance(result ScanResult) {
 	points := []string{
 		"Search for SHA256 " + result.Hashes.SHA256 + " and any matching execution events.",
 	}
+	if len(result.IOCs.PEHashes) > 0 {
+		points = append(points, "Prioritize embedded PE payload hashes as primary hunting pivots; search EDR process, module-load, file-write, and malware-repository telemetry.")
+	}
 	if len(result.IOCs.URLs) > 0 {
 		points = append(points, "Hunt for outbound HTTP(S) traffic to extracted URLs, especially webhook or API endpoints.")
 	}
@@ -428,8 +650,11 @@ func (p *pdfReport) huntingGuidance(result ScanResult) {
 	if hasFinding(result.Findings, "Credential Access") {
 		points = append(points, "Correlate browser credential store access, token theft indicators, and suspicious process ancestry around first-seen time.")
 	}
-	if hasFinding(result.Findings, "Persistence") {
+	if hasFindingTitle(result.Findings, "Windows persistence indicator") {
 		points = append(points, "Check Run keys, startup folders, scheduled tasks, and service creation events on exposed endpoints.")
+	}
+	if isAndroidPackage(result) {
+		points = append(points, "Inspect AndroidManifest permissions, exported components, intent filters, embedded assets, and outbound network destinations in an Android analysis lab.")
 	}
 	if result.PE != nil && result.PE.ManagedRuntime {
 		points = append(points, "For .NET samples, inspect resources and managed strings for embedded configuration or second-stage payloads.")
@@ -449,22 +674,37 @@ func (p *pdfReport) metricCards(cards []metricCard) {
 	if len(cards) == 0 {
 		return
 	}
-	p.ensure(78)
+	p.ensure(86)
 	gap := 8.0
 	width := (pdfPageWidth - 2*pdfMargin - gap*float64(len(cards)-1)) / float64(len(cards))
-	height := 58.0
+	height := 66.0
 	x := pdfMargin
 	for _, card := range cards {
 		p.drawFilledRect(x, p.y-height+8, width, height, 0.96, 0.97, 0.99)
 		p.drawStrokeRect(x, p.y-height+8, width, height, 0.74, 0.78, 0.84)
 		p.drawFilledRect(x, p.y-height+8, width, 4, 0.70, 0.12, 0.12)
 		p.drawTextColor("F2", 8, x+8, p.y-8, strings.ToUpper(card.Label), 0.26, 0.30, 0.36)
-		p.drawTextColor("F2", 14, x+8, p.y-28, card.Value, 0.08, 0.10, 0.14)
+		valueLimit := int((width - 16) / 6.8)
+		if valueLimit < 9 {
+			valueLimit = 9
+		}
+		valueLines := wrapPDFText(card.Value, valueLimit)
+		if len(valueLines) > 2 {
+			valueLines = append(valueLines[:1], "...")
+		}
+		valueSize := 13.0
+		if len(valueLines) > 1 {
+			valueSize = 10.8
+		}
+		for i, line := range valueLines {
+			p.drawTextColor("F2", valueSize, x+8, p.y-26-float64(i*11), line, 0.08, 0.10, 0.14)
+		}
+		noteY := p.y - 44 - float64(maxInt(0, len(valueLines)-1)*7)
 		for i, line := range wrapPDFText(card.Note, 18) {
 			if i > 1 {
 				break
 			}
-			p.drawTextColor("F1", 7.8, x+8, p.y-43-float64(i*10), line, 0.30, 0.34, 0.40)
+			p.drawTextColor("F1", 7.8, x+8, noteY-float64(i*10), line, 0.30, 0.34, 0.40)
 		}
 		x += width + gap
 	}
@@ -848,12 +1088,100 @@ func severitySummary(findings []Finding) string {
 	return strings.Join(parts, " ")
 }
 
+func decisionPriority(result ScanResult) string {
+	switch {
+	case result.RiskScore >= 80:
+		return "Immediate"
+	case result.RiskScore >= 55:
+		return "High"
+	case result.RiskScore >= 30:
+		return "Elevated"
+	case result.RiskScore >= 10:
+		return "Review"
+	default:
+		return "Monitor"
+	}
+}
+
+func scopeSummary(result ScanResult) string {
+	switch {
+	case result.APK != nil:
+		return fmt.Sprintf("APK + %d DEX", len(result.DEXFiles))
+	case len(result.DEXFiles) > 0:
+		return fmt.Sprintf("%d DEX", len(result.DEXFiles))
+	case result.PE != nil:
+		return "PE executable"
+	case result.ELF != nil:
+		return "ELF binary"
+	case result.MachO != nil:
+		return "Mach-O binary"
+	case len(result.ArchiveEntries) > 0:
+		return "Container"
+	default:
+		return result.FileType
+	}
+}
+
+func analystDecisionPoints(result ScanResult) []string {
+	points := []string{
+		"Confirm the sample origin, delivery path, first-seen time, and whether it executed on any production system.",
+	}
+	if result.RiskScore >= 55 {
+		points = append(points, "Treat the sample as unsafe while containment, IOC blocking, and deeper reverse engineering are completed.")
+	} else {
+		points = append(points, "Use the static result as triage evidence and correlate with sandbox, EDR, proxy, and user-reporting context before final disposition.")
+	}
+	if isAndroidPackage(result) {
+		points = append(points, "For Android disposition, review requested permissions, exported components, DEX API hits, native libraries, and network endpoints together.")
+	}
+	if len(result.Profile.TTPs) > 0 {
+		points = append(points, fmt.Sprintf("Use the %d mapped ATT&CK entries to guide SIEM, EDR, and proxy hunting logic.", len(result.Profile.TTPs)))
+	}
+	if len(result.IOCs.URLs)+len(result.IOCs.Domains)+len(result.IOCs.IPv4) > 0 {
+		points = append(points, "Operationalize extracted network indicators with allow-list-aware blocking and historical telemetry searches.")
+	}
+	return uniqueSorted(points)
+}
+
+func managementMeaningForFinding(finding Finding) string {
+	switch strings.ToLower(finding.Category) {
+	case "credential access":
+		return "Credentials, tokens, or browser secrets may be at risk; rotate exposed secrets if execution is confirmed."
+	case "exfiltration":
+		return "Data may leave through a trusted web service or cloud endpoint; preserve and block the destination."
+	case "android":
+		return "Android-specific permissions, components, or DEX APIs increase mobile device and user-data exposure."
+	case "evasion":
+		return "Sandbox and analyst tooling may miss runtime behavior; validate in varied lab conditions."
+	case "persistence":
+		return "The sample may survive reboot or re-login; check startup locations and device policy controls."
+	case "packing":
+		return "Static visibility may be reduced; deeper unpacking or dynamic tracing may be required."
+	case "network":
+		return "Network behavior should be hunted in proxy, DNS, firewall, and EDR telemetry."
+	case "cryptography":
+		return "Crypto may protect legitimate traffic or hide payloads, configuration, or stolen data."
+	default:
+		if finding.Recommendation != "" {
+			return finding.Recommendation
+		}
+		return "Review the evidence with incident context and validate with runtime telemetry."
+	}
+}
+
 func sumFloat(values []float64) float64 {
 	var sum float64
 	for _, value := range values {
 		sum += value
 	}
 	return sum
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 func nonEmpty(value, fallback string) string {

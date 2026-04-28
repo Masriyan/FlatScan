@@ -1,0 +1,32 @@
+pack: FlatScan starter rules
+
+id: starter.ransomware.note
+name: Ransomware note language
+severity: High
+category: Custom Rule
+score: 18
+strings_any: your files have been encrypted, decrypt your files, recover your files, ransom
+tactic: Impact
+technique: Data Encrypted for Impact
+recommendation: Confirm whether encryption behavior executed, preserve the sample, and prioritize containment.
+
+id: starter.webhook.exfil
+name: Webhook exfiltration marker
+severity: High
+category: Custom Rule
+score: 18
+strings_any: discord.com/api/webhooks, discordapp.com/api/webhooks, api.telegram.org
+tactic: Exfiltration
+technique: Exfiltration Over Web Service
+recommendation: Review extracted endpoints, revoke exposed webhooks or bot tokens, and hunt for outbound POST traffic.
+
+id: starter.native.injection
+name: Native process injection API cluster
+severity: High
+category: Custom Rule
+score: 16
+strings_all: WriteProcessMemory, CreateRemoteThread
+strings_any: VirtualAllocEx, VirtualAlloc, NtCreateThreadEx
+tactic: Defense Evasion
+technique: Process Injection
+recommendation: Trace process creation and memory-write telemetry around first execution time.

@@ -47,13 +47,18 @@ func ExtractIOCs(text string) IOCSet {
 	addMatches(&out.RegistryKeys, registryRe.FindAllString(text, -1), cleanToken)
 	addMatches(&out.WindowsPaths, winPathRe.FindAllString(text, -1), cleanToken)
 	addMatches(&out.UnixPaths, unixPathRe.FindAllString(text, -1), cleanToken)
-	NormalizeIOCSet(&out)
+	// Normalization deferred to pipeline-level (ExtractIOCsFromStrings or ApplyIOCTriage)
+	// to avoid redundant sort+deduplicate when called per-string or per-artifact.
 	return out
 }
 
 func MergeIOCSet(dst *IOCSet, src IOCSet) {
 	if dst == nil {
 		return
+	}
+	dst.Priority = higherIOCPriority(dst.Priority, src.Priority)
+	for _, peHash := range src.PEHashes {
+		addPEHashIOC(dst, peHash)
 	}
 	dst.URLs = appendUnique(dst.URLs, src.URLs...)
 	dst.Domains = appendUnique(dst.Domains, src.Domains...)
@@ -68,10 +73,21 @@ func MergeIOCSet(dst *IOCSet, src IOCSet) {
 	dst.RegistryKeys = appendUnique(dst.RegistryKeys, src.RegistryKeys...)
 	dst.WindowsPaths = appendUnique(dst.WindowsPaths, src.WindowsPaths...)
 	dst.UnixPaths = appendUnique(dst.UnixPaths, src.UnixPaths...)
-	NormalizeIOCSet(dst)
+	dst.SuppressedCount += src.SuppressedCount
+	if dst.SuppressionReason == "" {
+		dst.SuppressionReason = src.SuppressionReason
+	}
+	dst.SuppressionLog = appendSuppressionLog(dst.SuppressionLog, src.SuppressionLog...)
+	// Normalization deferred to pipeline-level (ApplyIOCTriage) to avoid
+	// redundant sort+deduplicate on every merge call.
 }
 
 func NormalizeIOCSet(iocs *IOCSet) {
+	if iocs == nil {
+		return
+	}
+	iocs.Priority = strings.ToUpper(strings.TrimSpace(iocs.Priority))
+	iocs.PEHashes = normalizePEHashes(iocs.PEHashes)
 	iocs.URLs = uniqueSorted(iocs.URLs)
 	iocs.Domains = uniqueSorted(iocs.Domains)
 	iocs.IPv4 = uniqueSorted(iocs.IPv4)
@@ -85,13 +101,145 @@ func NormalizeIOCSet(iocs *IOCSet) {
 	iocs.RegistryKeys = uniqueSorted(iocs.RegistryKeys)
 	iocs.WindowsPaths = uniqueSorted(iocs.WindowsPaths)
 	iocs.UnixPaths = uniqueSorted(iocs.UnixPaths)
+	iocs.SuppressionLog = uniqueSuppressionLog(iocs.SuppressionLog)
 }
 
 func IOCCount(iocs IOCSet) int {
-	return len(iocs.URLs) + len(iocs.Domains) + len(iocs.IPv4) + len(iocs.IPv6) +
+	return len(iocs.PEHashes) + len(iocs.URLs) + len(iocs.Domains) + len(iocs.IPv4) + len(iocs.IPv6) +
 		len(iocs.Emails) + len(iocs.MD5) + len(iocs.SHA1) + len(iocs.SHA256) +
 		len(iocs.SHA512) + len(iocs.CVEs) + len(iocs.RegistryKeys) +
 		len(iocs.WindowsPaths) + len(iocs.UnixPaths)
+}
+
+func addPEHashIOC(iocs *IOCSet, value PEHashIOC) {
+	if iocs == nil || value.SHA256 == "" {
+		return
+	}
+	value.Path = strings.TrimSpace(value.Path)
+	value.SHA256 = strings.ToLower(strings.TrimSpace(value.SHA256))
+	value.Tier = strings.ToUpper(strings.TrimSpace(value.Tier))
+	if value.Tier == "" {
+		value.Tier = "LOW"
+	}
+	if value.Path == "" {
+		value.Path = "embedded-payload"
+	}
+	for idx, existing := range iocs.PEHashes {
+		if strings.EqualFold(existing.SHA256, value.SHA256) && existing.Path == value.Path {
+			if iocTierRank(value.Tier) > iocTierRank(existing.Tier) {
+				iocs.PEHashes[idx].Tier = value.Tier
+			}
+			if iocs.PEHashes[idx].Note == "" {
+				iocs.PEHashes[idx].Note = value.Note
+			}
+			if iocs.PEHashes[idx].Entropy == 0 {
+				iocs.PEHashes[idx].Entropy = value.Entropy
+			}
+			if iocs.PEHashes[idx].CompressedSize == 0 {
+				iocs.PEHashes[idx].CompressedSize = value.CompressedSize
+			}
+			if iocs.PEHashes[idx].CompressionRatio == 0 {
+				iocs.PEHashes[idx].CompressionRatio = value.CompressionRatio
+			}
+			if iocs.PEHashes[idx].CarvedOffset == "" {
+				iocs.PEHashes[idx].CarvedOffset = value.CarvedOffset
+			}
+			return
+		}
+	}
+	iocs.PEHashes = append(iocs.PEHashes, value)
+	iocs.Priority = higherIOCPriority(iocs.Priority, value.Tier)
+}
+
+func normalizePEHashes(values []PEHashIOC) []PEHashIOC {
+	out := make([]PEHashIOC, 0, len(values))
+	seen := map[string]struct{}{}
+	for _, value := range values {
+		value.Path = strings.TrimSpace(value.Path)
+		value.SHA256 = strings.ToLower(strings.TrimSpace(value.SHA256))
+		value.Tier = strings.ToUpper(strings.TrimSpace(value.Tier))
+		if value.SHA256 == "" {
+			continue
+		}
+		if value.Path == "" {
+			value.Path = "embedded-payload"
+		}
+		if value.Tier == "" {
+			value.Tier = "LOW"
+		}
+		key := value.Path + "|" + value.SHA256
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+	}
+	sort.SliceStable(out, func(i, j int) bool {
+		if iocTierRank(out[i].Tier) == iocTierRank(out[j].Tier) {
+			if out[i].Path == out[j].Path {
+				return out[i].SHA256 < out[j].SHA256
+			}
+			return out[i].Path < out[j].Path
+		}
+		return iocTierRank(out[i].Tier) > iocTierRank(out[j].Tier)
+	})
+	return out
+}
+
+func higherIOCPriority(left, right string) string {
+	left = strings.ToUpper(strings.TrimSpace(left))
+	right = strings.ToUpper(strings.TrimSpace(right))
+	if iocTierRank(right) > iocTierRank(left) {
+		return right
+	}
+	return left
+}
+
+func iocTierRank(tier string) int {
+	switch strings.ToUpper(strings.TrimSpace(tier)) {
+	case "CRITICAL":
+		return 5
+	case "HIGH":
+		return 4
+	case "MEDIUM":
+		return 3
+	case "LOW":
+		return 2
+	default:
+		return 0
+	}
+}
+
+func appendSuppressionLog(values []IOCSuppression, additions ...IOCSuppression) []IOCSuppression {
+	seen := make(map[string]struct{}, len(values)+len(additions))
+	out := make([]IOCSuppression, 0, len(values)+len(additions))
+	for _, value := range values {
+		key := value.Type + "|" + value.Value + "|" + value.Reason
+		if value.Value == "" {
+			continue
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+	}
+	for _, value := range additions {
+		key := value.Type + "|" + value.Value + "|" + value.Reason
+		if value.Value == "" {
+			continue
+		}
+		if _, ok := seen[key]; ok {
+			continue
+		}
+		seen[key] = struct{}{}
+		out = append(out, value)
+	}
+	return out
+}
+
+func uniqueSuppressionLog(values []IOCSuppression) []IOCSuppression {
+	return appendSuppressionLog(values)
 }
 
 func addMatches(dst *[]string, matches []string, normalizer func(string) string) {

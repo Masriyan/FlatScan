@@ -1,0 +1,34 @@
+pack: FlatScan Android plugin examples
+
+id: plugin.android.runtime
+name: Android runtime execution marker
+severity: Medium
+category: Android Plugin
+score: 8
+file_types: APK package, DEX bytecode
+strings_any: Runtime.exec, ProcessBuilder
+tactic: Execution
+technique: Command and Scripting Interpreter
+recommendation: Review decompiled call sites before treating runtime execution as confirmed malicious behavior.
+
+id: plugin.android.webview
+name: Android WebView bridge marker
+severity: Medium
+category: Android Plugin
+score: 8
+file_types: APK package, DEX bytecode
+strings_any: addJavascriptInterface, setJavaScriptEnabled
+tactic: Execution
+technique: User Execution / WebView Bridge
+recommendation: Confirm JavaScript bridge exposure and whether remote content can reach native interfaces.
+
+id: plugin.android.dynamic-code
+name: Android dynamic code loading marker
+severity: Medium
+category: Android Plugin
+score: 8
+file_types: APK package, DEX bytecode
+strings_any: DexClassLoader, PathClassLoader, InMemoryDexClassLoader
+tactic: Defense Evasion
+technique: Dynamic Code Loading
+recommendation: Inspect assets and network code paths that may load secondary classes at runtime.

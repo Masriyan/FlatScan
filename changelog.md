@@ -1,271 +1,272 @@
 # Changelog
 
-Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
+Repository: https://github.com/Masriyan/FlatScan
 
-All notable project changes are documented here. This project follows a chronological changelog format.
-
----
-
-## [0.1.0] — Current Development Build
-
-Initial public release. Establishes the core static analysis pipeline, all output formats, and the full documentation set.
+All notable project changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
 ---
 
-### Core Scanner
+## Version Evolution
 
-**Added:**
+```mermaid
+graph LR
+    A["v0.1.0<br/>Initial Build<br/>Core Engine"] -->|"IOC Triage<br/>MSIX Analysis"| B["v0.2.0<br/>IOC & Format"]
+    B -->|"Performance<br/>Architecture"| C["v0.3.0<br/>Production Grade"]
+    
+    style A fill:#16213e,color:#fff
+    style B fill:#0f3460,color:#fff
+    style C fill:#e94560,color:#fff
+```
 
-- Go CLI scanner: `flatscan`
-- Scan modes: `quick`, `standard`, `deep`
-- Text report modes: `minimal`, `Summary`, `Full`
-- Full-file hashing: MD5, SHA1, SHA256, SHA512
-- File type and MIME hint detection
-- ASCII string extraction
-- UTF-16LE string extraction (Windows-encoded binary strings)
-- Configurable minimum string length (`--min-string`, default: 5)
-- Configurable in-memory analysis limit (`--max-analyze-bytes`, default: 256 MB); full file is always hashed regardless
-
----
-
-### IOC Extraction
-
-**Added:**
-
-IOC categories extracted from raw strings and decoded artifacts:
-
-| Category | Details |
-|---|---|
-| URLs | Full HTTP/HTTPS URLs |
-| Domains | Bare domain strings |
-| IPv4 | Dotted-decimal addresses |
-| IPv6 | Colon-hex addresses |
-| Emails | RFC-style email addresses |
-| MD5 | 32-character hex strings |
-| SHA1 | 40-character hex strings |
-| SHA256 | 64-character hex strings |
-| SHA512 | 128-character hex strings |
-| CVEs | `CVE-YYYY-NNNN` format |
-| Registry keys | `HKLM\`, `HKCU\`, `HKEY_*` paths |
-| Windows paths | `C:\`, `%APPDATA%`, `%TEMP%`, etc. |
-| Unix paths | `/etc/`, `/tmp/`, `/home/`, etc. |
+| Version | Focus | Key Features |
+|---------|-------|-------------|
+| **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
+| **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
+| **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
 
 ---
 
-### Decoding and Deobfuscation
+## 0.3.0 - Performance and Architecture Release
 
-**Added:**
+### Added
 
-- Suspicious base64 decoding
-- Suspicious hex decoding
-- URL-percent decoding
-- Nested decode depth control: `--decode-depth` (range: 0–5, default: 2)
-- Secondary IOC extraction pass on decoded artifacts
+- **Colorized terminal output** — ANSI severity badges, emoji section headers, risk score visual bar, verdict color coding. Auto-detects terminal capability and respects `NO_COLOR` environment variable and `--no-color` flag.
+- **Batch directory scanning** — `--dir PATH` scans all regular files in a directory with per-file progress and a colorized summary table showing verdicts, scores, findings, IOC counts, and file types.
+- **Watch mode** — `--dir PATH --watch` monitors a directory for new or modified files and auto-scans them with immediate colorized alerts for malicious detections. Configurable polling interval via `--watch-interval`.
+- **JSON stdout** — `--json -` pipes machine-readable JSON output directly to stdout for scripting and pipeline integration.
+- **STIX 2.1 export** — `--stix PATH` generates a standards-compliant STIX 2.1 JSON bundle containing File SCO (with PE extension), Malware Analysis SDO, IOC Indicators (URLs, domains, IPs), Malware SDO, and Relationship objects. Included in `--report-pack` output.
+- **Build-time version injection** — `var version` can be set at build time via `go build -ldflags "-X main.version=1.0.0"`.
+- **Structured logging** — `Logger` module with levels (DEBUG/INFO/WARN/ERROR), thread-safe writes, entry capture for post-scan analysis, and backward-compatible `AsDebugLogger()` bridge.
+- **Analysis plugin interface** — `AnalysisPlugin` interface with `Name()`, `Version()`, `ShouldRun()`, and `Run()` methods. Plugin registry with `RegisterPlugin()`. Two built-in plugins: high-entropy blob detector and suspicious PE import combinator (process hollowing, reflective injection).
+- **JSON plugin manifests** — External plugins can be defined via JSON files with string-matching checks, mode filters, and file type filters. Loaded via `LoadJSONPlugin()`.
+- **Scan caching** — SHA256-based result cache with TTL expiry and file-size validation. Thread-safe for concurrent batch scanning. Supports `Get`, `Put`, `Invalidate`, `Clean`, and `Size` operations.
+- **Memory-mapped I/O** — `syscall.Mmap` on Linux for files exceeding 100 MB. Transparent fallback to buffered read on other platforms or failure. Zero-copy hash computation directly over the mapped region.
 
----
+### Changed
 
-### Entropy Analysis
+- **Parallel analysis pipeline** — Independent analysis stages (format analysis, carving, crypto/config extraction, similarity hashing) now execute concurrently via `parallelRun()`. Thread-safe finding append via package-level mutex. Verified clean by Go race detector.
+- **Interactive mode reports** now use colorized output when terminal supports it. File exports remain plain text (no ANSI escape codes).
+- **Progress bar phases** updated to reflect new pipeline stages: `running analysis plugins`, `running rules and classification`.
+- **Report pack** now includes STIX 2.1 JSON bundle alongside existing PDF, HTML, JSON, IOC, YARA, Sigma, and executive markdown outputs.
+- **Scanner debug log** now uses structured `Logger` entries instead of bare string formatting.
 
-**Added:**
+### Performance
 
-- Full-file entropy scoring (Shannon entropy, 0.0–8.0 scale)
-- High-entropy region detection (identifies sections/regions above packing threshold)
+- **Corpus caching** — Single shared corpus string built once and passed to all 5 pattern-matching stages (previously rebuilt independently by each stage).
+- **Incremental entropy** — Sliding-window entropy uses an incremental histogram update, reducing per-iteration cost from O(window) to O(step).
+- **Zero-alloc string extraction** — Direct byte-slice indexing eliminates thousands of per-string heap allocations.
+- **XOR buffer reuse** — Single pre-allocated buffer shared across all single-byte XOR key probes.
+- **IOC batch normalization** — Deferred IOC normalization runs once at the end instead of per-extraction.
+- **Named constants** — 13 named constants replacing magic numbers in the analysis pipeline.
 
----
+## 0.2.0 - IOC Triage and MSIX Analysis
 
-### Executable and Container Parsing
+### Added
 
-**Added — PE (Windows Portable Executable):**
-- Machine type and subsystem
-- Compile timestamp
-- Image base and entry point
-- Import table (DLL and function names)
-- Approximate import hash (imphash-style)
-- Section table: name, virtual size, raw size, entropy, executable/writable flags
-- Certificate table presence detection
-- Overlay size detection
-- .NET runtime detection via `_CorExeMain` / `mscoree.dll`
+- IOC triage layer with built-in suppression for common benign PKI, certificate-revocation, OCSP, XML schema, Android schema, W3C, OpenXML, OID, loopback, and broadcast artifacts.
+- `--ioc-allowlist` for operator-supplied IOC allowlists without recompiling.
+- Guided interactive mode with `--interactive` and `-i`.
+- Manual command shell with `--shell` for typing repeated FlatScan commands inside one program session.
+- Shell-style argument parsing for quoted paths in manual command shell mode.
+- JSON IOC audit fields: `suppressed_count`, `suppression_reason`, and `suppression_log`.
+- Top-level `iocs.pe_hashes` for embedded payload pivots.
+- Promotion of carved ZIP-local payload records into top-level IOCs when the carved preview points at an embedded `.exe` or `.dll`.
+- Promotion of decompressed embedded PE execution hashes into top-level IOCs.
+- Priority tiers for embedded payload hashes based on compression ratio and entropy.
+- MSIX/AppX package detection from `AppxManifest.xml`, `AppxSignature.p7x`, `AppxBlockMap.xml`, and `[Content_Types].xml`.
+- MSIX manifest parsing for identity name, publisher, version, declared executables, capabilities, and undeclared executable payloads.
+- MSIX findings for unknown or untrusted publisher, `runFullTrust`, and hidden executable payloads.
+- AppxSignature.p7x hashing and dependency-free certificate parse status.
+- Magniber-style random lowercase directory/executable-name detection.
+- Magniber ransomware family hypothesis scoring for MSIX delivery, embedded payloads, random naming, matching directory/file stems, entropy, and small loader payloads.
+- Report rendering for MSIX metadata, embedded PE payload hashes, IOC suppression counts, and suppression audit details.
+- PDF and HTML report sections for promoted payload hashes and MSIX metadata.
+- Unit tests for IOC triage and MSIX hidden-payload detection.
 
-**Added — ELF (Linux):**
-- ELF class (32/64-bit), machine type, and file type
-- Imported shared libraries
-- Section names
+### Changed
 
-**Added — Mach-O (macOS):**
-- CPU type and binary type
-- Imported libraries
-- Section names
+- YARA generation now avoids FlatScan self-generated classification strings as match strings.
+- YARA generation now uses triaged IOCs, suspicious payload entry names, MSIX structure guards, and `math.entropy()` where useful.
+- Sigma generation for archive/container samples now focuses on hashes and payload image path patterns instead of command-line matches on schema URLs or format strings.
+- IOC exports now prioritize embedded payload hashes ahead of network indicators.
+- ZIP-family entry analysis records entry type, SHA256, entropy, offset, and compression ratio when entry bytes are inspected.
+- Family classification can now escalate MSIX + embedded payload + Magniber naming evidence to `Magniber ransomware`.
 
-**Added — Archive/Container (ZIP/APK/JAR/Office Open XML):**
-- Entry listing without disk extraction (in-memory only)
-- Configurable entry inspection limit (`--max-archive-files`, default: 500)
-- Suspicious entry heuristics:
-  - Path traversal names (`../`, absolute paths)
-  - Executable and script extensions (`.exe`, `.ps1`, `.sh`, `.vbs`, etc.)
-  - Office macro indicators (`vbaProject.bin`, `macros/`)
-  - Android package indicators (`AndroidManifest.xml`, `classes.dex`)
-  - Archive bomb heuristic (extreme compression ratio detection)
+### Fixed
 
----
+- Suppressed benign DigiCert, Microsoft schema, OpenXML, W3C, and ASN.1/OID artifacts that previously appeared as actionable IOCs.
+- Prevented benign MSIX format infrastructure from dominating IOC exports and generated hunting content.
+- Corrected signal ordering so embedded payload hashes are no longer buried only in carved artifact output.
 
-### Behavioral Signatures
+## 0.1.0 - Initial Development Build
 
-**Added — Execution and Injection:**
-- Process injection API chains (`VirtualAllocEx`, `WriteProcessMemory`, `CreateRemoteThread`)
-- Dynamic API resolution (`GetProcAddress`, `LoadLibraryA` patterns)
-- Command-and-control style network strings
+### Added
 
-**Added — Downloaders and Stagers:**
-- Downloader behavior strings (`URLDownloadToFile`, `WinHttpOpen`, `InternetOpenUrl`)
-- Suspicious PowerShell execution (`-EncodedCommand`, `-WindowStyle Hidden`, `IEX`, `Invoke-Expression`)
-- Script host and LOLBin abuse (`wscript.exe`, `cscript.exe`, `mshta.exe`, `certutil.exe`)
-
-**Added — Credential and Data Theft:**
-- Discord webhook exfiltration strings and API endpoints
-- Discord account/token access indicators
-- Browser credential decryption indicators (Chromium DPAPI patterns)
-- Credential and crypto wallet theft strings
-
-**Added — Persistence:**
-- Windows persistence strings (Run keys, Startup folder, scheduled tasks, service creation)
-- Linux persistence strings (cron, `.bashrc`, `/etc/rc.local`, systemd unit paths)
-
-**Added — Evasion and Anti-Analysis:**
-- VM and sandbox awareness strings (CPUID tricks, registry checks, process name checks)
-- Anti-debugging references (`IsDebuggerPresent`, `CheckRemoteDebuggerPresent`, timing checks)
-- Security tooling bypass indicators (AV/EDR name strings, patch targets)
-- Packer and protector markers (UPX, Themida, VMProtect, MPRESS signatures)
-
-**Added — Impact:**
-- Ransomware-style strings (file extension lists, ransom note paths, key generation patterns)
-
-**Added — Density:**
-- High IOC density finding (automatic when IOC volume exceeds threshold)
-
----
-
-### Malware Profile Enrichment
-
-**Added:**
-
-- Classification: likely malware type (ransomware, infostealer, RAT, downloader, etc.)
-- Confidence score with supporting evidence chain
-- Key capabilities summary (human-readable list)
-- Business impact assessment
-- Recommended response actions
-- MITRE-style TTP entries (tactic, technique, evidence snippet)
-- Executive assessment narrative
+- Go CLI scanner named `flatscan`.
+- Scan modes: `quick`, `standard`, and `deep`.
+- Text report modes: `minimal`, `Summary`, and `Full`.
+- Full-file MD5, SHA1, SHA256, and SHA512 hashing.
+- File type and MIME hint detection.
+- ASCII string extraction.
+- UTF-16LE string extraction.
+- IOC extraction:
+  - URLs
+  - domains
+  - IPv4
+  - IPv6
+  - emails
+  - MD5
+  - SHA1
+  - SHA256
+  - SHA512
+  - CVEs
+  - registry keys
+  - Windows paths
+  - Unix paths
+- Suspicious base64 decoding.
+- Suspicious hex decoding.
+- URL-percent decoding.
+- Nested decode depth control with `--decode-depth`.
+- Entropy scoring.
+- High-entropy region detection.
+- PE parser:
+  - machine type
+  - timestamp
+  - subsystem
+  - image base
+  - entry point
+  - imports
+  - approximate import hash
+  - section table
+  - section entropy
+  - executable/writable section flags
+  - certificate table presence
+  - overlay size
+  - .NET runtime detection through `_CorExeMain` / `mscoree.dll`
+- ELF parser:
+  - class
+  - machine
+  - type
+  - imports
+  - sections
+- Mach-O parser:
+  - CPU
+  - type
+  - imports
+  - sections
+- ZIP/APK/JAR/Office Open XML container inspection.
+- APK-aware Android manifest parser for package identity, version, SDK targets, requested permissions, exported components, intent actions, network-security config references, signature files, assets, native libraries, and embedded payloads.
+- DEX-aware string/API scanner for Android SMS, contacts, location, recording, accessibility services, overlays, device administrator behavior, runtime command execution, dynamic class loading, WebView bridges, native loading, package installation, networking, and Java crypto indicators.
+- Declarative rule/plugin pack engine with `--rules` and `--plugins`.
+- Rule matching for file types, strings, regexes, functions/APIs, domains, URLs, SHA256 values, and entropy ranges.
+- Optional safe embedded file carving with `--carve` and `--max-carves`.
+- Malware family classifier for ransomware, infostealers, loaders, RAT-like behavior, Android riskware, webshell/toolkit content, and bundled payloads.
+- Crypto/config extractor for C2-like URLs, token markers, mutex candidates, ransom notes, wallet-looking strings, decoded configs, embedded compressed streams, and simple XOR candidates.
+- Similarity hashing:
+  - FlatHash
+  - byte-histogram hash
+  - string-set hash
+  - import hash
+  - section hash
+  - DEX string hash
+  - archive-content hash
+- Optional external metadata-tool integration with `--external-tools`.
+- Interactive analyst HTML report with `--html`.
+- Professional report pack export with `--report-pack`.
+- Local JSONL case database recording with `--case` and `--case-db`.
+- Archive-entry suspicious heuristics:
+  - path traversal names
+  - executable/script extensions
+  - Office macro indicators
+  - Android package indicators
+  - archive bomb heuristic
+- Behavioral findings:
+  - process injection API chains
+  - dynamic API resolution
+  - downloader behavior
+  - command-and-control style network strings
+  - Discord webhook exfiltration
+  - Discord account/API access indicators
+  - browser credential decryption indicators
+  - Windows persistence indicators
+  - Linux persistence indicators
+  - suspicious PowerShell execution
+  - script host and LOLBin indicators
+  - ransomware-style strings
+  - credential and wallet theft indicators
+  - VM/sandbox awareness
+  - anti-debugging references
+  - security tooling bypass indicators
+  - packer/protector markers
+  - high IOC density
+- Malware profile enrichment:
+  - classification
+  - likely malware type
+  - confidence score
+  - business impact
+  - key capabilities
+  - recommended actions
+  - MITRE-style TTP entries
+  - cryptography indicators
+  - executive assessment
 - Cryptography and secret-handling indicators:
-  - Windows CNG: `BCryptEncrypt`, `BCryptDecrypt`, `BCryptGenerateSymmetricKey`
-  - Windows CryptoAPI/DPAPI: `CryptUnprotectData`, `CryptProtectData`
+  - Windows CNG BCrypt
+  - Windows CryptoAPI/DPAPI-style references
   - Chromium `encrypted_key` workflow
-  - Symmetric crypto markers: AES, GCM, IV, nonce, tag
-  - Decoded-obfuscation layer indicators
+  - symmetric crypto markers
+  - decoded-obfuscation layer indicators
+- CISO/management-ready PDF report with:
+  - cover page
+  - executive assessment
+  - risk cards
+  - CISO decision summary
+  - final analyst assessment
+  - evidence summary table
+  - business impact
+  - management actions
+  - MITRE ATT&CK TTP matrix
+  - priority findings
+  - cryptography and secret-handling assessment
+  - hunting guidance
+  - sample metadata
+  - IOCs
+  - executable/container details
+  - Android APK/DEX details
+  - advanced analysis section
+  - family classifier output
+  - crypto/config artifacts
+  - safe carved artifact hashes
+  - similarity hashes
+  - suspicious strings
+  - decoded artifacts
+- JSON report export with `--json`.
+- HTML report export with `--html`.
+- IOC text export with `--extract-ioc`.
+- YARA hunting rule export with `--yara`.
+- Sigma SIEM/EDR hunting rule export with `--sigma`.
+- Startup ASCII banner and loading bar.
+- Progress display with percentage updates.
+- `--no-progress` for automation.
+- `--no-splash` for disabling the startup banner/loading bar.
+- `--splash-seconds` for splash duration control.
+- Debug logging with `--debug`.
+- Unit tests for IOC extraction, decoding, file type detection, PDF generation, YARA rendering, Sigma rendering, custom rules, and HTML rendering.
 
----
+### Changed
 
-### Output Formats
-
-**Added — PDF (CISO/management-ready report):**
-- Cover page with sample metadata and scan timestamp
-- Executive assessment narrative
-- CISO decision summary
-- Risk and confidence indicator cards
-- Likely malware type with supporting evidence
-- Key capabilities
-- Business impact assessment
-- Management-recommended actions
-- MITRE ATT&CK TTP matrix
-- Priority findings table
-- Cryptography and secret-handling assessment
-- Hunting guidance
-- Sample metadata (hashes, file type, size, entropy)
-- IOC sections
-- Executable/container details
-- Suspicious strings and decoded artifacts appendix
-
-**Added — JSON:**
-- Complete `ScanResult` structure for automation, SIEM ingestion, and pipeline processing
-- Stable field naming across all scan modes
-
-**Added — IOC text export:**
-- Categorized plain-text IOC file via `--extract-ioc`
-
-**Added — YARA hunting rule:**
-- Auto-generated hunting rule via `--yara`
-- Sources: URLs, domains, registry keys, paths, suspicious strings, malware type labels, SHA256 and imphash metadata
-
----
-
-### CLI and UX
-
-**Added:**
-
-- Startup ASCII banner and animated loading bar
-- Progress display with percentage updates during scan stages
-- `--no-progress`: suppress all progress output (automation-friendly)
-- `--no-splash`: suppress startup banner/loading bar only
-- `--splash-seconds`: configure splash display duration (default: 20s)
-- `--debug`: include debug log in Full report; stronger error context
-
----
-
-### Tests
-
-**Added:**
-
-- Unit tests: IOC extraction
-- Unit tests: base64/hex/URL decoding
-- Unit tests: file type detection
-- Unit tests: PDF generation (output validity)
-- Unit tests: YARA rule rendering
-
----
-
-### Documentation
-
-**Added:**
-
-Full documentation set:
-
-| File | Contents |
-|---|---|
-| `README.md` | Overview, features, quick start, scan/report mode reference, pipeline diagram |
-| `install.md` | Build, install, cross-compile, Docker setup, troubleshooting |
-| `usage.md` | Flag reference, modes, outputs, score interpretation, analyst workflow examples |
-| `security.md` | Threat model, safe handling checklist, output security, responsible use |
-| `contributing.md` | Dev setup, code style, detection quality guide, PR checklist, wanted areas |
-| `changelog.md` | This file |
-
----
-
-### Fixes and Improvements
-
-**Changed:**
-
-- Progress renderer: clears leftover terminal characters when shorter progress messages overwrite longer ones
-- PDF layout: improved alignment, wrapping, section styling, table grids, long IOC handling, headers, and footers
-
----
+- Improved progress renderer to clear leftover terminal characters when shorter progress messages overwrite longer ones.
+- Improved PDF layout alignment, wrapping, section styling, table grids, long IOC handling, headers, and footers.
+- Improved APK scoring to avoid treating normal Android package structure as malicious while still surfacing Android-specific high-risk behaviors.
+- Expanded documentation into:
+  - `README.md`
+  - `install.md`
+  - `usage.md`
+  - `contributing.md`
+  - `security.md`
+  - `changelog.md`
 
 ### Notes
 
-- FlatScan is static-only and does not execute target samples at any point in the pipeline.
-- Generated YARA rules are hunting starting points and must be reviewed and validated before production deployment.
-- Cryptographic hashes are classified as IOCs but cannot be reversed by FlatScan.
-- A score of 0–9 does not indicate a clean file — it indicates no strong static indicators were found.
-
----
-
-## Planned / Under Consideration
-
-The following are not committed but represent areas of active interest:
-
-- Sigma rule export for SIEM-native hunting queries
-- Deeper ELF symbol and section analysis
-- Deeper Mach-O load command and code signature inspection
-- Enhanced Office macro string extraction (OLE/OOXML VBA)
-- PDF malware heuristics (JavaScript, embedded streams, `/Launch`)
-- Additional MITRE ATT&CK sub-technique coverage
-- GitHub Actions CI workflow for automated build and test
-- Integration tests with synthetic malware-pattern fixtures
+- FlatScan is static-only and does not execute target samples.
+- Generated YARA rules should be reviewed before production deployment.
+- Cryptographic hashes are classified as IOCs but cannot be reversed.

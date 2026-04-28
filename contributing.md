@@ -1,34 +1,64 @@
 # Contributing
 
-Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
+Repository: https://github.com/Masriyan/FlatScan
+
+Thanks for improving FlatScan. This project is a malware-analysis engine, so contributions should prioritize **correctness, safety, and clear reporting** over flashy output.
 
 ---
 
-Thanks for improving FlatScan. This is a malware analysis tool, so contributions should prioritize **correctness, safety, and clear reporting** over feature quantity or visual polish.
+## Table of Contents
+
+- [Contribution Priorities](#contribution-priorities)
+- [Development Setup](#development-setup)
+- [Architecture Guide](#architecture-guide)
+- [Code Style](#code-style)
+- [Testing](#testing)
+- [Adding New Detections](#adding-new-detections)
+- [Adding Report Features](#adding-report-features)
+- [Plugin Development](#plugin-development)
+- [IOC & Rule Quality](#ioc--rule-quality)
+- [Handling Malware Samples](#handling-malware-samples)
+- [Commit & PR Guidelines](#commit--pr-guidelines)
 
 ---
 
 ## Contribution Priorities
 
-High-value contributions:
+```mermaid
+graph TD
+    subgraph "High Value"
+        A[Better Static Signatures]
+        B[IOC Triage Logic]
+        C[Parser Coverage]
+        D[Plugin Contributions]
+    end
+    
+    subgraph "Medium Value"
+        E[MITRE TTP Mapping]
+        F[Report Improvements]
+        G[Performance Optimization]
+        H[Test Coverage]
+    end
+    
+    subgraph "Always Welcome"
+        I[Documentation]
+        J[Bug Fixes]
+        K[False-Positive Fixes]
+    end
+```
 
-| Area | Examples |
-|---|---|
-| **Static signatures** | New behavioral detections with clear evidence and low false-positive risk |
-| **Parser coverage** | PE, ELF, Mach-O, APK, Office, archive format improvements |
-| **Malware profile enrichment** | Better classification logic, confidence scoring, capability labeling |
-| **MITRE TTP mapping** | More precise tactic/technique mapping with cleaner evidence chains |
-| **Hunting exports** | YARA quality improvements, Sigma rule support |
-| **PDF report sections** | New sections, layout improvements, better analyst content |
-| **Tests** | Coverage for scanner behavior, IOC extraction, report output, edge cases |
-| **Documentation** | Analyst-focused explanations of assumptions and limitations |
-
-Lower-priority contributions:
-
-- Visual or aesthetic changes without functional improvement
-- New dependencies without strong justification
-- Network-enabled features without explicit opt-in design
-- Signatures with high false-positive risk or weak evidence
+| Priority | Contribution Type |
+|----------|------------------|
+| 🔴 High | Better static signatures with clear evidence and low FP risk |
+| 🔴 High | Better IOC triage logic that reduces false positives |
+| 🔴 High | Better parser coverage for PE, ELF, Mach-O, APK, MSIX |
+| 🟡 Medium | Plugin contributions (built-in or JSON manifest) |
+| 🟡 Medium | Improved malware profile enrichment and MITRE mapping |
+| 🟡 Medium | Better PDF/HTML report sections |
+| 🟡 Medium | YARA/Sigma export improvements |
+| 🟢 Always | Tests for scanner behavior and report output |
+| 🟢 Always | Documentation that helps analysts |
+| 🟢 Always | Bug fixes and false-positive corrections |
 
 ---
 
@@ -41,199 +71,304 @@ go test ./...
 go build -o flatscan .
 ```
 
-With a restricted build cache:
+### Verification
 
 ```bash
-GOCACHE=/tmp/flatscan-go-build go test ./...
-GOCACHE=/tmp/flatscan-go-build go build -o flatscan .
+go vet ./...
+go test -race -count=1 ./...
+gofmt -w *.go
 ```
 
-Verify the build:
+---
 
-```bash
-./flatscan --version
-./flatscan -m quick -f README.md --report-mode minimal --no-progress
+## Architecture Guide
+
+Understanding the pipeline helps you know where to add code:
+
+```mermaid
+graph TB
+    subgraph "Where to Add Code"
+        A["New Detection?"] --> B[signatures.go]
+        C["New File Format?"] --> D[formats.go / apk.go]
+        E["New IOC Type?"] --> F[ioc.go]
+        G["New Output Format?"] --> H[report.go / new file]
+        I["New Plugin?"] --> J[plugin.go]
+        K["New Rule Key?"] --> L[rules.go]
+        M["Performance Fix?"] --> N[scanner.go / parallel.go]
+        O["New CLI Flag?"] --> P[main.go]
+        Q["New Data Field?"] --> R[types.go]
+    end
+```
+
+### Key Files
+
+| File | Responsibility | When to Edit |
+|------|---------------|-------------|
+| `types.go` | All data structures | Adding new fields to ScanResult |
+| `scanner.go` | Analysis pipeline orchestration | Changing pipeline order or adding stages |
+| `signatures.go` | Behavioral detection | Adding new signature patterns |
+| `plugin.go` | Plugin interface and registry | Adding built-in plugins |
+| `rules.go` | Rule pack engine | Adding new rule matching keys |
+| `ioc.go` | IOC extraction | Adding new IOC types |
+| `ioc_triage.go` | IOC suppression | Updating allowlists |
+| `formats.go` | File type detection | Adding new magic bytes |
+| `main.go` | CLI flags and dispatch | Adding new flags |
+
+### Data Flow
+
+```mermaid
+graph LR
+    A[types.go] -->|defines| B[ScanResult]
+    C[scanner.go] -->|populates| B
+    D[signatures.go] -->|calls| E[AddFinding]
+    F[plugin.go] -->|calls| E
+    G[rules.go] -->|calls| E
+    E -->|appends to| B
+    B -->|consumed by| H[report.go]
+    B -->|consumed by| I[pdf.go]
+    B -->|consumed by| J[json encoder]
 ```
 
 ---
 
 ## Code Style
 
-- **Standard library first.** Use Go's standard library where practical. Keep the dependency footprint minimal.
-- **No network calls by default.** Any feature that uses a network must be explicitly opt-in and clearly documented.
-- **Static analysis must stay static.** Never execute or partially execute a target file, even in test code.
-- **Clear data structures over string logic.** Prefer typed structs and named constants over ad hoc string parsing.
-- **`gofmt` on all Go files** before committing.
-- **Comments only where non-obvious.** Don't comment what the code already says. Do comment signature logic, scoring formulas, and format-specific parser quirks.
-- **No live malware in source control.** Never commit actual malware samples or real incident artifacts.
+| Rule | Rationale |
+|------|-----------|
+| Use Go standard library only | Zero dependencies is a core design principle |
+| Run `gofmt` on modified files | Consistent formatting |
+| Prefer clear data structures | Over ad hoc string-only logic |
+| Add comments only where non-obvious | Don't over-comment |
+| Never execute target samples | Static analysis only |
+| No default network calls | Any enrichment must be explicit and optional |
+| Thread-safe finding writes | Use `AddFinding`/`AddFindingDetailed` — they hold `findingsMu` |
 
 ---
 
 ## Testing
 
-Before submitting any change, run the full test and build chain:
+### Before Submitting
 
 ```bash
 gofmt -w *.go
-GOCACHE=/tmp/flatscan-go-build go test ./...
-GOCACHE=/tmp/flatscan-go-build go build -o flatscan .
+go test -v ./...
+go vet ./...
+go test -race -count=1 ./...
+go build -o flatscan .
 ```
 
 ### Smoke Tests
 
-Quick sanity check:
-
 ```bash
-./flatscan -m quick -f README.md --report-mode minimal --no-progress
-```
+# Quick smoke test
+./flatscan -m quick -f README.md --report-mode minimal --no-progress --no-color
 
-Full output smoke test:
-
-```bash
+# Full output smoke test
 ./flatscan -m deep -f README.md \
   --report-mode Full \
   --report reports/readme.full.txt \
   --json reports/readme.json \
   --pdf reports/readme.pdf \
   --yara reports/readme.yar \
+  --sigma reports/readme.sigma.yml \
+  --stix reports/readme.stix.json \
   --extract-ioc reports/readme.iocs.txt \
-  --no-progress
+  --no-progress --no-color
 ```
 
-Check that all output files were created and are non-empty:
+### Test Coverage Flow
 
-```bash
-ls -lh reports/readme.*
+```mermaid
+graph TD
+    A[Write Code] --> B[Unit Test]
+    B --> C[go test -v]
+    C --> D{Pass?}
+    D -->|No| A
+    D -->|Yes| E[go vet]
+    E --> F[go test -race]
+    F --> G{Clean?}
+    G -->|No| A
+    G -->|Yes| H[Smoke Test]
+    H --> I[Ready for PR]
 ```
-
-### Testing With Real Samples
-
-When testing with actual malware samples:
-- Use an isolated malware-analysis VM (see [security.md](security.md))
-- Use password-protected archives for sample storage and transfer
-- Test in `deep` mode with all outputs enabled
-- Check that findings match expected behaviors for the sample family
 
 ---
 
-## Adding New Findings
+## Adding New Detections
 
-When adding a new detection:
+### Finding Quality Guidelines
 
-1. **Add clear, specific evidence.** Avoid generic terms.
-2. **Choose severity conservatively.** Over-classification reduces analyst trust.
-3. **Assign a category** that matches existing report groupings.
-4. **Map MITRE tactics/techniques only when the evidence supports it.** Don't speculate.
-5. **Add a practical, actionable recommendation.**
-6. **Avoid duplicating existing findings.** Check existing signatures before adding.
-7. **Add or update tests.**
+```mermaid
+graph LR
+    subgraph "Good Evidence ✅"
+        A[Specific API Names]
+        B[Specific URLs/Domains]
+        C[Specific Registry Keys]
+        D[Specific PE Section Names]
+        E[Decoded String Content]
+        F[Embedded Payload Hashes]
+    end
+    
+    subgraph "Weak Evidence ❌"
+        G["Generic word 'encrypt'"]
+        H[Benign API without context]
+        I[Single telemetry domain]
+        J[PKI/OCSP/CRL strings]
+        K[High entropy in compressed doc]
+    end
+```
 
-### Evidence Quality
+### Steps
 
-Strong evidence (use these):
+1. **Add clear evidence** — specific strings, APIs, or structural indicators
+2. **Choose severity conservatively** — prefer `Medium` over `High` when uncertain
+3. **Match existing categories** — check `signatures.go` for patterns
+4. **Add MITRE tactic/technique** only when evidence supports it
+5. **Add a practical recommendation** — what should the analyst do?
+6. **Avoid duplicates** — `AddFinding` auto-deduplicates by title+evidence
+7. **Add or update tests** when possible
 
-| Type | Example |
-|---|---|
-| Specific API/function names | `VirtualAllocEx`, `WriteProcessMemory`, `CreateRemoteThread` |
-| Specific URL/domain/registry artifacts | `discord.com/api/webhooks/`, `HKCU\Software\Microsoft\Windows\CurrentVersion\Run` |
-| Specific PE section names or entropy values | `.text` section entropy > 7.2, `.UPX0` section name |
-| Decoded string content | base64-decoded URL or PowerShell command |
-| Specific archive entry names | `autorun.inf`, `payload.exe` in archive root |
+### Example
 
-Weak evidence (avoid or combine with stronger evidence):
-
-| Type | Why It's Weak |
-|---|---|
-| Generic words like `encrypt` alone | Common in legitimate software |
-| Benign API names without context | `CreateFile`, `ReadFile` appear in almost everything |
-| A single domain without other indicators | May be documentation or telemetry |
-| High entropy alone in a compressed document | DOCX/XLSX/JAR files are compressed by design |
-
-### Severity Guide
-
-| Severity | Criteria |
-|---|---|
-| **Critical** | Confirmed high-confidence malicious capability (e.g., process injection chain complete) |
-| **High** | Strong evidence of malicious intent (e.g., ransomware extension list + file enumeration) |
-| **Medium** | Notable indicator requiring correlation (e.g., sandbox-awareness strings alone) |
-| **Low** | Weak signal that adds context (e.g., high entropy in an otherwise clean file) |
-| **Informational** | Non-malicious context useful to the analyst (e.g., .NET runtime detected) |
+```go
+func checkMyNewDetection(result *ScanResult, corpus string) {
+    if strings.Contains(corpus, "suspicious_api_call") &&
+       strings.Contains(corpus, "another_indicator") {
+        AddFindingDetailed(result,
+            "High",            // severity
+            "Injection",       // category
+            "Suspicious API combination detected", // title
+            "Found suspicious_api_call + another_indicator", // evidence
+            22,                // score
+            0,                 // offset
+            "Defense Evasion", // tactic
+            "Process Injection", // technique
+            "Review process injection capability and correlate with endpoint logs.", // recommendation
+        )
+    }
+}
+```
 
 ---
 
 ## Adding Report Features
 
-FlatScan supports five output formats: text, JSON, PDF, IOC, and YARA.
+When adding fields to the output:
 
-When adding new fields or sections:
-
-1. **Define types in `types.go`** — keep structs explicit and named
-2. **Populate during scan or profile enrichment** — `scanner.go` or `expert.go`
-3. **Render in all relevant output formats** — text (`report.go`), JSON (struct tag), PDF (`pdf.go`), YARA (`yara.go`)
-4. **Keep JSON stable** — don't rename or remove existing fields; add only
-5. **Keep PDF readable** — test layout at various content lengths; long IOC lists and strings need wrapping and pagination
-
----
-
-## Handling Malware Samples in Development
-
-**Do not commit live malware samples** to source control history.
-
-- Use password-protected archives for any sample shared with contributors
-- Store samples outside the source tree
-- Label archives and directories clearly (`MALWARE_DO_NOT_EXECUTE`)
-- Do not include live credentials, tokens, or private victim data in any committed file
-- Strip sensitive data from test fixtures before committing
-
-If a test requires a malicious-looking pattern, create a synthetic fixture file with benign content that mimics the pattern structurally.
-
----
-
-## Commit Message Convention
-
-Keep commits focused and descriptive. Prefix with the relevant component:
-
+```mermaid
+graph LR
+    A[Add field to types.go] --> B[Populate in scanner.go]
+    B --> C[Render in report.go]
+    B --> D[Render in pdf.go]
+    B --> E[Include in json encoding]
+    C --> F[Test output]
 ```
+
+| Rule | Reason |
+|------|--------|
+| Add fields to `types.go` | Central data model |
+| Populate during scan/enrichment | Keep pipeline clean |
+| Render in relevant output formats | Consistent across all outputs |
+| Keep JSON stable and explicit | Automation consumers depend on field names |
+| Keep PDF readable for executives | Two audiences: analysts + management |
+
+---
+
+## Plugin Development
+
+### Built-in Plugin
+
+```go
+func init() {
+    RegisterPlugin(&myPlugin{})
+}
+
+type myPlugin struct{}
+
+func (p *myPlugin) Name() string    { return "My Detection Plugin" }
+func (p *myPlugin) Version() string { return "1.0" }
+
+func (p *myPlugin) ShouldRun(result ScanResult, cfg Config) bool {
+    return result.FileType == "PE executable"
+}
+
+func (p *myPlugin) Run(result *ScanResult, data []byte, strings []string, corpus string, cfg Config, debugf debugLogger) []PluginResult {
+    // Your analysis logic here
+    return nil
+}
+```
+
+### JSON Plugin
+
+Drop a `.json` file in the plugins directory:
+
+```json
+{
+  "name": "Custom Detector",
+  "version": "1.0",
+  "checks": [
+    {
+      "title": "My detection",
+      "severity": "Medium",
+      "category": "Custom",
+      "score": 10,
+      "strings_any": ["indicator1", "indicator2"]
+    }
+  ]
+}
+```
+
+---
+
+## IOC & Rule Quality
+
+| Guideline | Reason |
+|-----------|--------|
+| Run IOC triage before emitting indicators | Prevent benign infrastructure in reports |
+| Keep suppression reasons auditable in JSON | Analyst transparency |
+| Don't use FlatScan report text as YARA strings | Self-referential false positives |
+| Don't generate Sigma selections from schema strings | Noisy and non-firing |
+| Prefer payload hashes for container samples | Higher hunting value |
+| Test against benign-format samples | Catch false positives |
+
+---
+
+## Handling Malware Samples
+
+> ⚠️ **Do not commit live malware samples** to normal source-control history.
+
+| Recommendation | Reason |
+|----------------|--------|
+| Password-protected archives | Prevent accidental execution |
+| Store outside source tree | Keep repo clean |
+| Clear warning labels | Prevent confusion |
+| No live credentials in reports | Avoid data exposure |
+
+---
+
+## Commit & PR Guidelines
+
+### Commit Scopes
+
+```text
 scanner: add Discord webhook exfiltration detection
-signatures: add browser credential theft API chain
-expert: improve ransomware confidence scoring
-pdf: fix MITRE matrix table wrapping on long technique names
-yara: include decoded artifact strings in hunting rule output
-report: add cryptography section to Full mode
-docs: expand usage guide with automation examples
-tests: add IOC extraction coverage for IPv6
-fix: handle malformed PE optional header without panic
+pdf: improve MITRE matrix wrapping
+yara: add generated rule export
+plugin: add JSON manifest loader
+docs: expand usage guide
+tests: cover IOC extraction
+perf: parallelize format analysis
 ```
 
-Keep formatting changes, generated file updates, and functional changes in separate commits where possible.
+### Pull Request Checklist
 
----
+- [ ] What changed
+- [ ] Why it matters
+- [ ] How it was tested
+- [ ] False-positive or safety tradeoffs
+- [ ] Screenshots if changing PDF/HTML layout
+- [ ] `go test ./...` passes
+- [ ] `go vet ./...` clean
+- [ ] `go test -race ./...` clean
 
-## Pull Request Checklist
-
-A useful PR includes:
-
-- **What changed** — which component, which behavior
-- **Why it matters** — analyst impact, detection value, false-positive tradeoffs
-- **How it was tested** — test samples (described, not attached), smoke test output, unit test additions
-- **Safety considerations** — does this add network calls? execute anything? change output format stability?
-- **Screenshots or extracted text** if changing PDF layout
-
-Open PRs and issues at:
-
-[https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
-
----
-
-## Areas Actively Wanted
-
-If you're looking for a place to start:
-
-- **Sigma rule export** — similar to the YARA export but targeting SIEM rules
-- **ELF parser depth** — expanded section and symbol analysis
-- **Mach-O parser depth** — expanded load command and code signature inspection
-- **Office macro heuristics** — deeper VBA string extraction from OLE/OOXML
-- **PDF malware heuristics** — JavaScript, embedded streams, /Launch actions
-- **Additional MITRE coverage** — map more behavioral signatures to specific ATT&CK sub-techniques
-- **Integration tests** — synthetic test fixtures covering each file format and finding type
-- **CI workflow** — GitHub Actions configuration for automated build and test on push
+Open issues and pull requests at: https://github.com/Masriyan/FlatScan

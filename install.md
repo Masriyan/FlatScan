@@ -1,103 +1,186 @@
 # Installation
 
-Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
+Repository: https://github.com/Masriyan/FlatScan
+
+This guide covers building, verifying, cross-compiling, and setting up a safe analysis environment for FlatScan.
+
+---
+
+## Table of Contents
+
+- [Requirements](#requirements)
+- [Build](#build)
+- [Verify](#verify)
+- [Cross-Compilation](#cross-compilation)
+- [Project Structure](#project-structure)
+- [Safe Lab Setup](#safe-lab-setup)
+- [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Requirements
 
-| Requirement | Details |
-|---|---|
-| **Go** | 1.22 or newer |
-| **OS** | Linux, macOS, or Windows |
-| **Shell** | Any terminal with a working Go toolchain |
-| **YARA CLI** | Optional — for validating generated `.yar` rules externally |
+| Requirement | Version | Required? |
+|------------|---------|-----------|
+| **Go** | 1.22+ | ✅ Yes |
+| **OS** | Linux, macOS, or Windows | ✅ Yes |
+| **Terminal** | Any shell | ✅ Yes |
+| `file` | any | Optional — `--external-tools` |
+| `exiftool` | any | Optional — `--external-tools` |
+| `rabin2` | any | Optional — `--external-tools` |
+| `jadx` | any | Optional — `--external-tools` |
+| `apktool` | any | Optional — `--external-tools` |
+| `yara` | any | Optional — validate generated `.yar` |
+| `sigmac` | any | Optional — validate generated `.sigma.yml` |
 
-FlatScan uses the Go standard library only. No third-party Go modules are required. No internet access is needed at build time after cloning.
-
----
-
-## Clone
-
-```bash
-git clone https://github.com/Masriyan/FlatScan
-cd FlatScan
-```
-
-If the source is already on disk:
-
-```bash
-cd /path/to/FlatScan
-```
+> **FlatScan uses the Go standard library only.** No third-party Go modules required. No `go.mod` dependencies.
 
 ---
 
 ## Build
 
+### Clone and Build
+
 ```bash
+git clone https://github.com/Masriyan/FlatScan
+cd FlatScan
 go build -o flatscan .
 ```
 
-If the default Go build cache is restricted (common in sandboxed or shared lab environments):
+### Build With Version Tag
+
+```bash
+go build -ldflags "-X main.version=0.3.0" -o flatscan .
+```
+
+### Restricted Build Cache
+
+If the default Go build cache is restricted:
 
 ```bash
 GOCACHE=/tmp/flatscan-go-build go build -o flatscan .
+```
+
+### Build Flow
+
+```mermaid
+graph LR
+    A[Clone Repository] --> B[go build]
+    B --> C[flatscan binary]
+    C --> D[go test]
+    D --> E{All Pass?}
+    E -->|Yes| F[Ready to Use]
+    E -->|No| G[Check Errors]
 ```
 
 ---
 
 ## Verify
 
-Run the test suite:
+### Run Tests
 
 ```bash
-go test ./...
+go test -v ./...
 ```
 
-With a restricted cache:
+Expected output:
+
+```text
+=== RUN   TestExtractIOCs
+--- PASS: TestExtractIOCs (0.00s)
+=== RUN   TestDetectFileType
+--- PASS: TestDetectFileType (0.00s)
+    --- PASS: TestDetectFileType/pe (0.00s)
+    --- PASS: TestDetectFileType/elf (0.00s)
+    --- PASS: TestDetectFileType/pdf (0.00s)
+    --- PASS: TestDetectFileType/zip (0.00s)
+    --- PASS: TestDetectFileType/java-class (0.00s)
+...
+PASS
+ok      flatscan        0.007s
+```
+
+### Run Race Detector
 
 ```bash
-GOCACHE=/tmp/flatscan-go-build go test ./...
+go test -race -count=1 ./...
 ```
 
-Check the binary:
+### Run Vet
+
+```bash
+go vet ./...
+```
+
+### Check Binary
 
 ```bash
 ./flatscan --version
 ./flatscan --help
 ```
 
-Expected version output:
+Expected version:
 
-```
-FlatScan 0.1.0
+```text
+FlatScan 0.3.0
 ```
 
-Smoke test against a benign file to confirm output is working:
+### Verification Checklist
 
-```bash
-./flatscan -m quick -f README.md --report-mode minimal --no-progress
-```
+| Check | Command | Expected |
+|-------|---------|----------|
+| Build | `go build -o flatscan .` | No errors |
+| Tests | `go test ./...` | 12/12 pass |
+| Race | `go test -race ./...` | No races |
+| Vet | `go vet ./...` | No warnings |
+| Version | `./flatscan --version` | Version string |
+| Help | `./flatscan --help` | Usage text |
 
 ---
 
-## Install Into PATH (Optional)
+## Cross-Compilation
 
-**Linux / macOS:**
+FlatScan cross-compiles to any Go-supported platform:
+
+```bash
+# Linux AMD64
+GOOS=linux GOARCH=amd64 go build -o flatscan-linux-amd64 .
+
+# Linux ARM64
+GOOS=linux GOARCH=arm64 go build -o flatscan-linux-arm64 .
+
+# Windows AMD64
+GOOS=windows GOARCH=amd64 go build -o flatscan.exe .
+
+# macOS Apple Silicon
+GOOS=darwin GOARCH=arm64 go build -o flatscan-darwin-arm64 .
+
+# macOS Intel
+GOOS=darwin GOARCH=amd64 go build -o flatscan-darwin-amd64 .
+```
+
+### Platform Feature Matrix
+
+| Feature | Linux | macOS | Windows |
+|---------|-------|-------|---------|
+| Core scanning | ✅ | ✅ | ✅ |
+| Colorized output | ✅ | ✅ | ✅ (ANSI terminals) |
+| Memory-mapped I/O | ✅ (syscall.Mmap) | ❌ (fallback to read) | ❌ (fallback to read) |
+| Watch mode | ✅ | ✅ | ✅ |
+| External tools | ✅ | ✅ | Partial |
+
+> **Note:** Memory-mapped I/O is Linux-only via `syscall.Mmap`. On other platforms, FlatScan transparently falls back to buffered read with identical analysis results.
+
+### Install Globally (Optional)
+
+Linux/macOS:
 
 ```bash
 sudo install -m 0755 flatscan /usr/local/bin/flatscan
 flatscan --help
 ```
 
-**Windows (PowerShell, run as Administrator):**
-
-```powershell
-Copy-Item .\flatscan.exe C:\Windows\System32\flatscan.exe
-flatscan --help
-```
-
-If you prefer not to install globally, run from the project directory:
+Or run from the project directory:
 
 ```bash
 ./flatscan --help
@@ -105,136 +188,152 @@ If you prefer not to install globally, run from the project directory:
 
 ---
 
-## Cross-Compilation
+## Project Structure
 
-FlatScan compiles cleanly for all major platforms from any host.
-
-| Target | Command |
-|---|---|
-| Linux x86-64 | `GOOS=linux GOARCH=amd64 go build -o flatscan-linux-amd64 .` |
-| Linux ARM64 | `GOOS=linux GOARCH=arm64 go build -o flatscan-linux-arm64 .` |
-| Windows x86-64 | `GOOS=windows GOARCH=amd64 go build -o flatscan.exe .` |
-| macOS Intel | `GOOS=darwin GOARCH=amd64 go build -o flatscan-darwin-amd64 .` |
-| macOS Apple Silicon | `GOOS=darwin GOARCH=arm64 go build -o flatscan-darwin-arm64 .` |
-
-Useful when building from a CI runner or deploying to a different lab machine architecture.
-
----
-
-## Project File Layout
-
+```mermaid
+graph TD
+    subgraph "Project Root"
+        README.md
+        main.go
+        scanner.go
+        types.go
+    end
+    
+    subgraph "Analysis Engine"
+        signatures.go
+        ioc.go
+        ioc_triage.go
+        entropy.go
+        strings_extract.go
+        decode.go
+        formats.go
+        apk.go
+    end
+    
+    subgraph "Architecture"
+        plugin.go
+        rules.go
+        parallel.go
+        cache.go
+        logger.go
+        mmap_linux.go
+    end
+    
+    subgraph "Output"
+        report.go
+        pdf.go
+        html.go
+        yara.go
+        sigma.go
+        stix.go
+    end
+    
+    subgraph "Modes"
+        interactive.go
+        batch.go
+        watch.go
+    end
 ```
-FlatScan/
-├── main.go             # CLI entry point, flag parsing, orchestration
-├── scanner.go          # Core analysis pipeline
-├── signatures.go       # Behavioral and malware-family signature rules
-├── expert.go           # Malware profile enrichment and MITRE TTP mapping
-├── pdf.go              # PDF report renderer
-├── yara.go             # YARA rule generator
-├── report.go           # Text and JSON report renderer
+
+### Full Directory Layout
+
+```text
+.
+├── main.go                 # CLI entry point, flag parsing
+├── scanner.go              # Core analysis pipeline
+├── types.go                # Data structures (ScanResult, Finding, etc.)
+├── interactive.go          # Interactive wizard and shell modes
+├── batch.go                # --dir batch scanning
+├── watch.go                # --dir --watch monitoring
+├── parallel.go             # Concurrent pipeline executor
+├── plugin.go               # Plugin interface and registry
+├── cache.go                # SHA256-based scan result cache
+├── logger.go               # Structured leveled logging
+├── mmap_linux.go           # Memory-mapped I/O (Linux)
+├── mmap_other.go           # Fallback for non-Linux
+├── color.go                # ANSI terminal colorization
+├── progress.go             # Progress bar renderer
+├── splash.go               # Startup banner
+├── platform.go             # Platform detection helpers
+│
+├── signatures.go           # Behavioral signature detection
+├── ioc.go                  # IOC extraction engine
+├── ioc_triage.go           # IOC deduplication and suppression
+├── entropy.go              # Shannon entropy analysis
+├── strings_extract.go      # String extraction (ASCII + UTF-16LE)
+├── decode.go               # Base64/hex/URL decoder
+├── formats.go              # File type detection
+├── apk.go                  # Android APK/DEX analysis
+├── carve.go                # Safe embedded file carving
+├── config_extract.go       # Crypto/config artifact extraction
+├── family.go               # Malware family classifier
+├── similarity.go           # Similarity hash generation
+├── expert.go               # Malware profile enrichment
+├── rules.go                # Custom rule pack engine
+├── external_tools.go       # Optional external tool integration
+│
+├── report.go               # Text report renderer
+├── pdf.go                  # PDF report generator
+├── html.go                 # HTML report generator
+├── yara.go                 # YARA rule generator
+├── sigma.go                # Sigma rule generator
+├── stix.go                 # STIX 2.1 bundle generator
+├── case_report_pack.go     # Report pack + case database
+│
+├── scanner_test.go         # Test suite
+│
+├── plugins/                # Example plugin packs
+│   └── android-risk.rule
+├── rules/                  # Example rule packs
+│   └── starter.rule
+├── reports/                # Generated report output
+│
 ├── README.md
 ├── install.md
 ├── usage.md
-├── security.md
 ├── contributing.md
+├── security.md
 └── changelog.md
 ```
-
-Generated outputs are typically placed under:
-
-```
-reports/
-├── sample.full.txt
-├── sample.iocs.txt
-├── sample.report.json
-├── sample.ciso.pdf
-└── sample.yar
-```
-
-Keep the `reports/` directory separate from the source tree and outside of version control when it contains real malware artifacts.
-
----
-
-## Docker / Container Setup (Recommended for Shared Labs)
-
-If your lab policy requires process isolation, FlatScan can run inside a minimal container.
-
-Example `Dockerfile`:
-
-```dockerfile
-FROM golang:1.22-alpine AS builder
-WORKDIR /build
-COPY . .
-RUN go build -o flatscan .
-
-FROM alpine:latest
-RUN adduser -D analyst
-WORKDIR /home/analyst
-COPY --from=builder /build/flatscan .
-USER analyst
-ENTRYPOINT ["./flatscan"]
-```
-
-Build and run:
-
-```bash
-docker build -t flatscan:latest .
-docker run --rm \
-  -v /path/to/samples:/samples:ro \
-  -v /path/to/reports:/reports \
-  flatscan:latest \
-  -m deep -f /samples/sample.exe \
-  --report-mode Full \
-  --json /reports/sample.json \
-  --pdf /reports/sample.pdf \
-  --no-progress
-```
-
-Mounting samples read-only (`ro`) prevents accidental writes into the sample directory.
 
 ---
 
 ## Safe Lab Setup
 
-| Recommendation | Reason |
-|---|---|
-| Use an isolated VM with snapshots | Roll back cleanly after handling live samples |
-| Disable shared clipboard | Prevents accidental paste of malicious strings |
-| Disable shared folders unless required | Limits lateral movement risk from crafted samples |
-| No direct access to production networks | C2 connections cannot reach the internet |
-| Dedicated sample storage directory | Keeps live malware clearly separated |
-| Password-protected archives for sample transfer | Prevents accidental execution during file transfer |
-| Separate output directory for reports | Avoids mixing incident artifacts with source code |
+```mermaid
+graph TD
+    subgraph "Recommended Lab Architecture"
+        VM[Isolated VM] --> SNAP[Snapshot Before Analysis]
+        SNAP --> SCAN[Run FlatScan]
+        SCAN --> REPORT[Reports Directory]
+        SCAN --> SAMPLES[Sample Storage]
+        
+        REPORT -.->|separate| SAMPLES
+        VM -.->|no shared folders| HOST[Host Machine]
+        VM -.->|no internet| PROD[Production Network]
+    end
+```
 
-FlatScan does not execute the target file. Parser bugs are still possible on malformed or adversarially crafted inputs. Always work in a disposable environment.
+| Recommendation | Reason |
+|----------------|--------|
+| Isolated VM with snapshots | Revert after analysis sessions |
+| No shared clipboard/folders | Prevent accidental sample escape |
+| No direct production network access | Contain potential C2 callbacks |
+| Dedicated sample storage directory | Organized and isolated |
+| Password-protected archives | Safe sample transfer |
+| Separate output directory for reports | Keep reports away from malware |
+
+FlatScan does not execute the target file, but sample handling still requires care.
 
 ---
 
 ## Troubleshooting
 
-**`go: command not found`**
-Install Go from [https://golang.org/dl/](https://golang.org/dl/) and ensure `$GOPATH/bin` and the Go install directory are on your `PATH`.
-
-**`permission denied` when running `./flatscan`**
-Mark the binary executable:
-```bash
-chmod +x flatscan
-```
-
-**Build cache errors in restricted environments**
-Use a writable temp directory:
-```bash
-GOCACHE=/tmp/flatscan-go-build go build -o flatscan .
-```
-
-**`go test` failures**
-Run tests individually to isolate the failure:
-```bash
-go test -v -run TestIOCExtraction ./...
-```
-
-**Large memory usage on huge samples**
-FlatScan limits in-memory analysis via `--max-analyze-bytes` (default 256 MB). The full file is still hashed. Adjust if needed:
-```bash
-./flatscan -m deep -f huge-sample.bin --max-analyze-bytes 134217728
-```
+| Issue | Solution |
+|-------|----------|
+| `go: cannot find main module` | Ensure you're in the FlatScan directory |
+| Build cache errors | Use `GOCACHE=/tmp/flatscan-go-build` |
+| `permission denied` | Check file permissions on the binary |
+| mmap errors on non-Linux | Normal — falls back to buffered read |
+| `--watch` without `--dir` | Watch mode requires `--dir` flag |
+| Color codes in pipe output | Use `--no-color` when piping output |

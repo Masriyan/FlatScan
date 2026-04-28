@@ -1,22 +1,44 @@
-# Usage
+# Usage Guide
 
-Repository: [https://github.com/Masriyan/FlatScan](https://github.com/Masriyan/FlatScan)
+Repository: https://github.com/Masriyan/FlatScan
+
+This guide provides comprehensive documentation for all FlatScan commands, flags, modes, output formats, and interpretation guidelines.
 
 ---
 
-## Basic Command Shape
+## Table of Contents
+
+- [Command Shape](#command-shape)
+- [Complete Flag Reference](#complete-flag-reference)
+- [Operator Modes](#operator-modes)
+- [Scan Modes](#scan-modes)
+- [Report Modes](#report-modes)
+- [Output Formats](#output-formats)
+- [Batch & Watch Modes](#batch--watch-modes)
+- [Custom Rules & Plugins](#custom-rules--plugins)
+- [IOC Management](#ioc-management)
+- [Advanced Analysis](#advanced-analysis)
+- [Score Interpretation](#score-interpretation)
+- [Finding Sources](#finding-sources)
+- [Cryptography Analysis](#cryptography-analysis)
+- [Automation Recipes](#automation-recipes)
+- [Real-World Examples](#real-world-examples)
+
+---
+
+## Command Shape
 
 ```bash
-./flatscan -m <mode> -f <target-file> --report-mode <mode>
+./flatscan -m <mode> -f <target-file> [options]
 ```
 
-Minimal example:
+### Minimal Example
 
 ```bash
 ./flatscan -m deep -f sample.exe --report-mode Full
 ```
 
-Full example with all outputs:
+### Full Example With All Outputs
 
 ```bash
 ./flatscan -m deep \
@@ -26,326 +48,694 @@ Full example with all outputs:
   --extract-ioc reports/sample.iocs.txt \
   --json reports/sample.report.json \
   --pdf reports/sample.ciso.pdf \
+  --html reports/sample.analyst.html \
   --yara reports/sample.yar \
+  --sigma reports/sample.sigma.yml \
+  --stix reports/sample.stix.json \
+  --report-pack reports/sample-pack \
+  --case CASE-001 \
+  --case-db reports/cases.jsonl \
+  --carve \
   --debug
 ```
 
 ---
 
-## Flag Reference
+## Complete Flag Reference
+
+### Input & Mode Flags
 
 | Flag | Default | Description |
-|---|---|---|
-| `-f`, `--file` | *(required)* | Target file to scan. |
-| `-m`, `--mode` | `quick` | Scan depth: `quick`, `standard`, or `deep`. |
-| `--report-mode` | `summary` | Text report verbosity: `Full`, `Summary`, or `minimal`. |
-| `--report` | *(none)* | Write text report to this path. Omit to print to stdout. |
-| `--extract-ioc` | *(none)* | Write categorized IOC text export. |
-| `--json` | *(none)* | Write complete structured JSON report. |
-| `--pdf` | *(none)* | Write CISO/management-ready PDF report. |
-| `--yara` | *(none)* | Write generated YARA hunting rule. |
-| `--debug` | `false` | Include debug log in full report and richer error context. |
-| `--no-progress` | `false` | Disable all progress output. Use in scripts and automation. |
-| `--no-splash` | `false` | Disable startup banner and loading bar only. |
-| `--splash-seconds` | `20` | Duration of startup splash in interactive terminals. |
-| `--min-string` | `5` | Minimum extracted string length (bytes). |
-| `--decode-depth` | `2` | Nested base64/hex/URL decode depth. Range: `0`–`5`. |
-| `--max-analyze-bytes` | `268435456` | Max bytes retained for in-memory analysis (256 MB). Full file is always hashed. |
-| `--max-archive-files` | `500` | Max ZIP/APK/JAR/Office entries inspected. |
-| `--version` | — | Print FlatScan version and exit. |
+| --- | --- | --- |
+| `-f`, `--file` | *required* | Target file to scan |
+| `-m`, `--mode` | `quick` | Scan mode: `quick`, `standard`, or `deep` |
+| `--dir` | none | Scan all files in a directory (batch mode) |
+| `--watch` | false | Monitor directory for new files and auto-scan (requires `--dir`) |
+| `--watch-interval` | `3` | Polling interval in seconds for watch mode |
+
+### Output Flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--report` | none | Write text report to path. Prints to stdout if omitted |
+| `--report-mode` | `summary` | Text report mode: `Full`, `Summary`, or `minimal` |
+| `--json` | none | Write JSON report. Use `-` to pipe to stdout |
+| `--pdf` | none | Write CISO/management-ready PDF report |
+| `--html` | none | Write interactive analyst HTML report |
+| `--yara` | none | Write generated YARA hunting rule |
+| `--sigma` | none | Write generated Sigma SIEM/EDR hunting rule |
+| `--stix` | none | Write STIX 2.1 threat intelligence bundle |
+| `--extract-ioc` | none | Write categorized IOC text export |
+| `--report-pack` | none | Write all formats to a directory |
+
+### Analysis Flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--carve` | false | Enable safe embedded-file carving by magic bytes |
+| `--max-carves` | `80` | Maximum embedded artifacts reported |
+| `--external-tools` | false | Run safe external metadata tools when installed |
+| `--rules` | none | Custom FlatScan JSON/rule-pack detection files or directories |
+| `--plugins` | none | Custom plugin pack files or directories |
+| `--ioc-allowlist` | none | IOC allowlist for suppressing organization-specific benign domains |
+| `--min-string` | `5` | Minimum string length to extract |
+| `--decode-depth` | `2` | Nested decode depth (0-5) |
+| `--max-analyze-bytes` | `268435456` | Maximum bytes retained for in-memory analysis |
+| `--max-archive-files` | `500` | Maximum archive entries inspected |
+
+### Case & Session Flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--case` | none | Case identifier for local case database |
+| `--case-db` | auto | Local JSONL case database path |
+| `--debug` | false | Include debug log and stronger error context |
+
+### Display Flags
+
+| Flag | Default | Description |
+| --- | --- | --- |
+| `--no-progress` | false | Disable progress output for automation |
+| `--no-splash` | false | Disable startup ASCII banner/loading bar |
+| `--no-color` | false | Disable colorized terminal output |
+| `--splash-seconds` | `20` | Startup splash duration |
+| `--version` | — | Print FlatScan version |
+
+---
+
+## Operator Modes
+
+FlatScan supports five distinct operator modes:
+
+```mermaid
+graph TD
+    A[Launch FlatScan] --> B{Which Mode?}
+    
+    B -->|"-f sample.exe"| C[Direct CLI]
+    B -->|"--interactive"| D[Interactive Wizard]
+    B -->|"--shell"| E[Command Shell]
+    B -->|"--dir ./samples"| F[Batch Scan]
+    B -->|"--dir ./inbox --watch"| G[Watch Mode]
+    
+    C --> H[Single Scan → Outputs]
+    D --> I[Guided Questions → Scan → Outputs]
+    E --> J[Repeated Commands → Multiple Scans]
+    F --> K[All Files → Summary Table]
+    G --> L[Monitor → Auto-Scan New Files]
+```
+
+### Direct CLI
+
+Standard one-line commands for automation and scripting:
+
+```bash
+./flatscan -m deep -f sample.exe --json reports/sample.json --no-progress --no-color
+```
+
+### Interactive Mode
+
+Guided wizard that asks for each setting:
+
+```bash
+./flatscan --interactive
+```
+
+The wizard covers:
+
+```mermaid
+graph LR
+    A[Target File] --> B[Scan Mode]
+    B --> C[Report Mode]
+    C --> D[Output Profile]
+    D --> E[Output Directory]
+    E --> F[Safe Carving?]
+    F --> G[External Tools?]
+    G --> H[Debug Logging?]
+    H --> I[IOC Allowlist?]
+    I --> J[Rules/Plugins?]
+    J --> K[Start Scan]
+```
+
+Output profiles available in interactive mode:
+
+| Profile | Outputs |
+|---------|---------|
+| Terminal only | Text to stdout |
+| Standard files | Text + JSON + IOC |
+| Full analyst/CISO pack | Text + JSON + IOC + PDF + HTML + YARA + Sigma + STIX + Report Pack |
+| Custom paths | User-specified |
+
+### Command Shell
+
+Type multiple commands in one session:
+
+```bash
+./flatscan --shell
+```
+
+```text
+flatscan> -m deep -f sample.exe --report-mode Full --json reports/sample.json --carve
+flatscan> -m quick -f another.bin --report-mode minimal --no-progress
+flatscan> help
+flatscan> examples
+flatscan> exit
+```
+
+Shell commands: `help`, `examples`, `version`, `back` (return to menu from interactive), `exit`/`quit`.
+
+### Batch Mode
+
+Scan all files in a directory with colorized summary table:
+
+```bash
+./flatscan --dir ./samples -m deep
+```
+
+Output includes:
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FlatScan  Batch scan: 5 files in ./samples
+          Mode: deep
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+→ [1/5] malware.exe
+  ✓ Likely malicious score=92 findings=14
+→ [2/5] document.pdf
+  ✓ No strong indicators score=2 findings=1
+
+📊 Batch Summary  (5 files in 2.4s)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  File                    Verdict          Score  Finds  IOCs
+  ──────────────────────────────────────────────────────────
+  malware.exe             Likely malicious    92     14    23
+  document.pdf            No strong indic..    2      1     0
+  🔴 Malicious: 1  🟠 Suspicious: 0  🟢 Clean: 4
+```
+
+### Watch Mode
+
+Continuous directory monitoring with auto-scan:
+
+```bash
+./flatscan --dir ./inbox --watch -m deep --watch-interval 5
+```
+
+```text
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+FlatScan  Watch mode active
+          Directory: ./inbox
+          Mode: deep  Interval: 5s
+          Existing files: 3 (skipped)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+👁 Waiting for new files...
+
+📄 [14:32:15] New file detected: dropper.exe (1.2 MB)
+  ✓ Likely malicious score=87 findings=11 sha256=a28a3e35...
+  ⚠ ALERT: Malicious file detected! Immediate action recommended.
+👁 Total scanned: 1 | Waiting...
+```
 
 ---
 
 ## Scan Modes
 
-### `quick` — Fast triage
+```mermaid
+graph TD
+    subgraph "Mode Comparison"
+        Q["⚡ quick<br/>~0.1s per file<br/>30K strings<br/>Fast triage"]
+        S["📊 standard<br/>~0.3s per file<br/>100K strings<br/>Normal triage"]
+        D["🔬 deep<br/>~0.5s per file<br/>250K strings<br/>Final reports"]
+    end
+    
+    Q -.->|adds entropy regions, ZIP inspection| S
+    S -.->|adds extended limits, richest profile| D
+```
 
-Use for initial pass on a new sample when you need a verdict in seconds.
+### quick
+
+Fast triage — hashes, type, strings, IOCs, decoding, key signatures:
 
 ```bash
 ./flatscan -m quick -f sample.bin --report-mode Summary
 ```
 
-Includes:
-- Hashes (MD5, SHA1, SHA256, SHA512)
-- File type and MIME detection
-- Entropy scoring
-- ASCII and UTF-16LE string extraction
-- IOC extraction
-- Suspicious decoder pass (base64, hex, URL-percent)
-- Main behavioral signatures
+### standard
 
-### `standard` — Normal analyst triage
-
-Use for routine sample review when time allows deeper inspection.
+Normal analyst triage — adds high-entropy regions and ZIP-family entry inspection:
 
 ```bash
 ./flatscan -m standard -f sample.bin --report-mode Full
 ```
 
-Adds over `quick`:
-- High-entropy region detection
-- ZIP-family entry inspection (ZIP/APK/JAR/Office)
-- Expanded import coverage
+### deep
 
-### `deep` — Final report / high-priority sample
-
-Use when producing a deliverable or analyzing a high-priority incident sample.
+Final reports — largest string/import/decode limits and richest profile:
 
 ```bash
-./flatscan -m deep -f sample.bin \
-  --report-mode Full \
-  --pdf reports/sample.pdf \
-  --json reports/sample.json
+./flatscan -m deep -f sample.bin --report-mode Full --pdf reports/sample.pdf
 ```
-
-Adds over `standard`:
-- Larger string, import, and decode limits
-- Richest malware profile enrichment
-- Full MITRE TTP mapping
-- Full cryptography indicator assessment
 
 ---
 
-## Text Report Modes
+## Report Modes
 
-### `minimal` — Shell and automation output
+### minimal
+
+Small output for shell scripts and CI:
 
 ```bash
-./flatscan -m quick -f sample.bin --report-mode minimal --no-progress
+./flatscan -m quick -f sample.bin --report-mode minimal --no-progress --no-color
 ```
 
-Output includes:
-- Tool version
-- Target path
-- Verdict and score
-- File type
-- SHA256
-- Finding count and IOC count
+Contains: tool version, target, verdict, score, file type, SHA256, finding/IOC counts.
 
-### `Summary` — Terminal triage
+### Summary
+
+Good for terminal triage:
 
 ```bash
 ./flatscan -m standard -f sample.bin --report-mode Summary
 ```
 
-Output includes:
-- File metadata
-- Malware profile (type, confidence)
-- Top findings
-- IOC summary
-- Suspicious string highlights
-- Decoded artifact highlights
+Contains: metadata, malware profile, top findings, IOC summary, suspicious strings, decoded highlights.
 
-### `Full` — Analyst handoff
+### Full
+
+Best for analyst handoff:
 
 ```bash
-./flatscan -m deep -f sample.bin \
-  --report-mode Full \
-  --report reports/sample.full.txt \
-  --debug
+./flatscan -m deep -f sample.bin --report-mode Full --debug
 ```
 
-Output includes:
-- Full hash table
-- Malware profile
-- Complete findings with severity and evidence
-- Suspicious API/function strings
-- Full IOC sections (all categories)
-- Decoded artifacts
-- PE/ELF/Mach-O/container details
-- Suspicious string list
-- Debug log (when `--debug` is set)
+Contains: full hashes, malware profile, all findings, suspicious functions/APIs, full IOC sections, decoded artifacts, PE/ELF/Mach-O/container details, APK/DEX details, family classifier, rule matches, crypto/config, carved artifacts, similarity hashes, debug log.
 
 ---
 
-## PDF Report
+## Output Formats
 
-The PDF is designed for CISO and leadership audiences, and for analyst handoff in escalation workflows.
+### PDF Report
+
+```bash
+./flatscan -m deep -f sample.exe --pdf reports/sample.ciso.pdf
+```
+
+```mermaid
+graph TD
+    subgraph "PDF Report Structure"
+        A[Cover Page] --> B[Executive Assessment]
+        B --> C[CISO Decision Summary]
+        C --> D[Risk & Confidence Cards]
+        D --> E[Business Impact]
+        E --> F[Management Actions]
+        F --> G[Evidence Summary Table]
+        G --> H[MITRE ATT&CK Matrix]
+        H --> I[Priority Findings]
+        I --> J[Cryptography Assessment]
+        J --> K[Hunting Guidance]
+        K --> L[Sample Metadata & IOCs]
+        L --> M[Technical Details]
+        M --> N[Appendix]
+    end
+```
+
+### HTML Report
+
+Interactive analyst report with finding severity filters, MITRE mapping, IOC cards, family classifier output, and raw JSON:
+
+```bash
+./flatscan -m deep -f sample.exe --html reports/sample.analyst.html
+```
+
+### STIX 2.1 Bundle
+
+Standards-compliant threat intelligence for SIEM/EDR/TIP ingestion:
+
+```bash
+./flatscan -m deep -f sample.exe --stix reports/sample.stix.json
+```
+
+```mermaid
+graph LR
+    subgraph "STIX 2.1 Bundle"
+        A[File SCO] -->|analyzed by| B[Malware Analysis SDO]
+        C[Malware SDO] -->|related to| A
+        D[Indicator 1: URL] -->|indicates| C
+        E[Indicator 2: Domain] -->|indicates| C
+        F[Indicator 3: IP] -->|indicates| C
+    end
+```
+
+### Report Pack
+
+Write all formats to a single directory:
+
+```bash
+./flatscan -m deep -f sample.exe --report-pack reports/sample-pack
+```
+
+Generates: `full.txt`, `summary.txt`, `report.json`, `ciso.pdf`, `analyst.html`, `iocs.txt`, `hunting.yar`, `hunting.sigma.yml`, `stix.json`, `executive.md`.
+
+### JSON Report
+
+Complete structured result for automation:
+
+```bash
+./flatscan -m deep -f sample.exe --json - | jq '.verdict'
+```
+
+Key JSON fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `risk_score` | int | 0-100 cumulative score |
+| `verdict` | string | Human-readable verdict |
+| `findings` | array | All findings with severity, category, evidence, MITRE |
+| `iocs` | object | Categorized IOCs (URLs, domains, IPs, hashes, etc.) |
+| `profile` | object | Enriched malware profile with TTPs |
+| `hashes` | object | MD5, SHA1, SHA256, SHA512 |
+| `plugins` | array | Plugin results |
+| `family_matches` | array | Family classifier hypotheses |
+| `stix_bundle` | object | Embedded STIX if `--stix` used |
+
+---
+
+## Batch & Watch Modes
+
+### Batch Scanning
+
+```bash
+# Scan all files in a directory
+./flatscan --dir ./samples -m deep
+
+# With JSON export per file
+./flatscan --dir ./samples -m deep --json reports/batch.json
+```
+
+### Watch Mode
+
+```bash
+# Monitor with 5-second polling interval
+./flatscan --dir ./inbox --watch -m deep --watch-interval 5
+```
+
+Watch mode behavior:
+
+```mermaid
+stateDiagram-v2
+    [*] --> Initialize
+    Initialize --> MarkExisting: Record existing files
+    MarkExisting --> Polling: Start ticker
+    
+    Polling --> CheckDir: Every N seconds
+    CheckDir --> NewFile: New/modified file found
+    CheckDir --> Polling: No changes
+    
+    NewFile --> WaitStable: Wait 500ms
+    WaitStable --> Scan: File size stable
+    WaitStable --> Polling: Still writing
+    
+    Scan --> Alert: Score >= 80
+    Scan --> Log: Score < 80
+    Alert --> Polling
+    Log --> Polling
+```
+
+---
+
+## Custom Rules & Plugins
+
+### JSON Rule Pack
+
+```bash
+./flatscan -m deep -f sample.exe --rules rules/
+```
+
+```json
+{
+  "name": "org-triage-rules",
+  "rules": [
+    {
+      "id": "org.webhook",
+      "name": "Organization webhook marker",
+      "severity": "High",
+      "category": "Custom Rule",
+      "score": 18,
+      "strings_any": ["discord.com/api/webhooks", "telegram"],
+      "tactic": "Exfiltration",
+      "technique": "Exfiltration Over Web Service",
+      "recommendation": "Review extracted endpoints and block confirmed malicious destinations."
+    }
+  ]
+}
+```
+
+### Line-Based `.rule` Format
+
+```text
+id: android.runtime.exec
+name: Android runtime execution marker
+severity: Medium
+category: Android
+score: 10
+strings_any: Runtime.exec, ProcessBuilder
+file_types: APK package, DEX bytecode
+recommendation: Review decompiled call sites.
+```
+
+### Rule Matching Keys
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `strings_any` | list | Match if any string is found in corpus |
+| `strings_all` | list | Match if all strings are found in corpus |
+| `regex_any` | list | Match if any regex matches a string |
+| `functions_any` | list | Match against detected function/API names |
+| `domains_any` | list | Match against extracted IOC domains |
+| `urls_any` | list | Match against extracted IOC URLs |
+| `sha256_any` | list | Match against file SHA256 |
+| `file_types` | list | Only fire for these file types |
+| `min_entropy` / `max_entropy` | float | Entropy range filter |
+
+### Analysis Plugins
+
+```bash
+./flatscan -m deep -f sample.exe --plugins plugins/
+```
+
+Plugins use the `AnalysisPlugin` interface with `Name()`, `Version()`, `ShouldRun()`, and `Run()` methods. JSON plugin manifests can be dropped into the plugins directory without recompiling.
+
+---
+
+## IOC Management
+
+### IOC Extraction Pipeline
+
+```mermaid
+graph TD
+    A[Raw Strings] --> B[IOC Regex Extraction]
+    C[Decoded Artifacts] --> B
+    B --> D[Raw IOC Set]
+    D --> E{Built-in Triage}
+    E -->|PKI/OCSP/CRL| F[Suppressed]
+    E -->|Schema/OID| F
+    E -->|Loopback/Broadcast| F
+    E -->|Clean| G[Triaged IOCs]
+    
+    H[--ioc-allowlist] --> I{User Allowlist}
+    G --> I
+    I -->|Match| F
+    I -->|Clean| J[Final IOCs]
+    
+    F --> K[suppression_log in JSON]
+    J --> L[Reports/Exports]
+```
+
+### IOC Allowlist
+
+```bash
+./flatscan -m deep -f sample.bin --ioc-allowlist allowlist.txt
+```
+
+Supported format:
+
+```text
+domains:
+  - "*.example-cdn.local"
+  - "telemetry.example.com"
+
+url_prefixes:
+  - "https://updates.example.com/"
+
+ipv4:
+  - "10.10.10.*"
+```
+
+---
+
+## Advanced Analysis
+
+### Safe Carving
+
+```bash
+./flatscan -m deep -f sample.bin --carve --max-carves 120
+```
+
+Detects embedded PE, ELF, DEX, ZIP, PDF, gzip, 7-Zip, and RAR artifacts by offset/hash without extracting to disk. Payload hashes are promoted to `iocs.pe_hashes` when pointing at `.exe`/`.dll`.
+
+### MSIX/AppX Analysis
+
+FlatScan recognizes MSIX/AppX packages and extracts:
+
+- Identity name, publisher, and version
+- Declared application executables
+- Requested capabilities (`runFullTrust`)
+- Undeclared embedded `.exe` and `.dll` payloads
+- Magniber ransomware family hypothesis scoring
+
+### Android APK/DEX Analysis
+
+For APK files, FlatScan parses:
+
+- `AndroidManifest.xml` package name, version, SDK targets, permissions
+- Dangerous Android permissions (SMS, contacts, location, camera, etc.)
+- Exported components and intent actions
+- DEX strings and Android API indicators
+- Native libraries, signature files, assets
+
+### External Tool Integration
+
+```bash
+./flatscan -m deep -f sample.exe --external-tools
+```
+
+Supported tools (when installed): `file`, `exiftool`, `rabin2`, `jadx`, `apktool`, `sigmac`, `yara`.
+
+### Case Database
+
+```bash
+./flatscan -m deep -f sample.exe --case CASE-001 --case-db reports/cases.jsonl
+```
+
+Append-only JSONL. Each record stores: case ID, timestamps, hashes, verdict, score, file type, IOC count, family hypotheses, FlatHash.
+
+---
+
+## Score Interpretation
+
+```mermaid
+graph LR
+    subgraph "Risk Score Bands"
+        A["0-9<br/>⚪ No strong indicators"]
+        B["10-29<br/>🟢 Low suspicion"]
+        C["30-54<br/>🟡 Suspicious"]
+        D["55-79<br/>🟠 High suspicion"]
+        E["80-100<br/>🔴 Likely malicious"]
+    end
+    
+    A --> B --> C --> D --> E
+```
+
+| Score | Verdict | Action |
+| --- | --- | --- |
+| `0-9` | No strong indicators | Not a clean verdict — sample may be packed or use techniques beyond static reach |
+| `10-29` | Low suspicion | Review context. May be benign software with unusual characteristics |
+| `30-54` | Suspicious | Correlate with endpoint telemetry, network logs, and threat intel |
+| `55-79` | High suspicion | Treat as high risk. Escalate to sandbox analysis |
+| `80-100` | Likely malicious | Multiple high-confidence indicators. Prioritize containment and response |
+
+---
+
+## Finding Sources
+
+Findings are generated from multiple evidence layers:
+
+```mermaid
+graph TD
+    subgraph "Finding Sources"
+        A[IOC Density] --> FIND[Findings]
+        B[API/Function Strings] --> FIND
+        C[Crypto/Secret Handling] --> FIND
+        D[Entropy/Packing] --> FIND
+        E[PE/ELF/Mach-O Anomalies] --> FIND
+        F[Archive Contents] --> FIND
+        G[Android Manifest/DEX] --> FIND
+        H[Custom Rules/Plugins] --> FIND
+        I[Carved Artifacts] --> FIND
+        J[Family Classifier] --> FIND
+        K[Persistence Artifacts] --> FIND
+        L[Anti-Debug/Sandbox] --> FIND
+        M[Credential Theft] --> FIND
+    end
+```
+
+---
+
+## Cryptography Analysis
+
+FlatScan identifies crypto usage patterns (does not break encryption):
+
+| Category | Indicators |
+|----------|-----------|
+| **Windows CNG** | `BCrypt*` strings |
+| **Windows CryptoAPI** | DPAPI-style strings |
+| **Browser Secrets** | Chromium `encrypted_key` workflows |
+| **Symmetric Crypto** | AES/GCM/tag/IV/nonce markers |
+| **Obfuscation** | Encoded/decoded artifacts |
+| **XOR Encoding** | Single-byte XOR candidates with printable output |
+| **Compressed Blobs** | Embedded compressed stream markers |
+
+---
+
+## Automation Recipes
+
+### CI/CD Pipeline
+
+```bash
+./flatscan -m deep -f $ARTIFACT \
+  --report-mode minimal \
+  --json reports/scan.json \
+  --no-progress --no-color
+
+SCORE=$(cat reports/scan.json | jq '.risk_score')
+if [ "$SCORE" -ge 30 ]; then
+  echo "SUSPICIOUS: score=$SCORE"
+  exit 1
+fi
+```
+
+### Batch Triage
+
+```bash
+./flatscan --dir ./quarantine -m deep
+```
+
+### SOC Intake Monitoring
+
+```bash
+./flatscan --dir /var/spool/malware-inbox --watch -m deep --watch-interval 10
+```
+
+### Report Pack Generation
 
 ```bash
 ./flatscan -m deep -f sample.exe \
-  --pdf reports/sample.ciso.pdf \
-  --report-mode Full
+  --report-pack reports/CASE-$(date +%Y%m%d) \
+  --case CASE-$(date +%Y%m%d) \
+  --case-db reports/cases.jsonl
 ```
 
-PDF sections:
-
-| Section | Audience |
-|---|---|
-| Cover page | All |
-| Executive assessment | CISO / management |
-| CISO decision summary | CISO / management |
-| Risk and confidence cards | CISO / management |
-| Likely malware type | All |
-| Key capabilities | All |
-| Business impact | CISO / management |
-| Management actions | CISO / management |
-| MITRE ATT&CK TTP matrix | Analyst / SOC |
-| Priority findings | Analyst |
-| Cryptography and secret-handling assessment | Analyst |
-| Hunting guidance | Analyst / threat hunter |
-| Sample metadata | Analyst |
-| IOCs | Analyst / threat hunter |
-| Executable/container details | Analyst |
-| Suspicious strings and decoded artifacts | Analyst |
-
-> Do not click URLs inside PDF reports on production systems. Reports may contain live C2 URLs extracted from the sample.
-
----
-
-## JSON Report
-
-Use JSON for SIEM ingestion, ticketing integrations, or custom pipeline processing.
+### STIX Feed
 
 ```bash
-./flatscan -m deep -f sample.exe \
-  --json reports/sample.json \
-  --no-progress
-```
-
-The JSON `ScanResult` structure includes:
-
-- Target metadata (path, file size, type, MIME)
-- Full hashes (MD5/SHA1/SHA256/SHA512)
-- Entropy and high-entropy regions
-- String extraction summary
-- IOCs (all categories, deduped)
-- Decoded artifacts
-- PE/ELF/Mach-O/archive metadata
-- Findings (severity, category, evidence, recommendation)
-- Malware profile (type, confidence, capabilities, impact)
-- MITRE-style TTP entries
-- Cryptography indicators
-- Verdict and score
-
-Suggested pipeline use:
-
-```bash
-./flatscan -m deep -f sample.exe --json - --no-progress | jq '.verdict, .score, .malware_profile.likely_type'
+for f in samples/*; do
+  ./flatscan -m deep -f "$f" --stix "stix/$(basename $f).stix.json" --no-progress --no-color
+done
 ```
 
 ---
 
-## IOC Export
-
-```bash
-./flatscan -m deep -f sample.exe --extract-ioc reports/sample.iocs.txt
-```
-
-IOC categories extracted:
-
-| Category | Examples |
-|---|---|
-| URLs | `http://c2.example.com/beacon` |
-| Domains | `c2.example.com` |
-| IPv4 | `192.168.1.1` |
-| IPv6 | `2001:db8::1` |
-| Emails | `attacker@domain.com` |
-| MD5 | 32-character hex strings |
-| SHA1 | 40-character hex strings |
-| SHA256 | 64-character hex strings |
-| SHA512 | 128-character hex strings |
-| CVEs | `CVE-2023-XXXX` |
-| Registry keys | `HKCU\Software\Microsoft\Windows\Run` |
-| Windows paths | `C:\Users\Public\malware.exe` |
-| Unix paths | `/tmp/.hidden_payload` |
-
-Feed extracted IOCs directly into your threat intel platform, EDR blocklist, or SIEM enrichment pipeline.
-
----
-
-## YARA Export
-
-```bash
-./flatscan -m deep -f sample.exe --yara reports/sample.yar
-```
-
-Generated YARA rules use high-signal material from:
-
-- Extracted URLs and domains
-- Registry keys
-- Windows and Unix paths
-- Suspicious strings
-- Malware type labels from profile enrichment
-- SHA256 hash metadata (as rule metadata, not a hash match)
-- PE import hash metadata (when available)
-
-**Review before deployment.** Generated rules are hunting starting points, not guaranteed family signatures. Validate against known-good corpora before using for blocking decisions.
-
-Example validation:
-
-```bash
-yara -r reports/sample.yar /path/to/clean-samples/
-```
-
----
-
-## Interpreting Scores
-
-| Score | Verdict | Analyst Action |
-|---|---|---|
-| 0–9 | No strong indicators | Not a clean verdict. Check context, file origin, and delivery chain. |
-| 10–29 | Low suspicion | Weak or limited indicators. Correlate with endpoint/network telemetry. |
-| 30–54 | Suspicious | Meaningful static evidence. Escalate for sandbox or RE review. |
-| 55–79 | High suspicion | Strong indicators. Treat as high risk. Isolate if on a live host. |
-| 80–100 | Likely malicious | Multiple high-confidence indicators. Prioritize containment and response. |
-
-> **A score of 0 is not a clean verdict.** Packed, staged, or heavily obfuscated samples may score low on static analysis. Always correlate with behavioral and telemetry data.
-
----
-
-## How Findings Are Generated
-
-Findings are produced from multiple evidence sources:
-
-| Source | Examples |
-|---|---|
-| IOC density | High volume of network indicators in strings |
-| Suspicious API strings | `VirtualAllocEx`, `WriteProcessMemory`, `CreateRemoteThread` |
-| Cryptography strings | `BCryptEncrypt`, `CryptUnprotectData`, `encrypted_key` |
-| Entropy and packing | Sections with entropy > 7.0, known packer signatures |
-| Executable structure anomalies | Missing headers, overlay data, no imports |
-| Archive contents | Executable entries, macro files, path traversal names |
-| Persistence artifacts | Run keys, scheduled task paths, startup folder paths |
-| Anti-analysis artifacts | `IsDebuggerPresent`, `CheckRemoteDebuggerPresent`, CPUID timing |
-| Malware-family heuristics | Browser credential theft patterns, webhook exfiltration strings |
-
-Finding severity levels:
-
-| Severity | Meaning |
-|---|---|
-| **Critical** | High-confidence indicator of active malicious capability |
-| **High** | Strong evidence of malicious intent or dangerous capability |
-| **Medium** | Notable indicator that warrants investigation |
-| **Low** | Weak indicator or context-dependent behavior |
-| **Informational** | Metadata or context that aids analysis without implying malice |
-
----
-
-## How Cryptography Analysis Works
-
-FlatScan identifies cryptographic usage patterns from strings and imports — it does not break encryption or reverse hashes.
-
-Patterns detected:
-
-| Indicator | Implication |
-|---|---|
-| `BCryptEncrypt`, `BCryptDecrypt` | Windows CNG encryption — may wrap payload or config decryption |
-| `CryptUnprotectData`, `CryptProtectData` | DPAPI usage — often used by infostealers for credential decryption |
-| `encrypted_key` | Chromium-style key handling — browser credential theft |
-| AES/GCM/IV/nonce strings | Symmetric encryption — payload, config, or data at rest |
-| Encoded/decoded artifact overlap | Obfuscation layers — suggests staged or packed content |
-
-Cryptography indicators inform whether a sample may:
-- Decrypt browser secrets
-- Unwrap embedded configuration
-- Decrypt additional payload stages
-- Handle encrypted exfiltration
-
----
-
-## Analyst Workflow Examples
+## Real-World Examples
 
 ### Ransomware Sample
 
@@ -357,69 +747,30 @@ Cryptography indicators inform whether a sample may:
   --extract-ioc reports/magniber.iocs.txt \
   --json reports/magniber.report.json \
   --pdf reports/magniber.ciso.pdf \
+  --html reports/magniber.analyst.html \
   --yara reports/magniber.yar \
+  --sigma reports/magniber.sigma.yml \
+  --stix reports/magniber.stix.json \
+  --carve \
   --debug
 ```
 
-### Infostealer / Credential Theft Sample
-
-```bash
-./flatscan -m deep \
-  -f stealer.exe \
-  --report-mode Full \
-  --report reports/stealer.full.txt \
-  --extract-ioc reports/stealer.iocs.txt \
-  --json reports/stealer.json \
-  --debug
-```
-
-Focus on: cryptography indicators, browser credential strings, webhook exfiltration URLs, registry key IOCs.
-
-### Suspicious Office Document (Macro)
-
-```bash
-./flatscan -m deep \
-  -f suspicious.docm \
-  --report-mode Full \
-  --json reports/docm.json \
-  --extract-ioc reports/docm.iocs.txt
-```
-
-Focus on: archive entry names, macro indicators, URLs and domains in decoded artifacts, PowerShell strings.
-
-### APK / Android Sample
+### Android Malware
 
 ```bash
 ./flatscan -m deep \
   -f suspicious.apk \
-  --report-mode Full \
-  --json reports/apk.json \
-  --extract-ioc reports/apk.iocs.txt
+  --rules rules/ \
+  --plugins plugins/ \
+  --report-pack reports/android-case \
+  --case APK-001
 ```
 
-Focus on: archive entry names, Android permission indicators, URLs and domains, certificate table presence.
-
-### CI / Scripted Pipeline
+### Quick CI Check
 
 ```bash
-./flatscan -m deep \
-  -f sample.exe \
+./flatscan -m quick -f build-output.exe \
   --report-mode minimal \
-  --json reports/sample.json \
-  --yara reports/sample.yar \
-  --no-progress
-echo "Exit: $?"
+  --json - \
+  --no-progress --no-color | jq '{verdict, risk_score, findings: (.findings | length)}'
 ```
-
----
-
-## Automation Tips
-
-- Use `--json` for structured ingestion into SIEMs, ticketing, or orchestration.
-- Use `--no-progress` when running in scripts or CI to suppress terminal output.
-- Store all outputs in a sample-specific directory (`reports/<sha256>/`).
-- Review and validate generated YARA rules before deployment.
-- Keep raw malware samples out of version control.
-- Feed extracted IOC files directly into your threat intel platform.
-- Use `--decode-depth 4` or `5` on heavily obfuscated samples where default depth misses nested encoding layers.
-- Tune `--min-string` down to `4` to catch short registry key fragments; tune up to `8` to reduce noise on string-heavy files.

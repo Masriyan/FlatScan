@@ -13,10 +13,32 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"sync"
 	"time"
 )
 
+// Analysis pipeline constants — avoid magic numbers throughout the codebase.
+const (
+	defaultMaxCorpusBytes     = 48 * 1024 * 1024 // max corpus size for pattern matching
+	defaultReadBufSize        = 1024 * 1024       // 1 MiB read buffer for file hashing
+	defaultMIMESniffBytes     = 512               // bytes fed to http.DetectContentType
+	defaultEntropyWindow      = 64 * 1024         // sliding window for high-entropy region scan
+	defaultEntropyStep        = 32 * 1024         // step size for entropy window
+	defaultEntropyThreshold   = 7.20              // minimum entropy to flag a region
+	defaultMaxEntropyRegions  = 25                // cap on reported high-entropy regions
+	defaultMaxArchiveReadSize = 2 * 1024 * 1024   // max bytes read from a single archive entry
+	defaultMaxCarveChunkSize  = 2 * 1024 * 1024   // max bytes carved per embedded artifact
+	defaultXORScanLimit       = 256 * 1024        // max bytes scanned for single-byte XOR
+	defaultXORMaxResults      = 8                 // max XOR candidates reported
+	defaultXORPrintableRatio  = 0.70              // min printable ratio for XOR candidate
+)
+
 type debugLogger func(format string, args ...any)
+
+// findingsMu guards concurrent writes to ScanResult.Findings during
+// parallelRun. A package-level mutex avoids embedding sync.Mutex in
+// ScanResult (which would cause copy-lock issues across the codebase).
+var findingsMu sync.Mutex
 
 func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	progress.Set(1, "initializing scanner")
@@ -38,15 +60,32 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		Size:     stat.Size(),
 	}
 
-	debugf := func(format string, args ...any) {
-		if cfg.Debug {
-			result.DebugLog = append(result.DebugLog, fmt.Sprintf(format, args...))
-		}
-	}
+	// Structured logger replaces the bare closure. All log entries are
+	// captured and promoted to result.DebugLog at the end of the pipeline.
+	// In debug mode, entries are also written to stderr in real-time.
+	logger := NewScanLogger(cfg.Debug)
+	debugf := logger.AsDebugLogger()
 	debugf("scan started at %s", time.Now().UTC().Format(time.RFC3339))
 
 	progress.Set(3, "reading and hashing file")
-	data, hashes, truncated, err := readSampleAndHashes(cfg.FilePath, stat.Size(), cfg.MaxAnalyzeBytes, progress)
+
+	// For large files, try memory-mapped I/O for zero-copy access.
+	// Falls back to buffered read on failure or unsupported platforms.
+	var data []byte
+	var hashes Hashes
+	var truncated bool
+
+	if stat.Size() >= mmapThreshold {
+		data, hashes, truncated, err = readSampleMmap(cfg.FilePath, stat.Size(), cfg.MaxAnalyzeBytes, progress)
+		if err != nil {
+			debugf("mmap failed, falling back to buffered read: %v", err)
+			data, hashes, truncated, err = readSampleAndHashes(cfg.FilePath, stat.Size(), cfg.MaxAnalyzeBytes, progress)
+		} else {
+			debugf("using mmap for %s (%s)", cfg.FilePath, formatBytes(stat.Size()))
+		}
+	} else {
+		data, hashes, truncated, err = readSampleAndHashes(cfg.FilePath, stat.Size(), cfg.MaxAnalyzeBytes, progress)
+	}
 	if err != nil {
 		return ScanResult{}, err
 	}
@@ -64,7 +103,7 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	result.Entropy = ShannonEntropy(data)
 	result.EntropyAssessment = EntropyAssessment(result.Entropy)
 	if cfg.Mode != "quick" {
-		result.HighEntropyRegions = HighEntropyRegions(data, 64*1024, 32*1024, 7.20, 25)
+		result.HighEntropyRegions = HighEntropyRegions(data, defaultEntropyWindow, defaultEntropyStep, defaultEntropyThreshold, defaultMaxEntropyRegions)
 	}
 
 	progress.Set(38, "extracting strings")
@@ -83,22 +122,66 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		MergeIOCSet(&result.IOCs, artifact.IOCs)
 	}
 	debugf("decoded artifacts: %d", len(result.DecodedArtifacts))
+	ApplyIOCTriage(&result, cfg, debugf)
+
+	// Build corpus once and share it across all pattern-matching stages.
+	// Previously this was rebuilt independently by AnalyzePatterns,
+	// ExtractCryptoAndConfig, ClassifyMalwareFamilies, EnrichAnalysisProfile,
+	// and ApplyRulePacks — 5 redundant 32-48 MB string builds per scan.
+	corpus := buildCorpus(extracted, result.DecodedArtifacts, defaultMaxCorpusBytes)
+	debugf("corpus built once: %d bytes", len(corpus))
 
 	progress.Set(71, "matching malicious indicators")
-	AnalyzePatterns(&result, extracted, cfg)
+	AnalyzePatternsWithCorpus(&result, extracted, cfg, corpus)
 
 	progress.Set(82, "inspecting file structure")
-	if err := AnalyzeFormats(&result, cfg, data, debugf); err != nil {
-		AddFinding(&result, "Low", "Format", "Format-specific parser error", err.Error(), 2, 0)
-		debugf("format parser error: %v", err)
-	}
 
-	progress.Set(92, "finalizing score")
+	// Parallel group 1: Independent analysis stages that don't share
+	// mutable state. These are safe to run concurrently because they
+	// write to separate result fields and AddFinding is mutex-protected.
+	parallelRun(
+		func() { // Format analysis
+			if err := AnalyzeFormats(&result, cfg, data, debugf); err != nil {
+				AddFinding(&result, "Low", "Format", "Format-specific parser error", err.Error(), 2, 0)
+				debugf("format parser error: %v", err)
+			}
+		},
+		func() { // Carving + payload promotion
+			AnalyzeCarvedArtifacts(&result, data, cfg, debugf)
+			PromoteCarvedPayloadIOCs(&result)
+		},
+		func() { // Crypto and config extraction
+			ExtractCryptoAndConfigWithCorpus(&result, data, extracted, cfg, corpus)
+		},
+		func() { // Similarity hashing
+			BuildSimilarityInfo(&result, data, extracted)
+		},
+	)
+
+	progress.Set(88, "running rules and classification")
+
+	// Sequential group: stages that depend on format analysis results
+	// or modify shared IOC state.
+	RunExternalToolIntegrations(&result, cfg, debugf)
+	ApplyRulePacksWithCorpus(&result, extracted, cfg, debugf, corpus)
+	ApplyIOCTriage(&result, cfg, debugf)
+	ClassifyMalwareFamiliesWithCorpus(&result, extracted, corpus)
+
+	progress.Set(90, "running analysis plugins")
+	RunRegisteredPlugins(&result, data, extracted, corpus, cfg, debugf)
+
+	progress.Set(94, "finalizing score")
 	if result.TruncatedAnalysis {
 		AddFinding(&result, "Info", "Coverage", "Analysis bytes were capped", fmt.Sprintf("retained %d of %d bytes", result.AnalyzedBytes, result.Size), 0, 0)
 	}
 	FinalizeRisk(&result)
-	EnrichAnalysisProfile(&result, extracted)
+	EnrichAnalysisProfileWithCorpus(&result, extracted, corpus)
+
+	// Promote captured log entries to the result's debug log.
+	if cfg.Debug {
+		result.DebugLog = logger.Strings()
+	}
+
 	progress.Set(100, "complete")
 	return result, nil
 }
@@ -186,6 +269,11 @@ func AddFindingDetailed(result *ScanResult, severity, category, title, evidence 
 	if score == 0 && severity != "Info" {
 		score = DefaultSeverityScore(severity)
 	}
+
+	// Package-level mutex protects concurrent finding append from parallelRun.
+	findingsMu.Lock()
+	defer findingsMu.Unlock()
+
 	for _, existing := range result.Findings {
 		if existing.Title == title && existing.Evidence == evidence {
 			return
