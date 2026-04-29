@@ -133,12 +133,16 @@ func RunWatchMode(cfg Config) error {
 			}
 
 			if useColor {
+				hashPreview := result.Hashes.SHA256
+				if len(hashPreview) > 16 {
+					hashPreview = hashPreview[:16] + "..."
+				}
 				fmt.Fprintf(os.Stderr, "  %s %s score=%s findings=%d sha256=%s\n",
 					colorize(colorGreen, "✓"),
 					colorize(verdictColor(result.Verdict), result.Verdict),
 					colorize(verdictColor(result.Verdict), fmt.Sprintf("%d", result.RiskScore)),
 					len(result.Findings),
-					dim(result.Hashes.SHA256[:16]+"..."))
+					dim(hashPreview))
 
 				if result.RiskScore >= 80 {
 					fmt.Fprintf(os.Stderr, "  %s %s\n",
@@ -146,9 +150,13 @@ func RunWatchMode(cfg Config) error {
 						colorize(colorRed, "Malicious file detected! Immediate action recommended."))
 				}
 			} else {
+				hashPreview := result.Hashes.SHA256
+				if len(hashPreview) > 16 {
+					hashPreview = hashPreview[:16] + "..."
+				}
 				fmt.Fprintf(os.Stderr, "  %s score=%d findings=%d sha256=%s\n",
 					result.Verdict, result.RiskScore,
-					len(result.Findings), result.Hashes.SHA256[:16]+"...")
+					len(result.Findings), hashPreview)
 			}
 
 			if useColor {

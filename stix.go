@@ -160,9 +160,11 @@ func buildSTIXBundle(result ScanResult) stixBundle {
 	verdictResult := "unknown"
 	if result.RiskScore >= 80 {
 		verdictResult = "malicious"
-	} else if result.RiskScore >= 55 {
+	} else if result.RiskScore >= 30 {
+		// 30-79: FlatScan calls this "Suspicious" or "High suspicion"
 		verdictResult = "suspicious"
 	} else if result.RiskScore >= 10 {
+		// 10-29: "Low suspicion" — mapped to benign in STIX
 		verdictResult = "benign"
 	}
 	analysis := stixMalwareAnalysis{

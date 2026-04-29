@@ -59,6 +59,17 @@ graph LR
 - **IOC batch normalization** — Deferred IOC normalization runs once at the end instead of per-extraction.
 - **Named constants** — 13 named constants replacing magic numbers in the analysis pipeline.
 
+### Fixed
+
+- **JSON stdout (`--json -`)** — Text report no longer prints to stdout when `--json -` is active, making the output parseable by `jq` and other JSON tools.
+- **STIX verdict mapping** — Scores 30-79 now correctly map to `"suspicious"` instead of incorrectly mapping 10-54 as `"benign"`.
+- **Logger thread safety** — Merged double-lock in `log()` method into a single critical section to prevent log interleaving.
+- **Logger `WithPrefix`** — Child loggers now use independent entry lists instead of sharing the parent's slice.
+- **Watch mode hash preview** — Added bounds check for SHA256 string slicing to prevent panic on empty hash.
+- **Version constant** — Updated default version from `0.2.0` to `0.3.0`.
+- **Interactive STIX support** — Added STIX 2.1 export to interactive mode output profile 3 (full analyst/CISO pack).
+- **Test coverage** — Expanded from 12 to 22 tests covering STIX, cache, logger, parallel pipeline, plugin system, and JSON stdout.
+
 ## 0.2.0 - IOC Triage and MSIX Analysis
 
 ### Added

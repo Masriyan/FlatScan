@@ -198,7 +198,7 @@ func runGuidedScan(reader *bufio.Reader, out, errOut io.Writer, base Config) err
 	fmt.Fprintln(out, "Output profile")
 	fmt.Fprintln(out, "1) Terminal only")
 	fmt.Fprintln(out, "2) Standard files: text, JSON, IOC")
-	fmt.Fprintln(out, "3) Full analyst/CISO pack: text, JSON, IOC, PDF, HTML, YARA, Sigma, report pack")
+	fmt.Fprintln(out, "3) Full analyst/CISO pack: text, JSON, IOC, PDF, HTML, YARA, Sigma, STIX, report pack")
 	fmt.Fprintln(out, "4) Custom paths")
 	profile, err := promptLine(reader, out, "Select output profile [3]: ")
 	if err != nil {
@@ -213,6 +213,7 @@ func runGuidedScan(reader *bufio.Reader, out, errOut io.Writer, base Config) err
 		cfg.HTMLPath = filepath.Join(outputDir, baseName+".analyst.html")
 		cfg.YARAPath = filepath.Join(outputDir, baseName+".yar")
 		cfg.SigmaPath = filepath.Join(outputDir, baseName+".sigma.yml")
+		cfg.STIXPath = filepath.Join(outputDir, baseName+".stix.json")
 		cfg.ReportPackPath = filepath.Join(outputDir, baseName+"-pack")
 	case "1":
 	case "2":

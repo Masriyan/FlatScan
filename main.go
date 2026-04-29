@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const defaultVersion = "0.2.0"
+const defaultVersion = "0.3.0"
 
 // version can be overridden at build time via:
 //   go build -ldflags "-X main.version=1.0.0" .
@@ -142,7 +142,9 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 		if err := os.WriteFile(cfg.ReportPath, []byte(plainReport), 0o644); err != nil {
 			return result, fmt.Errorf("report write failed: %w", err)
 		}
-	} else {
+	} else if cfg.JSONPath != "-" {
+		// Print text report to stdout, but not when JSON stdout is active.
+		// --json - means the user wants only parseable JSON on stdout.
 		fmt.Print(report)
 	}
 

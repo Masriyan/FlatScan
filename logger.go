@@ -43,13 +43,14 @@ func NewLogger(out io.Writer, minLevel LogLevel) *Logger {
 	return &Logger{out: out, minLevel: minLevel}
 }
 
-// WithPrefix returns a shallow copy of the logger with the given prefix.
+// WithPrefix returns a new logger with the given prefix.
+// The child logger has its own entry list and does not share
+// the parent's entries slice.
 func (l *Logger) WithPrefix(prefix string) *Logger {
 	return &Logger{
 		out:      l.out,
 		minLevel: l.minLevel,
 		prefix:   prefix,
-		entries:  l.entries,
 	}
 }
 
@@ -124,13 +125,10 @@ func (l *Logger) log(level LogLevel, format string, args ...any) {
 
 	l.mu.Lock()
 	l.entries = append(l.entries, entry)
-	l.mu.Unlock()
-
 	if l.out != nil {
-		l.mu.Lock()
 		fmt.Fprintf(l.out, "[%s] %s\n", entry.Level, msg)
-		l.mu.Unlock()
 	}
+	l.mu.Unlock()
 }
 
 func levelName(level LogLevel) string {

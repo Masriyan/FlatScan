@@ -320,43 +320,56 @@ go build -o flatscan .
 go build -ldflags "-X main.version=0.3.0" -o flatscan .
 ```
 
-### Run
+### Scan Commands
 
 ```bash
-# Deep scan with all outputs
-./flatscan -m deep \
-  -f sample.exe \
-  --report-mode Full \
-  --report reports/sample.full.txt \
-  --json reports/sample.report.json \
-  --pdf reports/sample.ciso.pdf \
-  --html reports/sample.analyst.html \
-  --yara reports/sample.yar \
-  --sigma reports/sample.sigma.yml \
-  --stix reports/sample.stix.json \
-  --extract-ioc reports/sample.iocs.txt \
-  --carve \
-  --debug
+# ⚡ Quick triage
+./flatscan -m quick -f sample.exe --report-mode Summary
 
-# Batch scan directory
+# 🔬 Deep scan with full report pack
+./flatscan -m deep -f sample.exe --report-pack reports/case-001 --carve --debug
+
+# 📂 Batch scan entire directory
 ./flatscan --dir ./samples -m deep
 
-# Watch directory for new files
+# 👁 Watch directory for new files
 ./flatscan --dir ./inbox --watch -m deep --watch-interval 5
 
-# JSON to stdout for scripting
-./flatscan -f sample.bin -m deep --json - | jq '.risk_score'
+# 📊 JSON to stdout for scripting
+./flatscan -m deep -f sample.exe --json - --no-progress --no-splash --no-color | jq '.risk_score'
 
-# STIX 2.1 threat intelligence export
-./flatscan -f sample.bin -m deep --stix reports/sample.stix.json
+# 🔐 Full stealer analysis
+./flatscan -m deep -f sample/mercuristealer \
+  --report-mode Full \
+  --report reports/stealer.txt \
+  --json reports/stealer.json \
+  --pdf reports/stealer.pdf \
+  --html reports/stealer.html \
+  --yara reports/stealer.yar \
+  --sigma reports/stealer.yml \
+  --stix reports/stealer.stix.json \
+  --extract-ioc reports/stealer.iocs.txt \
+  --carve --debug
 
-# Automation mode (no color, no splash)
-./flatscan -m deep -f sample.exe --json reports/sample.json --no-progress --no-color
+# 📱 Android APK analysis with custom rules
+./flatscan -m deep -f suspicious.apk --rules plugins/android-risk.rule --report-pack reports/apk-case
 
-# Interactive guided mode
+# 🎯 STIX threat intelligence export
+./flatscan -m deep -f malware.exe --stix reports/threat-intel.stix.json
+
+# 🛡️ CI/CD gate check (exit code based)
+SCORE=$(./flatscan -m quick -f build.exe --json - --no-progress --no-splash --no-color 2>/dev/null | jq '.risk_score')
+[ "$SCORE" -ge 30 ] && echo "BLOCKED" && exit 1
+
+# 🔄 Batch report packs for all samples
+for f in samples/*; do
+  ./flatscan -m deep -f "$f" --report-pack "reports/$(basename "$f")" --no-splash --no-progress
+done
+
+# 💬 Interactive guided mode
 ./flatscan --interactive
 
-# Manual command shell
+# 🖥️ Manual command shell
 ./flatscan --shell
 ```
 
