@@ -1,0 +1,61 @@
+pack: FlatScan reconnaissance and discovery detection rules
+
+id: recon.system.info
+name: System information gathering
+severity: Medium
+category: Discovery
+score: 8
+strings_any: systeminfo, hostname, ipconfig, GetComputerName, GetUserName, GetVersionEx, Environment.MachineName
+tactic: Discovery
+technique: System Information Discovery (T1082)
+recommendation: Correlate with other findings. System info gathering alone is common in both legitimate and malicious software.
+
+id: recon.network.enum
+name: Network enumeration
+severity: Medium
+category: Discovery
+score: 10
+strings_any: net view, net user, net group, nltest, nslookup, arp -a, netstat, route print
+tactic: Discovery
+technique: System Network Configuration Discovery (T1016)
+recommendation: Check if network discovery commands were executed in sequence — indicates automated reconnaissance.
+
+id: recon.process.enum
+name: Process and service enumeration
+severity: Low
+category: Discovery
+score: 6
+strings_any: tasklist, wmic process, Get-Process, EnumProcesses, CreateToolhelp32Snapshot
+tactic: Discovery
+technique: Process Discovery (T1057)
+recommendation: Review if process enumeration was used to find security tools for evasion.
+
+id: recon.credential.dump
+name: Credential dumping indicators
+severity: Critical
+category: Credential Access
+score: 30
+strings_any: mimikatz, sekurlsa, lsass.exe, procdump, MiniDump, SAM, SYSTEM, NTDS.dit, hashdump
+tactic: Credential Access
+technique: OS Credential Dumping: LSASS Memory (T1003.001)
+recommendation: Immediately investigate credential compromise. Rotate all domain passwords if LSASS dump confirmed.
+
+id: recon.ad.enum
+name: Active Directory enumeration
+severity: High
+category: Discovery
+score: 16
+strings_any: BloodHound, SharpHound, Rubeus, ldapsearch, Get-DomainUser, Get-DomainComputer, Invoke-Kerberoast
+tactic: Discovery
+technique: Remote System Discovery (T1018)
+recommendation: Review AD query logs for enumeration patterns. Check for Kerberoasting activity.
+
+id: recon.file.search
+name: Sensitive file discovery
+severity: Medium
+category: Collection
+score: 10
+strings_any: *.kdbx, *.key, *.pem, *.pfx, *.p12, KeePass, password.txt, credentials.txt, *.rdp
+tactic: Collection
+technique: Data from Local System (T1005)
+recommendation: Identify which sensitive file types were targeted and verify data exfiltration.

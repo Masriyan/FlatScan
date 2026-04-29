@@ -1,0 +1,114 @@
+pack: FlatScan persistence and evasion detection rules
+
+id: persist.registry.run
+name: Registry Run key persistence
+severity: High
+category: Persistence
+score: 16
+strings_any: CurrentVersion\\Run, CurrentVersion\\RunOnce, CurrentVersion\\RunServices, Policies\\Explorer\\Run
+tactic: Persistence
+technique: Boot or Logon Autostart Execution: Registry Run Keys (T1547.001)
+recommendation: Check registry Run keys for unauthorized entries pointing to dropped payloads.
+
+id: persist.scheduled.task
+name: Scheduled task persistence
+severity: High
+category: Persistence
+score: 16
+strings_any: schtasks, Register-ScheduledTask, ScheduledTasks, ITaskScheduler, ITaskService
+tactic: Persistence
+technique: Scheduled Task/Job: Scheduled Task (T1053.005)
+recommendation: Enumerate scheduled tasks for newly created entries and validate their purpose.
+
+id: persist.startup.folder
+name: Startup folder persistence
+severity: Medium
+category: Persistence
+score: 12
+strings_any: \\Start Menu\\Programs\\Startup, shell:startup, shell:common startup
+tactic: Persistence
+technique: Boot or Logon Autostart Execution: Startup Folder (T1547.001)
+recommendation: Inspect Startup folder for unauthorized shortcuts or executables.
+
+id: persist.service.install
+name: Windows service installation
+severity: High
+category: Persistence
+score: 16
+strings_any: CreateService, ChangeServiceConfig, sc create, New-Service
+strings_all: SERVICE_AUTO_START
+tactic: Persistence
+technique: Create or Modify System Process: Windows Service (T1543.003)
+recommendation: Review installed services for unexpected auto-start entries.
+
+id: persist.wmi.event
+name: WMI event subscription persistence
+severity: High
+category: Persistence
+score: 18
+strings_any: __EventFilter, __EventConsumer, CommandLineEventConsumer, ActiveScriptEventConsumer
+tactic: Persistence
+technique: Event Triggered Execution: Windows Management Instrumentation Event Subscription (T1546.003)
+recommendation: Query WMI event subscriptions for unauthorized bindings.
+
+id: evasion.amsi.bypass
+name: AMSI bypass attempt
+severity: Critical
+category: Defense Evasion
+score: 28
+strings_any: AmsiScanBuffer, amsiInitFailed, AmsiUtils, amsi.dll, SetProtection
+tactic: Defense Evasion
+technique: Impair Defenses: Disable or Modify Tools (T1562.001)
+recommendation: Investigate AMSI tampering and correlate with PowerShell execution logs.
+
+id: evasion.etw.patch
+name: ETW patching for evasion
+severity: Critical
+category: Defense Evasion
+score: 26
+strings_any: EtwEventWrite, NtTraceEvent, EtwNotificationRegister, EtwEventEnabled
+strings_all: ntdll
+tactic: Defense Evasion
+technique: Impair Defenses: Disable or Modify Tools (T1562.001)
+recommendation: Check for ETW provider tampering and verify telemetry pipeline integrity.
+
+id: evasion.unhook.ntdll
+name: NTDLL unhooking technique
+severity: Critical
+category: Defense Evasion
+score: 26
+strings_any: NtProtectVirtualMemory, NtWriteVirtualMemory, ntdll.dll
+strings_all: GetModuleHandle, GetProcAddress
+tactic: Defense Evasion
+technique: Impair Defenses: Disable or Modify Tools (T1562.001)
+recommendation: Correlate with EDR bypass detection and investigate user-mode hooking evasion.
+
+id: evasion.sleep.obfuscation
+name: Sleep obfuscation technique
+severity: Medium
+category: Defense Evasion
+score: 10
+strings_any: NtDelayExecution, WaitForSingleObject, CreateTimerQueueTimer, SleepEx
+tactic: Defense Evasion
+technique: Virtualization/Sandbox Evasion: Time Based Evasion (T1497.003)
+recommendation: Check for environment-aware sleep patterns used to bypass sandbox analysis.
+
+id: evasion.debugger.check
+name: Anti-debugging checks
+severity: Medium
+category: Defense Evasion
+score: 10
+strings_any: IsDebuggerPresent, CheckRemoteDebuggerPresent, NtQueryInformationProcess, OutputDebugString
+tactic: Defense Evasion
+technique: Debugger Evasion (T1622)
+recommendation: Sample may alter behavior under debugging. Use transparent debugging or kernel-level analysis.
+
+id: evasion.sandbox.detect
+name: Sandbox environment detection
+severity: Medium
+category: Defense Evasion
+score: 12
+strings_any: SbieDll, vmtoolsd, VBoxService, wine_get_unix_file_name, VIRTUAL, QEMU, Xen, KVM
+tactic: Defense Evasion
+technique: Virtualization/Sandbox Evasion: System Checks (T1497.001)
+recommendation: Execute in a hardened sandbox with anti-evasion countermeasures enabled.

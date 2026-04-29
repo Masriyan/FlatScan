@@ -1,0 +1,93 @@
+pack: FlatScan network and C2 detection rules
+
+id: net.c2.cobalt.strike
+name: Cobalt Strike beacon indicators
+severity: Critical
+category: C2
+score: 32
+strings_any: beacon.dll, beacon.exe, ReflectiveLoader, %COMSPEC%, /C whoami, \\pipe\\msagent_, sleeptime, jitter
+tactic: Command and Control
+technique: Application Layer Protocol: Web Protocols (T1071.001)
+recommendation: Isolate host immediately. Hunt for lateral movement and data staging. Check for named pipe indicators.
+
+id: net.c2.metasploit
+name: Metasploit framework indicators
+severity: Critical
+category: C2
+score: 30
+strings_any: metsrv, meterpreter, reverse_tcp, reverse_https, staged/windows, exploit/multi
+tactic: Command and Control
+technique: Ingress Tool Transfer (T1105)
+recommendation: Isolate host and scan for persistence. Review network logs for C2 callback patterns.
+
+id: net.c2.sliver
+name: Sliver C2 framework indicators
+severity: Critical
+category: C2
+score: 28
+strings_any: sliverpb, sliver-client, wg-mtls, .wg.sliver, bishopfox
+tactic: Command and Control
+technique: Encrypted Channel: Asymmetric Cryptography (T1573.002)
+recommendation: Hunt for WireGuard or mTLS connections to unknown endpoints.
+
+id: net.download.powershell
+name: PowerShell download cradle
+severity: High
+category: Execution
+score: 20
+strings_any: DownloadString, DownloadFile, Invoke-WebRequest, IWR, wget, curl, Net.WebClient, BitsTransfer
+strings_all: powershell
+tactic: Execution
+technique: Command and Scripting Interpreter: PowerShell (T1059.001)
+recommendation: Review PowerShell script logs and trace downloaded payload URLs.
+
+id: net.exfil.ftp
+name: FTP exfiltration
+severity: Medium
+category: Exfiltration
+score: 12
+strings_any: ftp://, FtpWebRequest, STOR, RETR, 21/tcp
+tactic: Exfiltration
+technique: Exfiltration Over Alternative Protocol (T1048)
+recommendation: Check network logs for FTP connections to external servers.
+
+id: net.exfil.dns
+name: DNS tunneling indicators
+severity: High
+category: Exfiltration
+score: 18
+strings_any: DnsQuery, DnsQueryEx, dns-over-https, doh.dns, dns.google, cloudflare-dns, iodine
+tactic: Exfiltration
+technique: Exfiltration Over Alternative Protocol: DNS (T1048.003)
+recommendation: Inspect DNS query logs for anomalously long subdomains or unusual query volumes.
+
+id: net.exfil.smtp
+name: Email exfiltration
+severity: Medium
+category: Exfiltration
+score: 14
+strings_any: SmtpClient, smtp.gmail.com, smtp.yandex.com, smtp.mail.ru, smtp.outlook.com
+strings_all: MailMessage
+tactic: Exfiltration
+technique: Exfiltration Over Web Service (T1567)
+recommendation: Review outbound SMTP connections for unauthorized data transmission.
+
+id: net.proxy.ngrok
+name: Ngrok tunnel proxy
+severity: High
+category: C2
+score: 16
+strings_any: ngrok, ngrok.io, ngrok.com, tcp.ngrok, tunnel.us.ngrok
+tactic: Command and Control
+technique: Proxy: External Proxy (T1090.002)
+recommendation: Block ngrok domains at network perimeter and investigate tunneled traffic.
+
+id: net.proxy.cloudflare
+name: Cloudflare tunnel abuse
+severity: Medium
+category: C2
+score: 12
+strings_any: cloudflared, trycloudflare.com, argo-tunnel, .cfargotunnel.com
+tactic: Command and Control
+technique: Proxy: External Proxy (T1090.002)
+recommendation: Verify if Cloudflare tunnels are authorized. Block unauthorized tunnel endpoints.
