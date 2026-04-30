@@ -2,11 +2,14 @@
 
 <div align="center">
 
+<img src="Images/banner.png" alt="FlatScan Banner" width="100%"/>
+
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-12%2F12-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-22%2F22-brightgreen)]()
+[![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
 Repository: https://github.com/Masriyan/FlatScan
