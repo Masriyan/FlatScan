@@ -125,21 +125,71 @@ func newPDFReport(fileName string) *pdfReport {
 }
 
 func (p *pdfReport) titlePage(result ScanResult) {
+	// Header bar
 	p.drawFilledRect(0, 720, pdfPageWidth, 72, 0.10, 0.13, 0.18)
 	p.drawTextColor("F2", 22, pdfMargin, 760, "FlatScan Malware Analysis Report", 1, 1, 1)
-	p.drawTextColor("F1", 10.5, pdfMargin, 742, "Executive and Technical Static Analysis", 0.82, 0.86, 0.92)
+	p.drawTextColor("F1", 10.5, pdfMargin, 742, "Executive and Technical Static Analysis  —  v"+version, 0.82, 0.86, 0.92)
 	p.drawRiskBadge(pdfPageWidth-170, 744, result.Verdict, result.RiskScore)
 
 	p.drawText("F2", 17, pdfMargin, 678, result.FileName)
 	p.drawText("F1", 10.5, pdfMargin, 658, "Generated "+time.Now().UTC().Format(time.RFC3339)+" UTC")
 	p.drawText("F1", 10.5, pdfMargin, 640, "SHA256: "+result.Hashes.SHA256)
-	p.y = 600
+
+	// Segmented risk bar on the title page
+	p.y = 616
+	p.drawSegmentedRiskBar(result.RiskScore)
+
+	p.y = 596
 	p.scoreCard(result)
 	p.subsection("Report scope")
 	p.paragraph("FlatScan performs static analysis only. The sample is not executed. Findings are heuristic indicators intended to support triage, containment, and deeper reverse engineering.")
 	p.subsection("Executive assessment")
 	p.paragraph(nonEmpty(result.Profile.ExecutiveAssessment, executiveNarrative(result)))
 	p.newPage()
+}
+
+// drawSegmentedRiskBar renders a horizontal risk gauge bar divided into four
+// colored segments (green / yellow / orange / red) with a marker above the
+// current score position.
+func (p *pdfReport) drawSegmentedRiskBar(score int) {
+	const (
+		barX = pdfMargin
+		barW = pdfContentW
+		barH = 10.0
+		barY = 0.0 // offset from p.y applied below
+	)
+	y := p.y - barH
+
+	// Segment widths proportional to the 0-30-55-80-100 bands
+	segs := [][3]float64{
+		{0.26, 0.48, 0.32},  // green  0–30
+		{0.79, 0.58, 0.12},  // amber  30–55
+		{0.86, 0.36, 0.10},  // orange 55–80
+		{0.70, 0.12, 0.12},  // red    80–100
+	}
+	bandPcts := []float64{30.0, 25.0, 25.0, 20.0} // sum=100
+	x := barX
+	for i, seg := range segs {
+		segW := barW * bandPcts[i] / 100.0
+		p.drawFilledRect(x, y, segW, barH, seg[0], seg[1], seg[2])
+		x += segW
+	}
+	p.drawStrokeRect(barX, y, barW, barH, 0.50, 0.52, 0.56)
+
+	// Marker: small triangle above bar at score position
+	markerX := barX + barW*float64(score)/100.0
+	markerY := y + barH + 2
+	p.drawFilledRect(markerX-3, markerY, 6, 4, 0.10, 0.13, 0.18)
+	p.drawTextColor("F2", 8, markerX-6, markerY+12, fmt.Sprintf("%d", score), 0.10, 0.13, 0.18)
+
+	// Band labels
+	p.drawTextColor("F1", 7, barX, y-5, "0", 0.50, 0.52, 0.56)
+	p.drawTextColor("F1", 7, barX+barW*0.30-4, y-5, "30", 0.50, 0.52, 0.56)
+	p.drawTextColor("F1", 7, barX+barW*0.55-4, y-5, "55", 0.50, 0.52, 0.56)
+	p.drawTextColor("F1", 7, barX+barW*0.80-4, y-5, "80", 0.50, 0.52, 0.56)
+	p.drawTextColor("F1", 7, barX+barW-10, y-5, "100", 0.50, 0.52, 0.56)
+
+	p.y -= barH + 20
 }
 
 func (p *pdfReport) section(title string) {
@@ -197,14 +247,20 @@ func (p *pdfReport) bullet(text string) {
 }
 
 func (p *pdfReport) finding(finding Finding) {
-	p.ensure(40)
-	header := fmt.Sprintf("[%s] %s: %s", finding.Severity, finding.Category, finding.Title)
-	if finding.Score > 0 {
-		header += fmt.Sprintf(" (score %d)", finding.Score)
-	}
+	p.ensure(44)
 	r, g, b := severityColor(finding.Severity)
-	p.drawFilledRect(pdfMargin, p.y-4, 7, 12, r, g, b)
-	p.drawTextColor("F2", 10.3, pdfMargin+13, p.y, header, 0.10, 0.13, 0.18)
+
+	// Colored severity badge chip
+	badgeW := float64(len(finding.Severity))*5.6 + 10
+	p.drawFilledRect(pdfMargin, p.y-11, badgeW, 14, r, g, b)
+	p.drawTextColor("F2", 8.5, pdfMargin+4, p.y-2, finding.Severity, 1, 1, 1)
+
+	// Title and category after badge
+	header := finding.Category + ": " + finding.Title
+	if finding.Score > 0 {
+		header += fmt.Sprintf(" (%d)", finding.Score)
+	}
+	p.drawTextColor("F2", 10.3, pdfMargin+badgeW+6, p.y, header, 0.10, 0.13, 0.18)
 	p.y -= 14
 	if finding.Evidence != "" {
 		p.bullet("Evidence: " + finding.Evidence)
@@ -814,7 +870,8 @@ func (p *pdfReport) newPage() {
 	p.drawRule(742)
 	p.drawRule(42)
 	p.drawTextColor("F1", 7.3, pdfMargin, 28, "Static analysis only. Validate findings with runtime telemetry before containment decisions.", 0.38, 0.42, 0.48)
-	p.drawTextColor("F1", 7.6, 512, 28, fmt.Sprintf("Page %d", p.pageNo), 0.38, 0.42, 0.48)
+	p.drawTextColor("F1", 7.3, 360, 28, "FlatScan v"+version+"  —  "+time.Now().UTC().Format("2006-01-02"), 0.38, 0.42, 0.48)
+	p.drawTextColor("F1", 7.6, 558, 28, fmt.Sprintf("Page %d", p.pageNo), 0.38, 0.42, 0.48)
 }
 
 func (p *pdfReport) finish() []string {

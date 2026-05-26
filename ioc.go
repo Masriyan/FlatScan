@@ -8,19 +8,24 @@ import (
 )
 
 var (
-	urlRe      = regexp.MustCompile(`(?i)\b(?:https?|hxxps?|ftp)://[^\s"'<>]+`)
-	emailRe    = regexp.MustCompile(`(?i)\b[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}\b`)
-	domainRe   = regexp.MustCompile(`(?i)\b(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|co|ru|cn|xyz|top|biz|info|online|site|club|me|dev|app|gov|edu|mil|uk|de|jp|kr|br|in|ir|tr|id|vn|pl|fr|it|es|nl|se|no|fi|ua|su|pw|cc|tk|local)\b`)
-	ipv4Re     = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
-	ipv6Re     = regexp.MustCompile(`(?i)\b(?:[a-f0-9]{1,4}:){2,7}[a-f0-9]{1,4}\b`)
-	md5Re      = regexp.MustCompile(`(?i)\b[a-f0-9]{32}\b`)
-	sha1Re     = regexp.MustCompile(`(?i)\b[a-f0-9]{40}\b`)
-	sha256Re   = regexp.MustCompile(`(?i)\b[a-f0-9]{64}\b`)
-	sha512Re   = regexp.MustCompile(`(?i)\b[a-f0-9]{128}\b`)
-	cveRe      = regexp.MustCompile(`(?i)\bCVE-\d{4}-\d{4,7}\b`)
-	registryRe = regexp.MustCompile(`(?i)\b(?:HKLM|HKCU|HKCR|HKU|HKCC|HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\[^\s"'<>]{3,}`)
-	winPathRe  = regexp.MustCompile(`(?i)\b[A-Z]:\\[^\s"'<>|]{3,}`)
-	unixPathRe = regexp.MustCompile(`\B/(?:tmp|var|etc|home|usr|bin|sbin|dev|proc|run|opt|lib|root)/[^\s"'<>]{2,}`)
+	urlRe        = regexp.MustCompile(`(?i)\b(?:https?|hxxps?|ftp)://[^\s"'<>]+`)
+	emailRe      = regexp.MustCompile(`(?i)\b[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}\b`)
+	domainRe     = regexp.MustCompile(`(?i)\b(?:[a-z0-9](?:[a-z0-9\-]{0,61}[a-z0-9])?\.)+(?:com|net|org|io|co|ru|cn|xyz|top|biz|info|online|site|club|me|dev|app|gov|edu|mil|uk|de|jp|kr|br|in|ir|tr|id|vn|pl|fr|it|es|nl|se|no|fi|ua|su|pw|cc|tk|local)\b`)
+	ipv4Re       = regexp.MustCompile(`\b(?:\d{1,3}\.){3}\d{1,3}\b`)
+	ipv6Re       = regexp.MustCompile(`(?i)\b(?:[a-f0-9]{1,4}:){2,7}[a-f0-9]{1,4}\b`)
+	md5Re        = regexp.MustCompile(`(?i)\b[a-f0-9]{32}\b`)
+	sha1Re       = regexp.MustCompile(`(?i)\b[a-f0-9]{40}\b`)
+	sha256Re     = regexp.MustCompile(`(?i)\b[a-f0-9]{64}\b`)
+	sha512Re     = regexp.MustCompile(`(?i)\b[a-f0-9]{128}\b`)
+	cveRe        = regexp.MustCompile(`(?i)\bCVE-\d{4}-\d{4,7}\b`)
+	registryRe   = regexp.MustCompile(`(?i)\b(?:HKLM|HKCU|HKCR|HKU|HKCC|HKEY_LOCAL_MACHINE|HKEY_CURRENT_USER|HKEY_CLASSES_ROOT|HKEY_USERS|HKEY_CURRENT_CONFIG)\\[^\s"'<>]{3,}`)
+	winPathRe    = regexp.MustCompile(`(?i)\b[A-Z]:\\[^\s"'<>|]{3,}`)
+	unixPathRe   = regexp.MustCompile(`\B/(?:tmp|var|etc|home|usr|bin|sbin|dev|proc|run|opt|lib|root)/[^\s"'<>]{2,}`)
+	mutexRe      = regexp.MustCompile(`(?i)(?:Global|Local)\\[A-Za-z0-9_\-\.]{4,64}`)
+	namedPipeRe  = regexp.MustCompile(`(?i)\\\\\.\\pipe\\[^\s"'<>]{3,64}`)
+	ethWalletRe  = regexp.MustCompile(`\b0x[0-9a-fA-F]{40}\b`)
+	xmrWalletRe  = regexp.MustCompile(`\b4[0-9AB][1-9A-HJ-NP-Za-km-z]{93}\b`)
+	btcWalletRe  = regexp.MustCompile(`\b[13][a-km-zA-HJ-NP-Z1-9]{25,34}\b`)
 )
 
 func ExtractIOCsFromStrings(stringsFound []ExtractedString) IOCSet {
@@ -47,6 +52,11 @@ func ExtractIOCs(text string) IOCSet {
 	addMatches(&out.RegistryKeys, registryRe.FindAllString(text, -1), cleanToken)
 	addMatches(&out.WindowsPaths, winPathRe.FindAllString(text, -1), cleanToken)
 	addMatches(&out.UnixPaths, unixPathRe.FindAllString(text, -1), cleanToken)
+	addMatches(&out.Mutexes, mutexRe.FindAllString(text, -1), cleanToken)
+	addMatches(&out.NamedPipes, namedPipeRe.FindAllString(text, -1), cleanToken)
+	addMatches(&out.CryptoWallets, ethWalletRe.FindAllString(text, -1), cleanToken)
+	addMatches(&out.CryptoWallets, xmrWalletRe.FindAllString(text, -1), cleanToken)
+	addMatches(&out.CryptoWallets, btcWalletRe.FindAllString(text, -1), cleanToken)
 	// Normalization deferred to pipeline-level (ExtractIOCsFromStrings or ApplyIOCTriage)
 	// to avoid redundant sort+deduplicate when called per-string or per-artifact.
 	return out
@@ -73,6 +83,9 @@ func MergeIOCSet(dst *IOCSet, src IOCSet) {
 	dst.RegistryKeys = appendUnique(dst.RegistryKeys, src.RegistryKeys...)
 	dst.WindowsPaths = appendUnique(dst.WindowsPaths, src.WindowsPaths...)
 	dst.UnixPaths = appendUnique(dst.UnixPaths, src.UnixPaths...)
+	dst.Mutexes = appendUnique(dst.Mutexes, src.Mutexes...)
+	dst.NamedPipes = appendUnique(dst.NamedPipes, src.NamedPipes...)
+	dst.CryptoWallets = appendUnique(dst.CryptoWallets, src.CryptoWallets...)
 	dst.SuppressedCount += src.SuppressedCount
 	if dst.SuppressionReason == "" {
 		dst.SuppressionReason = src.SuppressionReason
@@ -108,7 +121,8 @@ func IOCCount(iocs IOCSet) int {
 	return len(iocs.PEHashes) + len(iocs.URLs) + len(iocs.Domains) + len(iocs.IPv4) + len(iocs.IPv6) +
 		len(iocs.Emails) + len(iocs.MD5) + len(iocs.SHA1) + len(iocs.SHA256) +
 		len(iocs.SHA512) + len(iocs.CVEs) + len(iocs.RegistryKeys) +
-		len(iocs.WindowsPaths) + len(iocs.UnixPaths)
+		len(iocs.WindowsPaths) + len(iocs.UnixPaths) +
+		len(iocs.Mutexes) + len(iocs.NamedPipes) + len(iocs.CryptoWallets)
 }
 
 func addPEHashIOC(iocs *IOCSet, value PEHashIOC) {

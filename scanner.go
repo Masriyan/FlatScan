@@ -170,6 +170,10 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	progress.Set(90, "running analysis plugins")
 	RunRegisteredPlugins(&result, data, extracted, corpus, cfg, debugf)
 
+	progress.Set(92, "detecting behavioral chains and packers")
+	DetectAPIChains(&result)
+	DetectPackers(&result, data)
+
 	progress.Set(94, "finalizing score")
 	if result.TruncatedAnalysis {
 		AddFinding(&result, "Info", "Coverage", "Analysis bytes were capped", fmt.Sprintf("retained %d of %d bytes", result.AnalyzedBytes, result.Size), 0, 0)
@@ -303,13 +307,20 @@ func FinalizeRisk(result *ScanResult) {
 	})
 
 	score := 0
+	breakdown := make(map[string]int)
 	for _, finding := range result.Findings {
 		score += finding.Score
+		if finding.Score > 0 && finding.Category != "" {
+			breakdown[finding.Category] += finding.Score
+		}
 	}
 	if score > 100 {
 		score = 100
 	}
 	result.RiskScore = score
+	if len(breakdown) > 0 {
+		result.ScoreBreakdown = breakdown
+	}
 	switch {
 	case score >= 80:
 		result.Verdict = "Likely malicious"

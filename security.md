@@ -239,7 +239,7 @@ graph TD
 
 | Version | Network Activity |
 |---------|-----------------|
-| **Current (0.3.0)** | **None.** All analysis is local and static. |
+| **Current (0.5.0)** | **None.** All analysis is local and static. |
 | **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---

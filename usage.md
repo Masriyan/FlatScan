@@ -15,6 +15,7 @@ Complete reference for FlatScan commands, flags, modes, output formats, real-wor
 - [Report Modes](#report-modes)
 - [Output Formats](#output-formats)
 - [Batch & Watch Modes](#batch--watch-modes)
+- [CI/CD Mode](#cicd-mode)
 - [Custom Rules & Plugins](#custom-rules--plugins)
 - [IOC Management](#ioc-management)
 - [Advanced Analysis](#advanced-analysis)
@@ -32,11 +33,13 @@ Complete reference for FlatScan commands, flags, modes, output formats, real-wor
 graph LR
     subgraph "One-Liner Commands"
         A["Single File"] --> B["./flatscan -m deep -f sample.exe"]
-        C["Batch Dir"] --> D["./flatscan --dir ./samples -m deep"]
-        E["Watch Dir"] --> F["./flatscan --dir ./inbox --watch -m deep"]
+        C["Batch Dir"] --> D["./flatscan --dir ./samples -m deep --batch-json out.json"]
+        E["Watch Dir"] --> F["./flatscan --dir ./inbox --watch -m deep --watch-alert-only"]
         G["JSON Pipe"] --> H["./flatscan -f sample.bin --json -"]
         I["Full Pack"] --> J["./flatscan -f sample.exe --report-pack ./out"]
-        K["Interactive"] --> L["./flatscan --interactive"]
+        K["CI/CD Gate"] --> L["./flatscan -f artifact.exe --ci --ci-threshold 30"]
+        M["JSONL Stream"] --> N["./flatscan --dir ./samples --output-format jsonl"]
+        O["Interactive"] --> P["./flatscan --interactive"]
     end
 ```
 
@@ -62,6 +65,23 @@ graph LR
 
 ```bash
 ./flatscan -m deep -f sample.exe --json - --no-progress --no-splash --no-color | jq '.verdict'
+```
+
+### CI/CD Gate (0.5.0+)
+
+```bash
+# Exit 0 = clean, 10 = suspicious, 20 = malicious
+./flatscan -m quick -f artifact.exe --ci --ci-threshold 30 --no-splash
+```
+
+### CSV / JSONL Machine Output (0.5.0+)
+
+```bash
+# Stream JSONL to jq
+./flatscan --dir ./samples -m quick --output-format jsonl --no-splash | jq 'select(.risk_score >= 55)'
+
+# CSV for spreadsheet import
+./flatscan --dir ./samples -m quick --output-format csv --no-splash > results.csv
 ```
 
 ---
@@ -110,6 +130,16 @@ graph LR
 | `--max-analyze-bytes` | `268435456` | Max bytes for in-memory analysis (256 MB) |
 | `--max-archive-files` | `500` | Max archive entries to inspect |
 
+### CI/CD & Automation
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--ci` | false | CI mode: suppress UI, print one-line result to stderr, semantic exit codes |
+| `--ci-threshold` | `55` | Score threshold for `--ci` exit code (1–100) |
+| `--output-format` | `text` | Output format: `text`, `json`, `csv`, `jsonl` |
+| `--batch-json` | — | Write batch scan JSON summary to this file path |
+| `--watch-alert-only` | false | Watch mode: only print files scoring ≥ alert threshold (suppresses clean) |
+
 ### Session & Display
 
 | Flag | Default | Description |
@@ -133,8 +163,9 @@ graph TD
     B -->|"-f sample.exe"| C["Direct CLI<br/>Single scan"]
     B -->|"--interactive"| D["Interactive Wizard<br/>Guided questions"]
     B -->|"--shell"| E["Command Shell<br/>Multiple scans"]
-    B -->|"--dir ./samples"| F["Batch Scan<br/>All files in dir"]
+    B -->|"--dir ./samples"| F["Batch Scan<br/>Parallel, all files"]
     B -->|"--dir ./inbox --watch"| G["Watch Mode<br/>Auto-scan new files"]
+    B -->|"--ci"| H["CI/CD Gate<br/>Semantic exit codes"]
 ```
 
 ### Direct CLI
@@ -187,7 +218,7 @@ flatscan> exit
 ./flatscan --dir /path/to/samples -m deep
 ```
 
-Scans all regular files, prints colorized summary table with verdicts, scores, and IOC counts.
+Scans all regular files in parallel (one goroutine per CPU core), prints a colorized summary table with verdicts, scores, and IOC counts.
 
 ### Watch Mode
 
@@ -196,6 +227,14 @@ Scans all regular files, prints colorized summary table with verdicts, scores, a
 ```
 
 Monitors directory, auto-scans new files, and alerts when score ≥ 80.
+
+### CI/CD Mode
+
+```bash
+./flatscan -f artifact.exe --ci --ci-threshold 30
+```
+
+Suppresses all UI (splash, progress, hints). Prints one-line result to stderr and exits with a semantic code.
 
 ```mermaid
 stateDiagram-v2
@@ -245,26 +284,32 @@ graph LR
 |--------|------|---------|
 | Text report | `--report` | Human-readable, honors `--report-mode` |
 | JSON | `--json` | Machine-readable for automation (use `-` for stdout) |
+| CSV | `--output-format csv` | One-line CSV to stdout: `filename,score,verdict,findings,iocs,sha256` |
+| JSONL | `--output-format jsonl` | One JSON object per line to stdout — pipe to SIEM or `jq` |
 | PDF | `--pdf` | CISO/management with executive summary, MITRE matrix, risk cards |
-| HTML | `--html` | Interactive analyst report with filters and expandable sections |
-| IOC export | `--extract-ioc` | Categorized IOC text with promoted payload hashes |
+| HTML | `--html` | Interactive analyst report with global search, filters, IOC tabs |
+| IOC export | `--extract-ioc` | Categorized IOC text including wallets, mutexes, named pipes |
 | YARA rule | `--yara` | Auto-generated hunting rule with structural guards |
 | Sigma rule | `--sigma` | SIEM/EDR hunting rule with ATT&CK tags |
 | STIX 2.1 | `--stix` | Threat intel bundle: File SCO, Malware SDO, Indicators, Relationships |
 | Report Pack | `--report-pack` | All of the above in one directory |
+| Batch JSON | `--batch-json` | JSON summary of batch scan results (written after `--dir` scan) |
 | Case DB | `--case` | JSONL append-only case record |
 
 ```mermaid
 graph LR
     A[ScanResult] --> B[Text Report]
     A --> C[JSON]
+    A --> C2[CSV stdout]
+    A --> C3[JSONL stdout]
     A --> D[PDF]
-    A --> E[HTML]
+    A --> E["HTML + global search"]
     A --> F[YARA]
     A --> G[Sigma]
     A --> H[STIX 2.1]
     A --> I[IOC Export]
     A --> J[Report Pack]
+    A --> J2[Batch JSON]
     A --> K[Case DB]
 ```
 
@@ -275,21 +320,93 @@ graph LR
 ### Batch: Scan Entire Directory
 
 ```bash
-# Scan all files in a malware sample directory
+# Scan all files in a malware sample directory (parallel, auto NumCPU workers)
 ./flatscan --dir ./samples -m deep
 
 # With specific rules and plugins
 ./flatscan --dir ./quarantine -m deep --rules rules/ --plugins plugins/ --carve
+
+# Save JSON summary of all results
+./flatscan --dir ./samples -m standard --batch-json reports/batch-summary.json
+
+# Stream JSONL to filter on-the-fly
+./flatscan --dir ./samples -m quick --output-format jsonl --no-splash | jq 'select(.risk_score >= 55)'
+```
+
+**Batch JSON summary format** (`--batch-json`):
+
+```json
+{
+  "scanned": 50,
+  "malicious": 3,
+  "suspicious": 12,
+  "clean": 35,
+  "errors": 0,
+  "duration": "4.2s",
+  "results": [
+    { "file_name": "sample.exe", "verdict": "MALICIOUS", "score": 92, "findings": 11, ... }
+  ]
+}
 ```
 
 ### Watch: Monitor for New Files
 
 ```bash
-# SOC intake monitoring
+# SOC intake monitoring — print every scan
 ./flatscan --dir /var/spool/malware-inbox --watch -m deep --watch-interval 10
+
+# Alert-only mode — suppress clean files, show only score ≥ 55
+./flatscan --dir ./inbox --watch -m quick --watch-interval 3 --watch-alert-only
 
 # Fast triage of incoming samples
 ./flatscan --dir ./inbox --watch -m quick --watch-interval 3
+```
+
+`--watch-alert-only` silently skips files scoring below the alert threshold and maintains a rolling status line: `[Watch] Monitored: 47 files  Alerts: 3  Last: dropper.exe (score=91)`.
+
+---
+
+## CI/CD Mode
+
+Use `--ci` for automated pipelines. It suppresses all interactive UI and prints a single parseable line to stderr:
+
+```
+FLATSCAN: MALICIOUS score=92 file=artifact.exe findings=11 sha256=deadbeef...
+```
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | Scan succeeded, score < 30 (clean) |
+| `10` | Score ≥ `--ci-threshold` (suspicious / above gate) |
+| `20` | Score ≥ 80 (likely malicious) |
+| `1` | Scan error (file not found, parse failure) |
+| `2` | Usage error (bad flags) |
+
+### GitHub Actions Example
+
+```yaml
+- name: Scan build artifact
+  run: |
+    ./flatscan -m quick -f dist/app.exe --ci --ci-threshold 30 --no-splash
+  # Exit 10 or 20 → step fails → pipeline blocked
+```
+
+### GitLab CI Example
+
+```yaml
+scan:
+  script:
+    - ./flatscan -m quick -f $CI_BUILDS_DIR/artifact.exe --ci --ci-threshold 30
+  allow_failure: false
+```
+
+### Makefile Gate
+
+```makefile
+scan-gate:
+	./flatscan -m quick -f $(BINARY) --ci --ci-threshold 30 --no-splash || (echo "Scan blocked release"; exit 1)
 ```
 
 ---
@@ -445,6 +562,30 @@ graph LR
 | 55-79 | High suspicion | Escalate to sandbox analysis, treat as high risk |
 | 80-100 | Likely malicious | Prioritize containment, block IOCs, generate hunting rules |
 
+### Score Breakdown (0.5.0+)
+
+The terminal report header now includes a per-category breakdown showing which detection categories contributed to the total risk score:
+
+```
+Risk score: 82/100   Score breakdown: [Injection:28 Network:18 Evasion:14 Credential:12 Persistence:10]
+```
+
+The breakdown is also available in JSON output under `score_breakdown`:
+
+```bash
+./flatscan -f sample.exe --json - --no-splash --no-progress 2>/dev/null | jq '.score_breakdown'
+```
+
+### Exit Codes (0.5.0+)
+
+| Exit Code | Meaning |
+|-----------|---------|
+| `0` | Score < 30 — clean / no significant indicators |
+| `10` | Score ≥ 30 — suspicious (also used in `--ci` mode when at/above `--ci-threshold`) |
+| `20` | Score ≥ 80 — likely malicious |
+| `1` | Scan error (file not found, unreadable, parse failure) |
+| `2` | Usage error (bad flags) |
+
 ---
 
 ## Real-World Scan Commands
@@ -591,11 +732,12 @@ done
 **Goal**: Quickly triage incoming samples from email gateway.
 
 ```bash
-# 1. Monitor incoming samples automatically
-./flatscan --dir /var/spool/malware-inbox --watch -m standard --watch-interval 10
+# 1. Alert-only watch — suppress noise, surface threats immediately
+./flatscan --dir /var/spool/malware-inbox --watch -m standard \
+  --watch-interval 10 --watch-alert-only
 
-# 2. Or batch scan quarantine folder
-./flatscan --dir /var/quarantine -m deep
+# 2. Batch scan quarantine folder with JSON summary
+./flatscan --dir /var/quarantine -m deep --batch-json reports/daily-batch.json
 
 # 3. Deep dive on flagged sample
 ./flatscan -m deep -f /var/quarantine/flagged.exe \
@@ -645,24 +787,30 @@ done
 
 ### 🔧 CI/CD Pipeline: Build Artifact Scanning
 
-**Goal**: Gate releases on malware score.
+**Goal**: Gate releases on malware score using `--ci` mode (0.5.0+).
 
 ```bash
 #!/bin/bash
-./flatscan -m quick -f "$BUILD_ARTIFACT" \
-  --json reports/scan.json \
-  --no-progress --no-splash --no-color
+# Single command — exit 0=clean, 10=suspicious, 20=malicious
+./flatscan -m quick -f "$BUILD_ARTIFACT" --ci --ci-threshold 30 --no-splash
+EXIT=$?
 
-SCORE=$(jq '.risk_score' reports/scan.json)
-VERDICT=$(jq -r '.verdict' reports/scan.json)
-
-echo "Score: $SCORE | Verdict: $VERDICT"
-
-if [ "$SCORE" -ge 30 ]; then
-  echo "❌ BUILD BLOCKED: Suspicious artifact (score=$SCORE)"
+if [ $EXIT -eq 20 ]; then
+  echo "BUILD BLOCKED: MALICIOUS artifact"
+  exit 1
+elif [ $EXIT -eq 10 ]; then
+  echo "BUILD BLOCKED: suspicious artifact"
   exit 1
 fi
-echo "✅ BUILD PASSED"
+echo "BUILD PASSED"
+```
+
+Or with JSONL for richer pipeline logging:
+
+```bash
+./flatscan -m quick -f "$BUILD_ARTIFACT" \
+  --output-format jsonl --no-splash --no-progress | \
+  tee scan.jsonl | jq '{verdict, score: .risk_score, findings: (.findings | length)}'
 ```
 
 ### 🧪 Malware Researcher: Family Classification
@@ -740,15 +888,37 @@ for f in samples/*; do
 done
 ```
 
+### Parallel Batch with JSON Summary (0.5.0+)
+
+```bash
+# Scan entire directory in parallel, save machine-readable summary
+./flatscan --dir ./samples -m standard \
+  --batch-json reports/batch-$(date +%Y%m%d).json \
+  --no-splash
+
+# Parse results
+jq '.results[] | select(.score >= 55) | {file: .file_name, score, verdict}' \
+  reports/batch-$(date +%Y%m%d).json
+```
+
+### JSONL Pipeline to SIEM (0.5.0+)
+
+```bash
+# Stream results directly to jq filter then to curl for SIEM ingestion
+./flatscan --dir ./incoming -m quick --output-format jsonl --no-splash | \
+  jq -c 'select(.risk_score >= 30)' | \
+  while read -r event; do
+    curl -s -X POST https://siem.local/api/events \
+      -H "Content-Type: application/json" -d "$event"
+  done
+```
+
 ### Score-Based Alert System
 
 ```bash
-./flatscan --dir /var/incoming --watch -m deep --watch-interval 5 2>&1 | \
-  while IFS= read -r line; do
-    if echo "$line" | grep -q "ALERT"; then
-      echo "$line" | mail -s "FLATSCAN ALERT" soc@company.com
-    fi
-  done
+# Alert-only watch with live status line
+./flatscan --dir /var/incoming --watch -m deep \
+  --watch-interval 5 --watch-alert-only
 ```
 
 ### Daily Summary Report
@@ -759,9 +929,12 @@ DATE=$(date +%Y-%m-%d)
 OUTDIR="reports/daily-${DATE}"
 mkdir -p "$OUTDIR"
 
-./flatscan --dir /var/quarantine -m deep 2>&1 | tee "${OUTDIR}/summary.txt"
+./flatscan --dir /var/quarantine -m deep \
+  --batch-json "${OUTDIR}/batch.json" \
+  --no-splash 2>&1 | tee "${OUTDIR}/summary.txt"
 
-echo "Daily scan complete: $(date)" >> "${OUTDIR}/summary.txt"
+# Extract counts
+jq '{malicious, suspicious, clean, scanned}' "${OUTDIR}/batch.json"
 ```
 
 ### JSON Field Extraction
@@ -778,6 +951,23 @@ echo "Daily scan complete: $(date)" >> "${OUTDIR}/summary.txt"
 # Get all IOC domains
 ./flatscan -f sample.exe --json - --no-progress --no-splash --no-color 2>/dev/null | \
   jq -r '.iocs.domains[]'
+
+# Get crypto wallets (0.5.0+)
+./flatscan -f sample.exe --json - --no-progress --no-splash --no-color 2>/dev/null | \
+  jq -r '.iocs.crypto_wallets[]?'
+
+# Get score breakdown (0.5.0+)
+./flatscan -f sample.exe --json - --no-progress --no-splash --no-color 2>/dev/null | \
+  jq '.score_breakdown'
+```
+
+### CSV Triage Sheet (0.5.0+)
+
+```bash
+# Write header then scan results
+echo "file,score,verdict,findings,iocs,sha256" > triage.csv
+./flatscan --dir ./samples -m quick \
+  --output-format csv --no-splash >> triage.csv
 ```
 
 ---
@@ -789,9 +979,13 @@ echo "Daily scan complete: $(date)" >> "${OUTDIR}/summary.txt"
 | `missing required -f/--file path` | Provide `-f path` or use `--dir` for batch |
 | `--watch requires --dir` | Watch mode needs a directory: `--dir ./inbox --watch` |
 | Color codes in piped output | Add `--no-color` when piping |
-| Splash delays automation | Add `--no-splash --no-progress` |
-| JSON stdout has text mixed in | Fixed in v0.3.0. Use `--json -` (text is suppressed) |
+| Splash delays automation | Add `--no-splash --no-progress`, or use `--ci` which suppresses all UI |
+| JSON stdout has text mixed in | Use `--json -` (text report suppressed) or `--output-format json` |
+| CSV/JSONL mixed with progress | Progress is on stderr, CSV/JSONL on stdout — pipe safely without `2>/dev/null` |
+| `--ci` exit code always 0 | Check `--ci-threshold` (default 55) — lower it if score is below threshold |
 | Large file slow | Files >100MB use mmap on Linux automatically |
 | Archive bomb warning | Increase `--max-archive-files` or `--max-carves` |
 | Custom rules not loading | Check path: `--rules path/to/rules/` (accepts files or directories) |
-| `--report-pack` missing STIX | Fixed in v0.3.0. STIX is now included in report packs |
+| `--report-pack` missing STIX | STIX is included in report packs since v0.3.0 |
+| High false-positive entropy score | Compressed formats (zip, 7z, gz, etc.) no longer trigger global entropy findings as of v0.5.0 |
+| Batch scan slow | v0.5.0 uses parallel workers (NumCPU). If still slow, check I/O bottleneck |

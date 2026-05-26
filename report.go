@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 )
 
@@ -104,6 +105,9 @@ func writeHeader(b *strings.Builder, result ScanResult) {
 	fmt.Fprintf(b, "Target: %s\n", result.Target)
 	fmt.Fprintf(b, "Mode: %s\n", result.Mode)
 	fmt.Fprintf(b, "Verdict: %s (%d/100)\n", result.Verdict, result.RiskScore)
+	if len(result.ScoreBreakdown) > 0 {
+		fmt.Fprintf(b, "Score breakdown: %s\n", formatScoreBreakdown(result.ScoreBreakdown))
+	}
 	fmt.Fprintf(b, "File type: %s\n", result.FileType)
 	if result.MIMEHint != "" {
 		fmt.Fprintf(b, "MIME hint: %s\n", result.MIMEHint)
@@ -207,6 +211,9 @@ func writeIOCSummary(b *strings.Builder, iocs IOCSet) {
 	writeCategorySummary(b, "Registry keys", iocs.RegistryKeys)
 	writeCategorySummary(b, "Windows paths", iocs.WindowsPaths)
 	writeCategorySummary(b, "Unix paths", iocs.UnixPaths)
+	writeCategorySummary(b, "Mutexes", iocs.Mutexes)
+	writeCategorySummary(b, "Named pipes", iocs.NamedPipes)
+	writeCategorySummary(b, "Crypto wallets", iocs.CryptoWallets)
 	if iocs.SuppressedCount > 0 {
 		fmt.Fprintf(b, "- Suppressed as known-benign/contextual: %d\n", iocs.SuppressedCount)
 	}
@@ -240,6 +247,9 @@ func writeIOCsFull(b *strings.Builder, iocs IOCSet) {
 	writeIOCSection(b, "Registry keys", iocs.RegistryKeys)
 	writeIOCSection(b, "Windows paths", iocs.WindowsPaths)
 	writeIOCSection(b, "Unix paths", iocs.UnixPaths)
+	writeIOCSection(b, "Mutexes", iocs.Mutexes)
+	writeIOCSection(b, "Named pipes", iocs.NamedPipes)
+	writeIOCSection(b, "Crypto wallets", iocs.CryptoWallets)
 	if iocs.SuppressedCount > 0 {
 		fmt.Fprintf(b, "\nSuppressed IOCs: %d\n", iocs.SuppressedCount)
 		if iocs.SuppressionReason != "" {
@@ -628,6 +638,9 @@ func WriteIOCFile(path string, result ScanResult) error {
 	writeIOCExportSection(&b, "registry_keys", result.IOCs.RegistryKeys)
 	writeIOCExportSection(&b, "windows_paths", result.IOCs.WindowsPaths)
 	writeIOCExportSection(&b, "unix_paths", result.IOCs.UnixPaths)
+	writeIOCExportSection(&b, "mutexes", result.IOCs.Mutexes)
+	writeIOCExportSection(&b, "named_pipes", result.IOCs.NamedPipes)
+	writeIOCExportSection(&b, "crypto_wallets", result.IOCs.CryptoWallets)
 	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
 
@@ -700,6 +713,30 @@ func limitArtifacts(values []DecodedArtifact, limit int) []DecodedArtifact {
 		return values
 	}
 	return values[:limit]
+}
+
+func formatScoreBreakdown(breakdown map[string]int) string {
+	type kv struct {
+		k string
+		v int
+	}
+	var pairs []kv
+	for k, v := range breakdown {
+		if v > 0 {
+			pairs = append(pairs, kv{k, v})
+		}
+	}
+	sort.Slice(pairs, func(i, j int) bool {
+		if pairs[i].v == pairs[j].v {
+			return pairs[i].k < pairs[j].k
+		}
+		return pairs[i].v > pairs[j].v
+	})
+	parts := make([]string, 0, len(pairs))
+	for _, p := range pairs {
+		parts = append(parts, fmt.Sprintf("%s:%d", p.k, p.v))
+	}
+	return "[" + strings.Join(parts, " ") + "]"
 }
 
 func formatBytes(size int64) string {

@@ -89,12 +89,14 @@ Understanding the pipeline helps you know where to add code:
 graph TB
     subgraph "Where to Add Code"
         A["New Detection?"] --> B[signatures.go]
+        A2["New Attack Chain?"] --> B2[chains.go]
+        A3["New Packer?"] --> B3[packer.go]
         C["New File Format?"] --> D[formats.go / apk.go]
         E["New IOC Type?"] --> F[ioc.go]
         G["New Output Format?"] --> H[report.go / new file]
         I["New Plugin?"] --> J[plugin.go]
         K["New Rule Key?"] --> L[rules.go]
-        M["Performance Fix?"] --> N[scanner.go / parallel.go]
+        M["Performance Fix?"] --> N[scanner.go / batch.go]
         O["New CLI Flag?"] --> P[main.go]
         Q["New Data Field?"] --> R[types.go]
     end
@@ -106,13 +108,16 @@ graph TB
 |------|---------------|-------------|
 | `types.go` | All data structures | Adding new fields to ScanResult |
 | `scanner.go` | Analysis pipeline orchestration | Changing pipeline order or adding stages |
-| `signatures.go` | Behavioral detection | Adding new signature patterns |
+| `signatures.go` | Behavioral detection | Adding new signature patterns, families |
+| `chains.go` | API behavioral chain detection | Adding multi-stage attack sequence detectors |
+| `packer.go` | Packer/protector fingerprinting | Adding new packer signatures |
 | `plugin.go` | Plugin interface and registry | Adding built-in plugins |
 | `rules.go` | Rule pack engine | Adding new rule matching keys |
-| `ioc.go` | IOC extraction | Adding new IOC types |
+| `ioc.go` | IOC extraction | Adding new IOC types (wallets, mutexes, pipes) |
 | `ioc_triage.go` | IOC suppression | Updating allowlists |
 | `formats.go` | File type detection | Adding new magic bytes |
 | `main.go` | CLI flags and dispatch | Adding new flags |
+| `batch.go` | Parallel batch directory scan | Batch output, worker pool tuning |
 
 ### Data Flow
 

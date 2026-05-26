@@ -120,6 +120,12 @@ func RunWatchMode(cfg Config) error {
 			fileCfg.NoSplash = true
 			fileCfg.DirPath = ""
 
+			// In alert-only mode, suppress file-detected message until result known
+			alertThreshold := 55
+			if cfg.WatchAlertOnly {
+				fileCfg.NoProgress = true
+			}
+
 			result, err := RunConfiguredScan(fileCfg)
 			if err != nil {
 				if useColor {
@@ -128,6 +134,17 @@ func RunWatchMode(cfg Config) error {
 						dim(err.Error()))
 				} else {
 					fmt.Fprintf(os.Stderr, "  ERROR: %s\n", err.Error())
+				}
+				continue
+			}
+
+			// In alert-only mode, skip clean/low files silently
+			if cfg.WatchAlertOnly && result.RiskScore < alertThreshold {
+				scanned++
+				if useColor {
+					fmt.Fprintf(os.Stderr, "\r%s Monitored: %d  Alerts: skip clean files  Last: %s (%s)  %s    ",
+						dim("👁"), scanned, name, dim(fmt.Sprintf("score=%d", result.RiskScore)),
+						dim(time.Now().Format("15:04:05")))
 				}
 				continue
 			}

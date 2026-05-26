@@ -12,17 +12,87 @@ All notable project changes are documented here. Format follows [Keep a Changelo
 graph LR
     A["v0.1.0<br/>Initial Build<br/>Core Engine"] -->|"IOC Triage<br/>MSIX Analysis"| B["v0.2.0<br/>IOC & Format"]
     B -->|"Performance<br/>Architecture"| C["v0.3.0<br/>Production Grade"]
+    C -->|"UX & Reporting"| D["v0.4.0<br/>Analyst UX"]
+    D -->|"Detection Depth<br/>CI/CD & Workflow"| E["v0.5.0<br/>Power Analyst"]
     
     style A fill:#16213e,color:#fff
     style B fill:#0f3460,color:#fff
-    style C fill:#e94560,color:#fff
+    style C fill:#533483,color:#fff
+    style D fill:#e94560,color:#fff
+    style E fill:#c62a47,color:#fff
 ```
 
 | Version | Focus | Key Features |
 |---------|-------|-------------|
+| **0.5.0** | Detection Depth & CI/CD | API chain detection, packer fingerprinting, CI/CD mode, semantic exit codes, parallel batch, score breakdown, new IOC types, cryptominer/wiper families |
+| **0.4.0** | Analyst UX & Reporting | Shell completion, grouped help, post-scan hints, dark HTML report, PDF risk bar, batch Size column |
 | **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
 | **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
+
+---
+
+## 0.5.0 - Detection Depth, CI/CD, and Workflow Release
+
+### Added
+
+- **API behavioral chain detection** (`chains.go`) — 7 multi-stage attack chains scored as single Critical/High findings instead of N individual low signals: Classic DLL Injection, Process Hollowing, Keylogger + Exfiltration, Credential Theft + Webhook, Persistence + Evasion, Ransomware Encrypt + Wipe, Named Pipe C2 + Injection. Each chain carries a MITRE tactic/technique and recommendation.
+- **Packer / protector fingerprinting** (`packer.go`) — Section-name and overlay-marker detection for UPX, Themida/WinLicense, VMProtect, MPRESS, ASPack, Enigma Protector, PELock, plus a generic single-section/high-entropy/no-imports heuristic.
+- **Wiper family detection** — Shadow copy / boot-recovery deletion strings (`vssadmin delete`, `bcdedit /set recoveryenabled no`) and low-level disk write API chains mapped to MITRE T1490/T1485.
+- **Cryptominer family detection** — Stratum protocol strings, GPU library references (`cuda.dll`, `OpenCL`), Monero-specific strings (`cryptonight`, `randomx`, `donate.v2.xmrig`) mapped to MITRE T1496.
+- **~20 new API patterns** in `signatures.go`: NT-level injection (`ZwMapViewOfSection`, `NtAllocateVirtualMemory`, `NtWriteVirtualMemory`, `RtlCreateUserThread`), thread control (`SetThreadContext`, `GetThreadContext`, `ResumeThread`), timing/anti-analysis evasion (`GetTickCount64`, `QueryPerformanceCounter`, `GetVolumeInformation`, `NtQuerySystemInformation`), named pipe C2 (`CreateNamedPipe`, `ConnectNamedPipe`, `TransactNamedPipe`), lateral movement recon (`NetShareEnum`, `NetGroupGetUsers`), BCrypt APIs (`BCryptGenerateSymmetricKey`, `BCryptImportKeyPair`, `CryptHashData`, `CryptDeriveKey`).
+- **Entropy false-positive mitigation** — Compressed/archive formats (zip, 7z, rar, gz, bz2, xz, zst, lz4, cab) skip the global-entropy finding; section-level entropy findings are unaffected.
+- **New IOC types** (`ioc.go`, `types.go`): Ethereum wallet addresses (`0x[40 hex]`), Monero addresses (95-char base58), Bitcoin addresses, mutex names (`Global\...`, `Local\...`), named pipe paths (`\\.\pipe\...`). Added `Mutexes`, `NamedPipes`, `CryptoWallets` fields to `IOCSet`. Updated `MergeIOCSet`, `IOCCount`, IOC file export, text reports, color reports, and HTML IOC tabs.
+- **`--ci` / `--ci-threshold <n>` flags** — CI/CD mode: suppresses splash and progress, prints a single machine-readable summary line to stderr (`FLATSCAN: MALICIOUS score=82 file=sample.bin findings=13 sha256=...`), exits 10 if score ≥ threshold (default 55), exits 0 otherwise.
+- **Semantic exit codes** — `0` clean (score < 30), `10` suspicious (score ≥ 30), `20` likely malicious (score ≥ 80), `1` scan error, `2` usage error. Applies to all scans, not just CI mode.
+- **`--output-format text|json|csv|jsonl`** — Machine-readable stdout formats. `csv` produces `filename,score,verdict,findings,iocs,sha256`. `jsonl` writes a compact single-line JSON object suitable for streaming into SIEM or `jq` pipelines. Both suppress hints and text report.
+- **`--batch-json <path>`** — Writes a structured JSON summary after batch scans: `scanned`, `malicious`, `suspicious`, `clean`, `errors`, `duration`, and per-file `results` array.
+- **`--watch-alert-only`** — In watch mode, silently skips files scoring below the alert threshold (55). Clean files update a one-line status counter instead of printing a full scan result.
+- **Score breakdown in report header** — Every scan shows a compact per-category breakdown: `Score breakdown: [Credential Access:44 Evasion:31 Network:12 Packing:24 ...]`. Also included in JSON output as `score_breakdown`.
+- **Parallel batch scanning** — `RunBatchScan` now uses a `runtime.NumCPU()` goroutine worker pool with a semaphore, reducing wall-clock time proportionally to available cores.
+- **HTML global search** — A search input in the sticky nav bar live-filters both finding cards and IOC rows as you type. Match count is displayed.
+- **HTML new IOC tabs** — Mutexes, Named Pipes, and Crypto Wallets tabs added to the tabbed IOC panel.
+- **`--batch-json` help section** and **CI/CD section** added to grouped `--help` output.
+
+### Changed
+
+- `FinalizeRisk` now computes `ScoreBreakdown map[string]int` (category → cumulative score) alongside the existing risk score.
+- Scanner pipeline calls `DetectAPIChains` and `DetectPackers` after pattern matching and format analysis.
+- `hints.go` suppresses hints when `--ci`, `--output-format != text`, or `--json -` is active to avoid polluting machine-readable stdout.
+- `RunConfiguredScan` text report printing gate now also checks `cfg.OutputFormat == "text"` and `!cfg.CI`.
+- Batch scan progress suppresses per-file progress bars (sub-processes set `NoProgress = true`) to keep output clean.
+- `IOCSet` extended with `Mutexes`, `NamedPipes`, `CryptoWallets` across `MergeIOCSet`, `IOCCount`, text report, color report, HTML, and IOC file export.
+
+### Fixed
+
+- Watch mode `--watch-alert-only` flag now correctly suppresses clean file output rather than printing an empty block.
+- `--output-format csv/jsonl` no longer prints the hints block alongside the machine-readable line.
+
+---
+
+## 0.4.0 - Analyst UX and Reporting Release
+
+### Added
+
+- **Shell completion** (`completion.go`) — `--completion bash|zsh|fish` prints a ready-to-source completion script. Covers all flags, file/dir path completions, and enum values for `--mode`, `--report-mode`, and `--completion`.
+- **Grouped, colored `--help`** — Replaced raw `flag.PrintDefaults` with hand-written sections (SCAN TARGET, OUTPUT, CI/CD, ADVANCED, WATCH/CASE, FLAGS) with ANSI color coding (cyan headers, green flags, dim notes) and `NO_COLOR` / non-terminal fallback.
+- **Post-scan hints** (`hints.go`) — After each scan, FlatScan prints contextual follow-up tips based on what was found vs. what flags were used: `--carve` for high-entropy regions, `-m deep` when findings are dense, `--pdf`/`--yara`/`--stix` for high-score results, `--external-tools` in deep mode.
+- **HTML dark analyst theme** — Complete HTML report rewrite: CSS custom properties for dark/light theme, `toggleTheme()` button, sticky nav bar with verdict badge and section jump links.
+- **HTML SVG risk gauge** — Semicircle arc gauge with score-to-angle math, colored fill, and score label.
+- **HTML MITRE heatmap** — TTPs grouped by tactic into columns; cells colored by confidence level.
+- **HTML tabbed IOC panel** — URLs, Domains, IPs, Hashes, Registry, Paths, Emails, CVEs tabs with per-tab search filter and per-IOC clipboard copy buttons.
+- **HTML syntax-highlighted JSON** — Token-by-token JSON coloring (keys, strings, numbers, booleans, nulls) in the raw JSON section.
+- **PDF segmented risk bar** — Cover page horizontal bar split into green/amber/orange/red segments with a score-marker triangle.
+- **PDF severity badge chips** — Colored filled-rectangle severity badges replacing plain `[High]` text prefix in finding rows.
+- **PDF footer** — Version string and scan date added to every page footer.
+- **Batch table Size column** — Batch summary table now shows `Size` column using `formatBytes`, plus improved footer with malicious/suspicious/clean/error counts.
+
+### Changed
+
+- `main.go` `main()` captures `ScanResult` and passes it to `PrintPostScanHints`.
+- `printGroupedHelp` changed to a zero-parameter function writing directly to `os.Stderr`.
+- Better error messages: `"unknown mode %q — valid values: quick, standard, deep"`, `"no target specified — use -f <file> or --dir <directory>"`.
+- `const defaultVersion` bumped from `0.3.0` to `0.4.0`.
 
 ---
 

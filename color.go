@@ -197,6 +197,9 @@ func writeColorHeader(b *strings.Builder, result ScanResult) {
 		colorize(eColor, fmt.Sprintf("%.2f/8.00", result.Entropy)),
 		dim("- "+result.EntropyAssessment))
 
+	if len(result.ScoreBreakdown) > 0 {
+		fmt.Fprintf(b, "%s %s\n", dim("Score breakdown:"), dim(formatScoreBreakdown(result.ScoreBreakdown)))
+	}
 	fmt.Fprintf(b, "%s %d", dim("Strings:"), result.StringsTotal)
 	if result.StringsTruncated {
 		fmt.Fprintf(b, " %s", colorize(colorYellow, "(truncated)"))
@@ -370,6 +373,9 @@ func writeColorIOCsFull(b *strings.Builder, iocs IOCSet) {
 	writeColorIOCSection(b, "Registry", iocs.RegistryKeys, 0)
 	writeColorIOCSection(b, "Win paths", iocs.WindowsPaths, 0)
 	writeColorIOCSection(b, "Unix paths", iocs.UnixPaths, 0)
+	writeColorIOCSection(b, "Mutexes", iocs.Mutexes, 0)
+	writeColorIOCSection(b, "Named pipes", iocs.NamedPipes, 0)
+	writeColorIOCSection(b, "Crypto wallets", iocs.CryptoWallets, 0)
 	if len(iocs.PEHashes) > 0 {
 		fmt.Fprintf(b, "  %s\n", dim("PE Hashes:"))
 		for _, pe := range iocs.PEHashes {

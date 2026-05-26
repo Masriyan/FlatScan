@@ -7,6 +7,7 @@
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev)
+[![Version](https://img.shields.io/badge/Version-0.5.0-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-22%2F22-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
@@ -208,12 +209,14 @@ sequenceDiagram
 | 10 | **Safe Carving** | Embedded PE/ELF/DEX/ZIP/PDF/gzip/7z/RAR detection | ⚡ Parallel |
 | 11 | **Crypto/Config** | C2 endpoints, webhook tokens, mutex, wallet strings, XOR keys | ⚡ Parallel |
 | 12 | **Similarity** | FlatHash, byte-histogram, string-set, import, section hashes | ⚡ Parallel |
-| 13 | **Rules Engine** | JSON rule packs + `.rule` declarative detections | Corpus-aware |
-| 14 | **Plugin Engine** | Built-in + JSON manifest plugins | Registry pattern |
-| 15 | **Family Classifier** | Ransomware, stealer, loader, RAT, riskware classification | — |
-| 16 | **IOC Triage** | PKI/schema/OID/loopback suppression | Audit trail |
-| 17 | **Risk Scoring** | Severity-weighted score with dedup + verdict assignment | — |
-| 18 | **Profile Enrichment** | MITRE TTPs, business impact, capabilities, recommendations | — |
+| 13 | **API Chain Detection** | Behavioral attack chains from API family combinations | 7 built-in chains |
+| 14 | **Packer Fingerprinting** | Section-name + overlay marker detection for 8 packers | PE-only |
+| 15 | **Rules Engine** | JSON rule packs + `.rule` declarative detections | Corpus-aware |
+| 16 | **Plugin Engine** | Built-in + JSON manifest plugins | Registry pattern |
+| 17 | **Family Classifier** | Ransomware, stealer, loader, RAT, riskware, cryptominer, wiper | — |
+| 18 | **IOC Triage** | PKI/schema/OID/loopback suppression | Audit trail |
+| 19 | **Risk Scoring** | Severity-weighted score with dedup + verdict + per-category breakdown | — |
+| 20 | **Profile Enrichment** | MITRE TTPs, business impact, capabilities, recommendations | — |
 
 ---
 
@@ -224,10 +227,11 @@ sequenceDiagram
 - Full-file MD5, SHA1, SHA256, and SHA512 hashing
 - File type and MIME hint detection (25+ formats)
 - ASCII and UTF-16LE string extraction with zero-allocation performance
-- IOC extraction for URLs, domains, IPv4, IPv6, emails, hashes, CVEs, registry keys, paths
+- IOC extraction: URLs, domains, IPv4, IPv6, emails, hashes, CVEs, registry keys, paths, **mutex names, named pipes, Ethereum/Monero/Bitcoin wallet addresses** (0.5.0)
 - IOC triage with built-in PKI, schema, OID, and loopback allowlists
 - Suspicious base64, hex, and URL-percent decoding with nesting depth control
 - Shannon entropy scoring and high-entropy region detection
+- **Per-category score breakdown** shown in every report and JSON output (0.5.0)
 
 ### Format Parsers
 
@@ -245,13 +249,16 @@ mindmap
   root((Behavioral<br/>Detection))
     Injection
       Process Injection APIs
+      NT-Level Injection APIs
       Dynamic API Resolution
       Reflective Loading
+      API Chain Detection
     Network
       Downloader Behavior
       C2 Style Strings
       Discord Webhook
-      Telegram Exfil
+      Named Pipe C2
+      Lateral Movement Recon
     Persistence
       Registry Keys
       Startup Folders
@@ -260,8 +267,9 @@ mindmap
     Evasion
       VM/Sandbox Awareness
       Anti-Debugging
+      Timing Evasion APIs
       Security Tool Bypass
-      Packer/Protector
+      Packer Fingerprinting
     Credential Theft
       Browser Credentials
       DPAPI Access
@@ -271,6 +279,14 @@ mindmap
       Ransom Notes
       File Encryption APIs
       Shadow Copy Deletion
+    Cryptominer
+      Stratum Protocol
+      GPU Library Refs
+      Pool Strings
+    Wiper
+      Shadow Copy Deletion
+      Disk Write APIs
+      Boot Recovery Tampering
 ```
 
 ### Output Formats
@@ -293,13 +309,15 @@ graph LR
         A[Direct CLI] --> E[Single Scan]
         B[Interactive] --> E
         C[Shell Mode] --> E
-        D[Batch Mode] --> F[Directory Scan]
+        D[Batch Mode] --> F[Parallel Dir Scan]
         G[Watch Mode] --> H[Continuous Monitor]
+        I[CI/CD Mode] --> J[Gate Check]
     end
     
-    E --> I[Reports]
-    F --> J[Summary Table]
-    H --> K[Auto-Alert]
+    E --> K[Reports]
+    F --> L[Summary Table + JSON]
+    H --> M[Auto-Alert]
+    J --> N[Exit Code 0/10/20]
 ```
 
 | Mode | Command | Use Case |
@@ -307,8 +325,9 @@ graph LR
 | **Direct CLI** | `./flatscan -f sample.bin -m deep` | One-off scans and automation |
 | **Interactive** | `./flatscan --interactive` | Guided wizard for new analysts |
 | **Shell** | `./flatscan --shell` | Repeated scans in one session |
-| **Batch** | `./flatscan --dir ./samples -m deep` | Directory-wide triage |
-| **Watch** | `./flatscan --dir ./inbox --watch` | Monitor for new files |
+| **Batch** | `./flatscan --dir ./samples -m deep --batch-json results.json` | Parallel directory-wide triage |
+| **Watch** | `./flatscan --dir ./inbox --watch --watch-alert-only` | Monitor for new files, alert on threats |
+| **CI/CD** | `./flatscan -f build.exe --ci --ci-threshold 30` | Pipeline gate with semantic exit codes |
 
 ---
 
@@ -320,7 +339,7 @@ graph LR
 go build -o flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.3.0" -o flatscan .
+go build -ldflags "-X main.version=0.5.0" -o flatscan .
 ```
 
 ### Scan Commands
@@ -360,9 +379,14 @@ go build -ldflags "-X main.version=0.3.0" -o flatscan .
 # 🎯 STIX threat intelligence export
 ./flatscan -m deep -f malware.exe --stix reports/threat-intel.stix.json
 
-# 🛡️ CI/CD gate check (exit code based)
-SCORE=$(./flatscan -m quick -f build.exe --json - --no-progress --no-splash --no-color 2>/dev/null | jq '.risk_score')
-[ "$SCORE" -ge 30 ] && echo "BLOCKED" && exit 1
+# 🛡️ CI/CD gate — native exit codes (0=clean, 10=suspicious, 20=malicious)
+./flatscan -m quick -f build.exe --ci --ci-threshold 30 --no-splash; echo "Exit: $?"
+
+# 📊 Machine-readable CSV pipeline
+./flatscan -f sample.bin -m quick --output-format csv --no-splash 2>/dev/null
+
+# 📂 Parallel batch scan with JSON summary
+./flatscan --dir ./samples -m quick --batch-json results.json --no-splash
 
 # 🔄 Batch report packs for all samples
 for f in samples/*; do
@@ -385,14 +409,17 @@ done
 | Text report | `--report PATH` | Human-readable report. Honors `--report-mode`. |
 | JSON report | `--json PATH` | Complete structured result for automation and pipelines. |
 | JSON stdout | `--json -` | Same as JSON report but piped to stdout for scripting. |
-| PDF report | `--pdf PATH` | CISO/management-ready report with executive summary, MITRE matrix, impact, actions. |
-| HTML report | `--html PATH` | Interactive analyst report with filters and expandable technical sections. |
-| IOC export | `--extract-ioc PATH` | Categorized IOC text file with promoted payload hashes. |
+| PDF report | `--pdf PATH` | CISO/management-ready report with executive summary, MITRE matrix, risk bar, impact. |
+| HTML report | `--html PATH` | Interactive dark analyst report with global search, MITRE heatmap, IOC tabs, theme toggle. |
+| IOC export | `--extract-ioc PATH` | Categorized IOC text with payload hashes, mutexes, named pipes, crypto wallets. |
 | YARA rule | `--yara PATH` | Auto-generated hunting rule with structural guards and entropy conditions. |
 | Sigma rule | `--sigma PATH` | Auto-generated SIEM/EDR hunting rule with ATT&CK tags. |
 | STIX bundle | `--stix PATH` | STIX 2.1 JSON bundle with File SCO, Malware SDO, Indicators, Relationships. |
 | Report pack | `--report-pack DIR` | All formats: PDF, HTML, JSON, IOC, YARA, Sigma, STIX, text, executive markdown. |
 | Case DB | `--case ID --case-db PATH` | Local JSONL case record for sample tracking. |
+| CSV | `--output-format csv` | `filename,score,verdict,findings,iocs,sha256` one-liner to stdout. |
+| JSONL | `--output-format jsonl` | Compact single-line JSON to stdout for SIEM streaming. |
+| Batch JSON | `--batch-json PATH` | JSON summary of batch: scanned/malicious/suspicious/clean/errors + per-file results. |
 | Stdout | default | Text report to stdout, colorized when terminal supports it. |
 
 ---
@@ -475,6 +502,35 @@ graph TD
     J --> L[Assign Verdict Band]
     K --> L
     L --> M[Sort by Severity + Score]
+    M --> N[Compute ScoreBreakdown per category]
+```
+
+### Score Breakdown (0.5.0)
+
+Every scan shows a compact per-category breakdown in the report header and in JSON output:
+
+```
+Score breakdown: [Credential Access:44 Evasion:31 Exfiltration:28 Packing:24 Persistence:20]
+```
+
+Available in `ScanResult.score_breakdown` (JSON) for programmatic use.
+
+### Exit Codes (0.5.0)
+
+| Code | Condition | Use |
+|------|-----------|-----|
+| `0` | Score < 30 | Clean / no strong indicators |
+| `10` | Score ≥ 30 | Suspicious / CI threshold exceeded |
+| `20` | Score ≥ 80 | Likely malicious |
+| `1` | Scan error | File not found, parse failure |
+| `2` | Usage error | Bad flags |
+
+### CI/CD Gate Example
+
+```bash
+# One-liner for GitHub Actions / GitLab CI
+./flatscan -f artifact.exe --ci --ci-threshold 30 --no-splash
+# Exit 0 = pass, Exit 10 = block
 ```
 
 ---
@@ -581,6 +637,8 @@ graph TB
     
     subgraph "Analysis Modules"
         signatures.go
+        chains.go
+        packer.go
         ioc.go
         ioc_triage.go
         entropy.go

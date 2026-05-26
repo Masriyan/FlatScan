@@ -35,6 +35,9 @@ type IOCSet struct {
 	RegistryKeys      []string         `json:"registry_keys,omitempty"`
 	WindowsPaths      []string         `json:"windows_paths,omitempty"`
 	UnixPaths         []string         `json:"unix_paths,omitempty"`
+	Mutexes           []string         `json:"mutexes,omitempty"`
+	NamedPipes        []string         `json:"named_pipes,omitempty"`
+	CryptoWallets     []string         `json:"crypto_wallets,omitempty"`
 	SuppressedCount   int              `json:"suppressed_count,omitempty"`
 	SuppressionReason string           `json:"suppression_reason,omitempty"`
 	SuppressionLog    []IOCSuppression `json:"suppression_log,omitempty"`
@@ -367,6 +370,7 @@ type ScanResult struct {
 	Findings           []Finding            `json:"findings,omitempty"`
 	Profile            AnalysisProfile      `json:"profile"`
 	RiskScore          int                  `json:"risk_score"`
+	ScoreBreakdown     map[string]int       `json:"score_breakdown,omitempty"`
 	Verdict            string               `json:"verdict"`
 	DebugLog           []string             `json:"debug_log,omitempty"`
 }

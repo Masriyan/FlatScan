@@ -50,7 +50,7 @@ go build -o flatscan .
 ### Build With Version Tag
 
 ```bash
-go build -ldflags "-X main.version=0.3.0" -o flatscan .
+go build -ldflags "-X main.version=0.5.0" -o flatscan .
 ```
 
 ### Restricted Build Cache
@@ -122,7 +122,7 @@ go vet ./...
 Expected version:
 
 ```text
-FlatScan 0.3.0
+FlatScan 0.5.0
 ```
 
 ### Verification Checklist

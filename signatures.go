@@ -13,6 +13,7 @@ type apiPattern struct {
 }
 
 var apiPatterns = []apiPattern{
+	// Memory / injection
 	{"virtualalloc", "VirtualAlloc", "memory allocation", "Medium"},
 	{"virtualallocex", "VirtualAllocEx", "process injection", "High"},
 	{"writeprocessmemory", "WriteProcessMemory", "process injection", "High"},
@@ -22,28 +23,57 @@ var apiPatterns = []apiPattern{
 	{"setwindowshookex", "SetWindowsHookEx", "process injection", "Medium"},
 	{"openprocess", "OpenProcess", "process access", "Medium"},
 	{"readprocessmemory", "ReadProcessMemory", "process access", "Medium"},
+	// NT-level injection APIs
+	{"zwmapviewofsection", "ZwMapViewOfSection", "process injection", "High"},
+	{"ntallocatevirtualmemory", "NtAllocateVirtualMemory", "process injection", "High"},
+	{"ntwritevirtualmemory", "NtWriteVirtualMemory", "process injection", "High"},
+	{"setthreadcontext", "SetThreadContext", "process injection", "High"},
+	{"getthreadcontext", "GetThreadContext", "process access", "Medium"},
+	{"resumethread", "ResumeThread", "process injection", "Medium"},
+	{"rtlcreateuserthread", "RtlCreateUserThread", "process injection", "High"},
+	// Anti-analysis / evasion
 	{"ntqueryinformationprocess", "NtQueryInformationProcess", "anti-analysis", "Medium"},
 	{"isdebuggerpresent", "IsDebuggerPresent", "anti-debugging", "Medium"},
 	{"checkremotedebuggerpresent", "CheckRemoteDebuggerPresent", "anti-debugging", "Medium"},
+	{"gettickcount64", "GetTickCount64", "timing evasion", "Medium"},
+	{"queryperformancecounter", "QueryPerformanceCounter", "timing evasion", "Medium"},
+	{"getvolumeinformation", "GetVolumeInformation", "sandbox fingerprinting", "Medium"},
+	{"ntquerysysteminformation", "NtQuerySystemInformation", "sandbox detection", "Medium"},
+	// Dynamic loading
 	{"loadlibrary", "LoadLibrary", "dynamic loading", "Low"},
 	{"getprocaddress", "GetProcAddress", "dynamic loading", "Low"},
+	{"dlopen", "dlopen", "dynamic loading", "Low"},
+	{"dlsym", "dlsym", "dynamic loading", "Low"},
+	// Downloader / network
 	{"urldownloadtofile", "URLDownloadToFile", "downloader", "High"},
 	{"internetopen", "InternetOpen", "network", "Medium"},
 	{"internetreadfile", "InternetReadFile", "network", "Medium"},
 	{"winhttpopen", "WinHttpOpen", "network", "Medium"},
 	{"winhttpreaddata", "WinHttpReadData", "network", "Medium"},
 	{"wsastartup", "WSAStartup", "network", "Low"},
+	// Named pipe C2
+	{"createnamedpipe", "CreateNamedPipe", "named pipe C2", "Medium"},
+	{"connectnamedpipe", "ConnectNamedPipe", "named pipe C2", "Medium"},
+	{"transactnamedpipe", "TransactNamedPipe", "named pipe C2", "Medium"},
+	// Lateral movement recon
+	{"netshareenum", "NetShareEnum", "lateral movement recon", "Medium"},
+	{"netgroupgetusers", "NetGroupGetUsers", "lateral movement recon", "Medium"},
+	// Cryptography
 	{"cryptdecrypt", "CryptDecrypt", "cryptography", "Medium"},
 	{"cryptencrypt", "CryptEncrypt", "cryptography", "Medium"},
 	{"bcryptdecrypt", "BCryptDecrypt", "cryptography", "Medium"},
+	{"bcryptgeneratesymmetrickey", "BCryptGenerateSymmetricKey", "cryptography", "Medium"},
+	{"bcryptimportkeypair", "BCryptImportKeyPair", "cryptography", "Medium"},
+	{"crypthashdata", "CryptHashData", "cryptography", "Low"},
+	{"cryptderivekey", "CryptDeriveKey", "cryptography", "Medium"},
+	// Persistence / execution
 	{"createservice", "CreateService", "persistence", "High"},
 	{"regsetvalue", "RegSetValue", "persistence", "Medium"},
 	{"shellexecute", "ShellExecute", "execution", "Medium"},
 	{"createprocess", "CreateProcess", "execution", "Medium"},
+	// Linux
 	{"ptrace", "ptrace", "linux anti-debug/process access", "Medium"},
 	{"mprotect", "mprotect", "linux memory permission", "Medium"},
-	{"dlopen", "dlopen", "dynamic loading", "Low"},
-	{"dlsym", "dlsym", "dynamic loading", "Low"},
 	{"execve", "execve", "execution", "Medium"},
 	{"system(", "system", "execution", "Medium"},
 }
@@ -121,10 +151,29 @@ func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedStrin
 	if isNativeExecutableLike(*result) && hasAny(corpus, "upx0", "upx1", "upx!", ".aspack", "themida", "vmprotect", "enigma protector", "mpress") {
 		AddFinding(result, "Medium", "Packing", "Known packer or protector marker", "UPX, ASPack, Themida, VMProtect, Enigma, or MPRESS marker present", 13, 0)
 	}
-	if !isArchiveLike(*result) && result.Entropy >= 7.70 {
+	if !isArchiveLike(*result) && !isKnownCompressedFormat(result.FileType) && result.Entropy >= 7.70 {
 		AddFinding(result, "High", "Packing", "Very high file entropy", fmt.Sprintf("overall entropy %.2f/8.00", result.Entropy), 18, 0)
-	} else if !isArchiveLike(*result) && result.Entropy >= 7.20 {
+	} else if !isArchiveLike(*result) && !isKnownCompressedFormat(result.FileType) && result.Entropy >= 7.20 {
 		AddFinding(result, "Medium", "Packing", "High file entropy", fmt.Sprintf("overall entropy %.2f/8.00", result.Entropy), 10, 0)
+	}
+
+	// Wiper / destructive behavior
+	if hasAny(corpus, "vssadmin delete", "wmic shadowcopy delete", "bcdedit /set", "recoveryenabled no", "ignoreallfailures") {
+		AddFindingDetailed(result, "High", "Wiper", "Shadow copy / recovery deletion", "shadow copy deletion or boot recovery tampering strings are present", 28, 0, "Impact", "Inhibit System Recovery (T1490)", "Investigate for backup store tampering and snapshot deletions on affected hosts.")
+	}
+	if hasAny(corpus, "deviceiocontrol", "ioctl_disk") && hasAny(corpus, "setendoffile", "ntsetinformationfile", "delete_on_close") {
+		AddFindingDetailed(result, "High", "Wiper", "Low-level disk write / file deletion API chain", "DeviceIoControl and file-deletion APIs are combined", 26, 0, "Impact", "Data Destruction (T1485)", "Check for disk sector writes or mass file deletions on affected hosts.")
+	}
+
+	// Cryptominer indicators
+	if hasAny(corpus, "stratum+tcp", "stratum+ssl", "pool.", "xmrig", "donate.v2.xmrig", "nicehash") {
+		AddFindingDetailed(result, "High", "Cryptominer", "Mining pool connection strings", "stratum protocol, pool, or miner strings are present", 26, 0, "Impact", "Resource Hijacking (T1496)", "Block outbound stratum protocol connections and scan for miner process artifacts.")
+	}
+	if hasAny(corpus, "cuda.dll", "opencl.dll", "nvml.dll", "libcuda", "hashrate", "cryptonight", "randomx") {
+		AddFinding(result, "Medium", "Cryptominer", "GPU / mining library references", "CUDA, OpenCL, hashrate, or known mining algorithm strings are present", 14, 0)
+	}
+	if hasAny(corpus, "monero", "xmr wallet", "wallet address") && hasAny(corpus, "mining", "miner", "hashrate", "stratum") {
+		AddFinding(result, "High", "Cryptominer", "Monero mining artifact", "Monero wallet and mining strings co-occur", 20, 0)
 	}
 	if !isArchiveLike(*result) && len(result.HighEntropyRegions) >= 3 {
 		AddFinding(result, "Medium", "Packing", "Multiple high-entropy regions", fmt.Sprintf("%d high-entropy regions found", len(result.HighEntropyRegions)), 10, 0)
@@ -201,6 +250,16 @@ func suspiciousStringSamples(stringsFound []ExtractedString, limit int) []string
 		}
 	}
 	return out
+}
+
+func isKnownCompressedFormat(fileType string) bool {
+	ft := strings.ToLower(fileType)
+	for _, marker := range []string{"zip", "7z", "rar", "gz", "gzip", "bz2", "bzip2", "xz", "zst", "zstd", "lz4", "br", "lzma", "cab"} {
+		if strings.Contains(ft, marker) {
+			return true
+		}
+	}
+	return false
 }
 
 func hasAll(text string, needles ...string) bool {
