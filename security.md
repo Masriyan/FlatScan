@@ -15,6 +15,7 @@ FlatScan is a malware-analysis utility. Security handling matters both for the t
 - [Static Analysis Disclaimer](#static-analysis-disclaimer)
 - [Output Security](#output-security)
 - [IOC Safety](#ioc-safety)
+- [Web GUI Security](#web-gui-security)
 - [Network Behavior](#network-behavior)
 - [Dependency Policy](#dependency-policy)
 - [Responsible Use](#responsible-use)
@@ -75,8 +76,9 @@ graph TD
 | **Memory exhaustion** | `--max-analyze-bytes` cap (default 256MB), `--max-archive-files` (500), `--max-carves` (80) |
 | **Regex DoS** | String extraction limits (30K–250K by mode), min-string-length filter |
 | **Archive bombs** | Entry count limits, no recursive extraction to disk |
-| **Path traversal** | Safe carving reports offsets only — no file extraction |
+| **Path traversal** | Safe carving reports offsets only — no file extraction; web upload filenames sanitized to stay inside a per-job temp dir |
 | **Sensitive data leakage** | Reports contain extracted strings — treated as incident artifacts |
+| **Web upload abuse** | `--web` binds `127.0.0.1` only, caps uploads at 256 MB, isolates each job in a temp dir, and reaps it after 30 minutes (see [Web GUI Security](#web-gui-security)) |
 
 ---
 
@@ -235,11 +237,41 @@ graph TD
 
 ---
 
+## Web GUI Security
+
+The `--web` mode (0.6.0+) runs a small local HTTP server. It is designed as a **single-user, localhost-only** tool and deliberately ships **without authentication**. Understand the model before using it.
+
+### Design and controls
+
+| Control | Behavior |
+|---------|----------|
+| **Loopback bind** | The server listens on `127.0.0.1:<port>` only — it is not reachable from other hosts by default. |
+| **No authentication** | There is no login. A warning is printed on every startup. Anyone able to reach the port can scan and download. |
+| **No CORS** | No `Access-Control-Allow-*` headers are emitted; browsers block cross-origin script access. |
+| **`nosniff`** | Every response sets `X-Content-Type-Options: nosniff`. |
+| **Per-job isolation** | Each upload and all its generated artifacts are written into a dedicated `os.MkdirTemp` directory. Nothing is written outside it (HTML/PDF and case-database writes are disabled in web mode). |
+| **Filename sanitization** | `safeFileName` strips path separators, `..` traversal, control characters, and quotes — preventing directory escape and `Content-Disposition` header injection. |
+| **Upload cap** | Uploads are limited to 256 MB via `http.MaxBytesReader`; multipart spill files are removed once the upload is copied out. |
+| **Automatic cleanup** | A background reaper deletes finished jobs and their temp directories ~30 minutes after completion. |
+| **Crash containment** | Each scan runs in its own goroutine with `recover()`; a panicking scan fails that one job, not the server. |
+
+### Operator guidance
+
+| ✅ Do | ❌ Don't |
+|-------|---------|
+| Run it on your own analysis workstation/VM | Bind or port-forward it to a shared or public network |
+| Keep the default `127.0.0.1` bind | Place it behind a reverse proxy without adding authentication |
+| Treat downloaded reports as incident artifacts | Assume uploads are private to you on a multi-user host |
+
+> The web GUI does not add network *enrichment* — it does not contact any external service. It only serves the local analysis engine over loopback HTTP.
+
+---
+
 ## Network Behavior
 
 | Version | Network Activity |
 |---------|-----------------|
-| **Current (0.5.0)** | **None.** All analysis is local and static. |
+| **Current (0.6.0)** | **No external network activity.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. |
 | **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---

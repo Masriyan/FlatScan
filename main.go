@@ -23,7 +23,7 @@ func stderrColorEnabled() bool {
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-const defaultVersion = "0.5.0"
+const defaultVersion = "0.6.0"
 
 // version can be overridden at build time via:
 //   go build -ldflags "-X main.version=1.0.0" .
@@ -63,6 +63,8 @@ type Config struct {
 	OutputFormat     string
 	BatchJSONPath    string
 	WatchIntervalSec int
+	WebMode          bool
+	WebPort          int
 	SplashSeconds    int
 	MinStringLen     int
 	MaxDecodeDepth   int
@@ -91,6 +93,14 @@ func main() {
 	if cfg.CommandShell {
 		if err := RunCommandShell(os.Stdin, os.Stdout, os.Stderr, cfg); err != nil {
 			fmt.Fprintln(os.Stderr, "command shell failed:", err)
+			os.Exit(1)
+		}
+		return
+	}
+
+	if cfg.WebMode {
+		if err := RunWebServer(cfg); err != nil {
+			fmt.Fprintln(os.Stderr, "web server failed:", err)
 			os.Exit(1)
 		}
 		return
@@ -321,6 +331,8 @@ func parseFlags(args []string) (Config, error) {
 	fs.StringVar(&cfg.OutputFormat, "output-format", cfg.OutputFormat, "")
 	fs.StringVar(&cfg.BatchJSONPath, "batch-json", "", "")
 	fs.IntVar(&cfg.WatchIntervalSec, "watch-interval", 3, "")
+	fs.BoolVar(&cfg.WebMode, "web", false, "")
+	fs.IntVar(&cfg.WebPort, "web-port", 5000, "")
 	fs.IntVar(&cfg.SplashSeconds, "splash-seconds", cfg.SplashSeconds, "")
 	fs.IntVar(&cfg.MinStringLen, "min-string", cfg.MinStringLen, "")
 	fs.IntVar(&cfg.MaxDecodeDepth, "decode-depth", cfg.MaxDecodeDepth, "")
@@ -375,7 +387,7 @@ func parseFlags(args []string) (Config, error) {
 	}
 
 	if cfg.FilePath == "" && cfg.DirPath == "" {
-		if cfg.Interactive || cfg.CommandShell {
+		if cfg.Interactive || cfg.CommandShell || cfg.WebMode {
 			return cfg, nil
 		}
 		return cfg, errors.New("no target specified — use -f <file> or --dir <directory>")
@@ -500,6 +512,10 @@ func printGroupedHelp() {
 	line(fmt.Sprintf("  %s  CI mode: suppress UI, exit 10 if score >= threshold", flag_("--ci")))
 	line(fmt.Sprintf("  %s  score threshold for --ci  %s", flag_("--ci-threshold <n>"), note("(default: 55)")))
 	line(fmt.Sprintf("  %s  exit codes: 0=clean 10=suspicious 20=malicious 1=error", note("")))
+	line("")
+	line(head("WEB"))
+	line(fmt.Sprintf("  %s  launch local web GUI on http://localhost:<port>", flag_("--web")))
+	line(fmt.Sprintf("  %s  port for --web mode  %s", flag_("--web-port <n>"), note("(default: 5000)")))
 	line("")
 	line(head("WATCH / CASE"))
 	line(fmt.Sprintf("  %s  save batch results as JSON summary", flag_("--batch-json <path>")))

@@ -7,9 +7,9 @@
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Version](https://img.shields.io/badge/Version-0.5.0-e94560?style=flat)]()
+[![Version](https://img.shields.io/badge/Version-0.6.0-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-22%2F22-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-22%2F23-yellow)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
@@ -33,6 +33,8 @@ FlatScan reads a file, hashes it, identifies the format, extracts strings, decod
 - [Features](#features)
 - [Quick Start](#quick-start)
 - [Output Types](#output-types)
+- [Web GUI](#web-gui)
+- [Sample Report](#sample-report)
 - [Scan Modes](#scan-modes)
 - [Scoring Logic](#scoring-logic)
 - [Plugin System](#plugin-system)
@@ -312,6 +314,7 @@ graph LR
         D[Batch Mode] --> F[Parallel Dir Scan]
         G[Watch Mode] --> H[Continuous Monitor]
         I[CI/CD Mode] --> J[Gate Check]
+        W[Web GUI] --> E
     end
     
     E --> K[Reports]
@@ -323,6 +326,7 @@ graph LR
 | Mode | Command | Use Case |
 |------|---------|----------|
 | **Direct CLI** | `./flatscan -f sample.bin -m deep` | One-off scans and automation |
+| **Web GUI** | `./flatscan --web` | Browser-based upload, scan, and report download |
 | **Interactive** | `./flatscan --interactive` | Guided wizard for new analysts |
 | **Shell** | `./flatscan --shell` | Repeated scans in one session |
 | **Batch** | `./flatscan --dir ./samples -m deep --batch-json results.json` | Parallel directory-wide triage |
@@ -339,7 +343,7 @@ graph LR
 go build -o flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.5.0" -o flatscan .
+go build -ldflags "-X main.version=0.6.0" -o flatscan .
 ```
 
 ### Scan Commands
@@ -398,6 +402,12 @@ done
 
 # 🖥️ Manual command shell
 ./flatscan --shell
+
+# 🌐 Local web GUI (open http://localhost:5000 in a browser)
+./flatscan --web
+
+# 🌐 Web GUI on a custom port
+./flatscan --web --web-port 8080
 ```
 
 ---
@@ -421,6 +431,226 @@ done
 | JSONL | `--output-format jsonl` | Compact single-line JSON to stdout for SIEM streaming. |
 | Batch JSON | `--batch-json PATH` | JSON summary of batch: scanned/malicious/suspicious/clean/errors + per-file results. |
 | Stdout | default | Text report to stdout, colorized when terminal supports it. |
+
+---
+
+## Web GUI
+
+FlatScan ships a **self-contained local web interface**. Run `--web` and open the printed URL in a browser — no separate install, no CDN, no npm, and **zero new Go dependencies** (the entire single-page app is embedded in the binary).
+
+```bash
+./flatscan --web                 # http://localhost:5000
+./flatscan --web --web-port 8080 # custom port
+```
+
+On startup it prints:
+
+```text
+[flatscan-web] WARNING: no authentication — bind to localhost only
+[flatscan-web] listening on http://localhost:5000
+[flatscan-web] open your browser at http://localhost:5000
+```
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant S as flatscan --web
+    B->>S: POST /api/scan (file + options)
+    S-->>B: 202 { job_id }
+    loop every 800ms
+        B->>S: GET /api/result/{id}
+        S-->>B: 202 scanning… / 200 done + ScanResult
+    end
+    B->>S: GET /api/download/{id}/{format}
+    S-->>B: stream artifact (json/txt/iocs/yar/yml/stix/pack)
+```
+
+**Workflow:** drag a file onto the drop zone (or click to browse) → pick a scan mode (quick / standard / deep) → toggle options (`--carve`, `--yara`, `--sigma`, `--stix`, `--report-pack`) → **Run Scan**. The page polls the job and renders the result across **nine tabs**: overview, findings, IOC, functions, PE details, artifacts, profile, log, and outputs. Every generated format can be downloaded directly from the **outputs** tab, including the full report pack as a `.zip`. The last 10 scans are kept in an in-session history for quick reload.
+
+### Screenshots
+
+The web GUI analyzing a Windows banker trojan sample (`banker.exe` — verdict **SUSPICIOUS, 34/100**):
+
+<img src="Images/overview-page.png" alt="FlatScan web GUI — overview tab" width="100%"/>
+
+<p align="center"><em>Overview — verdict bar, score breakdown, stat cells, collapsible hashes, and the section entropy map.</em></p>
+
+| | |
+|:---:|:---:|
+| <img src="Images/findings-page.png" alt="Findings tab" width="100%"/> | <img src="Images/ioc-page.png" alt="IOC tab" width="100%"/> |
+| **Findings** — grouped by severity with ATT&CK tags | **IOC** — per-category indicators with copy buttons |
+| <img src="Images/functions-page.png" alt="Functions tab" width="100%"/> | <img src="Images/pe-details.png" alt="PE details tab" width="100%"/> |
+| **Functions** — suspicious APIs, deduplicated and severity-sorted | **PE details** — header fields + imports, suspicious ones highlighted |
+| <img src="Images/artifacts-page.png" alt="Artifacts tab" width="100%"/> | <img src="Images/profile-page.png" alt="Profile tab" width="100%"/> |
+| **Artifacts** — carved/config artifacts, external tools, family matches | **Profile** — classification, MITRE ATT&CK TTPs, crypto indicators |
+| <img src="Images/outputs-page.png" alt="Outputs tab" width="100%"/> | |
+| **Outputs** — one-click download of every format incl. report pack `.zip` | |
+
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/` | GET | Serves the embedded single-page UI |
+| `/api/scan` | POST | `multipart/form-data` upload; returns `202 { "job_id": ... }` |
+| `/api/result/{id}` | GET | Poll job status; returns the full `ScanResult` + `available_downloads` when done |
+| `/api/download/{id}/{format}` | GET | Streams one artifact (`json`, `txt`, `iocs`, `yar`, `yml`, `stix`, `pack`) |
+
+> 🔒 **Security:** the server binds to `127.0.0.1` only and has **no authentication** — it is a single-user local tool. Each upload is isolated in its own temp directory (reaped after 30 minutes), filenames are sanitized, and uploads are capped at 256 MB. Do not expose the port to untrusted networks. See [security.md](security.md#web-gui-security).
+
+---
+
+## Sample Report
+
+Below is the full **plain-text report** for the same `banker.exe` sample shown in the screenshots above — a `deep` scan produced by FlatScan ([reports/banker.exe.txt](reports/banker.exe.txt)). It demonstrates the verdict, score breakdown, malware profile, findings with ATT&CK mappings, suspicious APIs, IOCs, carved artifacts, similarity hashes, and full PE metadata.
+
+**At a glance:**
+
+| Field | Value |
+| --- | --- |
+| Verdict | **Suspicious (34/100)** |
+| Score breakdown | `Persistence:20  Evasion:10  Configuration:4` |
+| File type | PE executable (amd64, windows-console) · 332.5 KiB |
+| Entropy | 5.73 / 8.00 — normal |
+| Likely type | Persistent Windows malware |
+| Top finding | `[High] Windows persistence indicator` — ATT&CK T1547.001 |
+| Carved artifacts | 2 gzip blobs · 20 embedded compressed streams |
+| SHA-256 | `67e55b73e07b3cb11d3f5bc1490cb585fb185c0267a7827cf801c9f6bb3abe7e` |
+
+<details>
+<summary><strong>📄 Click to expand the full text report (banker.exe.txt)</strong></summary>
+
+```text
+FlatScan 0.5.0 report
+Target: /tmp/flatscan_web_18b67081d06bd58c-8c6fba26_3793890109/banker.exe
+Mode: deep
+Verdict: Suspicious (34/100)
+Score breakdown: [Persistence:20 Evasion:10 Configuration:4]
+File type: PE executable
+MIME hint: application/octet-stream
+Size: 332.5 KiB (340480 bytes)
+Analyzed bytes: 332.5 KiB
+Entropy: 5.73/8.00 - normal
+Strings: 2095
+Duration: 348.588417ms
+
+Malware profile:
+- Classification: Suspicious
+- Confidence: Medium (34/100)
+- Likely type: Persistent Windows malware
+- Capabilities: Embedded artifact carrier, Sandbox and VM awareness, Static configuration artifacts, Windows startup persistence
+- MITRE TTPs mapped: 2
+- Crypto indicators: 1
+- Assessment: The sample contains meaningful suspicious static indicators. The findings should be correlated with endpoint, network, and sandbox telemetry before final disposition.
+
+Hashes:
+- MD5: 34949ecd38a1d532fa22cb88fa55be98
+- SHA1: a4eb77b3d8f3cc506629294f9e8e00b078192dfa
+- SHA256: 67e55b73e07b3cb11d3f5bc1490cb585fb185c0267a7827cf801c9f6bb3abe7e
+- SHA512: 0e49ccca3b65e2a45f91c1a3c4313c4b95ac31966b8561d2aeaf97515ba44f140b476852a47db34a432914c0a4d14f9b26fef57a98566ad2d197a9caa53d9cec
+- PE import hash: e303152d27f8be77fa72264ebc0c1ef4
+
+Findings: 4
+- [High] Persistence: Windows persistence indicator (Run keys, service creation, scheduled task, or startup folder strings are present) score=20
+  ATT&CK: Persistence / Registry Run Keys / Startup Folder (T1547.001)
+  Recommendation: Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed.
+- [Medium] Evasion: Anti-debugging reference (debugger detection strings or APIs are present) score=10
+- [Low] Configuration: Static configuration artifacts extracted (20 likely configuration or secret-handling artifacts) score=4
+  ATT&CK: Discovery / Data from Local System
+  Recommendation: Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.
+- [Info] Classifier: Malware family hypothesis (Packed or bundled payload (Medium))
+
+Suspicious functions/APIs: 10
+- [Medium] IsDebuggerPresent (anti-debugging, strings/imports)
+- [Medium] QueryPerformanceCounter (timing evasion, strings/imports)
+- [Low] LoadLibrary (dynamic loading, strings/imports)
+- [Low] GetProcAddress (dynamic loading, strings/imports)
+- [Medium] CreateProcess (execution, strings/imports)
+- [Medium] CreateProcess (execution, pe imports)
+- [Low] GetProcAddress (dynamic loading, pe imports)
+- [Medium] IsDebuggerPresent (anti-debugging, pe imports)
+- [Low] LoadLibrary (dynamic loading, pe imports)
+- [Medium] QueryPerformanceCounter (timing evasion, pe imports)
+
+IOCs: 4 total
+
+Windows paths:
+- C:\Users\Eu\Desktop\ORGANIZAR\Rats\Meus\KL2021\PlusPlus\xpl-uac-(x64)\byeintegrity8-uac-master\x64\Release\PcaPayload.pdb
+- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\eh\std_exception.cpp
+- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\internal\per_thread_data.cpp
+- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\internal\winapi_downlevel.cpp
+
+Family classifier: 1 hypotheses
+- [Medium] Packed or bundled payload (dropper) score=55 evidence=2 carved artifacts
+
+Crypto/config artifacts: 20
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x6012 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xbfe2 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xde06 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xee9a (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x112d0 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x11750 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x11bd0 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x12050 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x124d0 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x12950 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x23694 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x25e47 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x30470 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: gzip at 0x316f4 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x3313e (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x33146 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x331a1 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x331a9 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: gzip at 0x3589b (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x362d8 (compressed stream magic found in file body)
+
+Carved artifacts: 2
+- Gzip compressed data offset=0x316f4 length=16807 sha256=6ecb8a31a426df4aacc9dba966f6343346bf1c74037ffa55061fc92f8173a9bf entropy=5.48 preview=H9D$P
+- Gzip compressed data offset=0x3589b length=121189 sha256=01609509698b8714ec873256b3759c277b1f3e35b6d8f5437aa0c4970e8a96b3 entropy=5.30 preview=L$8H+
+
+Similarity hashes:
+- FlatHash:          FLS1:4096:769e3884a5ef5dccc354e83f99eb696bc709da156be0c2dbba3f7d49b72f7e18d3805eac9d1fdc9870e4c71db65a4c255f475f0e2203307aeb4cedb34a9cfc4f4f79bd3c2291afce4ac1aa70fa10caa9934265326a403320968c8ea7b390c6e2a89024cfccea1922b0f5242c67ad8b23f7612bad8b69db828ce5973d4e628db3a0a91633e35aa496e252e8cf6c700238049014a806931e125e9fd3f9b0535aa2444fd5308296f2ff49d20de055c7b4c4ad740925e1da0e71b606253008b82dcabd5b7e458007720a506c5d57c997976e3a5e55eb283ed4d3b4de4bae63af85026b533bc0d59ddbe8468bdaeecff3860986067927b8a81e0ccb21c045f527a096358331103fcfaf31089106129e959cc7f4f51e72e6e5164ea28daa4c03b8fd1118008036133a21d6a0c9c339ef3e33ea07b7f92694cab3e13107f1735b3a85f6da9e8768c3e3848475bf5cb99299a865
+- Byte histogram:    b0df31abc3e464958ae3796fea251f69ef20c070127e56c532fe2c51a1549c78
+- String set:        178261f2b131f2d3bd863d64d60236bdd234e928cdd725e5ce30d8434dbd6838
+
+Analysis plugins: 6
+- similarity status=complete summary=computed FlatHash and structural similarity hashes
+- safe-carver status=complete summary=2 embedded artifacts reported
+- crypto-config-extractor status=complete summary=20 config artifacts
+- family-classifier status=complete summary=1 family hypotheses
+- high-entropy-blob-detector status=complete summary=ran in 1ms
+- suspicious-import-combinator status=complete summary=ran in 0s
+
+PE details:
+- Machine: amd64
+- Timestamp: 2026-05-15T01:34:00Z
+- Subsystem: windows-console
+- Image base: 0x180000000
+- Entry point: 0x1c30
+- Managed .NET runtime: false
+- Certificate table present: false
+
+Sections:
+- .text raw=0x400 size=243200 entropy=5.69 flags=X
+- .rdata raw=0x3ba00 size=77824 entropy=4.57 flags=-
+- .data raw=0x4ea00 size=3072 entropy=2.03 flags=W
+- .pdata raw=0x4f600 size=12288 entropy=5.38 flags=-
+- _RDATA raw=0x52600 size=512 entropy=1.95 flags=-
+- .rsrc raw=0x52800 size=512 entropy=4.72 flags=-
+- .reloc raw=0x52a00 size=2048 entropy=4.96 flags=-
+
+PE imports: 87 stored
+- CloseHandle:KERNEL32.dll
+- CoTaskMemFree:ole32.dll
+- CreateFileW:KERNEL32.dll
+- CreateProcessW:KERNEL32.dll
+- ... (83 more; see reports/banker.exe.txt for the full list)
+
+Suspicious strings:
+- IsDebuggerPresent
+```
+
+</details>
+
+> The sample report above was generated with FlatScan 0.5.0; the engine and output format are unchanged in 0.6.0. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
 
 ---
 
@@ -680,7 +910,15 @@ graph TB
         splash.go
     end
     
+    subgraph "Web Interface"
+        web.go
+        web_ui.go
+    end
+    
     main.go --> scanner.go
+    main.go --> web.go
+    web.go --> web_ui.go
+    web.go --> scanner.go
     interactive.go --> scanner.go
     scanner.go --> signatures.go
     scanner.go --> ioc.go
@@ -692,6 +930,8 @@ graph TB
     style main.go fill:#e94560,color:#fff
     style scanner.go fill:#0f3460,color:#fff
     style parallel.go fill:#16213e,color:#fff
+    style web.go fill:#2dd4bf,color:#000
+    style web_ui.go fill:#2dd4bf,color:#000
 ```
 
 ### Source Statistics
@@ -703,8 +943,9 @@ graph TB
 | **Format Parsers** | 5 | ~2,500 |
 | **Output Renderers** | 7 | ~3,200 |
 | **Architecture** | 11 | ~2,100 |
+| **Web Interface** | 2 | ~1,380 |
 | **Tests** | 1 | ~314 |
-| **Total** | **39** | **~11,867** |
+| **Total** | **41** | **~13,247** |
 
 ---
 

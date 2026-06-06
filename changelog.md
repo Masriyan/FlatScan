@@ -14,21 +14,59 @@ graph LR
     B -->|"Performance<br/>Architecture"| C["v0.3.0<br/>Production Grade"]
     C -->|"UX & Reporting"| D["v0.4.0<br/>Analyst UX"]
     D -->|"Detection Depth<br/>CI/CD & Workflow"| E["v0.5.0<br/>Power Analyst"]
+    E -->|"Local Web GUI"| F["v0.6.0<br/>Browser Analyst"]
     
     style A fill:#16213e,color:#fff
     style B fill:#0f3460,color:#fff
     style C fill:#533483,color:#fff
     style D fill:#e94560,color:#fff
     style E fill:#c62a47,color:#fff
+    style F fill:#2dd4bf,color:#000
 ```
 
 | Version | Focus | Key Features |
 |---------|-------|-------------|
+| **0.6.0** | Local Web GUI | Self-contained `--web` browser interface (zero new dependencies), drag-and-drop upload, async scan jobs, 9 result tabs, on-the-fly download of every output format incl. zipped report pack |
 | **0.5.0** | Detection Depth & CI/CD | API chain detection, packer fingerprinting, CI/CD mode, semantic exit codes, parallel batch, score breakdown, new IOC types, cryptominer/wiper families |
 | **0.4.0** | Analyst UX & Reporting | Shell completion, grouped help, post-scan hints, dark HTML report, PDF risk bar, batch Size column |
 | **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
 | **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
+
+---
+
+## 0.6.0 - Local Web GUI Release
+
+Released 2026-06-06.
+
+### Added
+
+- **Self-contained web GUI** (`--web`) — launches a local single-page analysis console in the browser. Implemented as two new files with **zero new external dependencies** (Go standard library only):
+  - `web.go` — HTTP server, async scan-job model, and four endpoints: `GET /` (UI), `POST /api/scan` (multipart upload), `GET /api/result/{id}` (poll), `GET /api/download/{id}/{format}` (stream artifact).
+  - `web_ui.go` — the entire dark "terminal" single-page app (HTML + CSS + vanilla ES2020) embedded as a Go string constant; no CDN, fonts, or npm packages.
+- **`--web-port <n>` flag** — port for `--web` mode (default `5000`).
+- **Drag-and-drop upload** with file preview, scan-mode selector (quick/standard/deep), and per-request option toggles: `--carve`, `--yara`, `--sigma`, `--stix`, `--report-pack`.
+- **Asynchronous scan jobs** — uploads return a job id immediately (HTTP 202); the browser polls every 800 ms and renders results on completion. Each job runs in its own goroutine with panic recovery.
+- **Nine result tabs** rendered entirely from the JSON `ScanResult`: overview (verdict bar, score breakdown, stat cells, collapsible hashes + section-entropy map), findings (grouped by severity, expandable), IOC (per-category sub-tabs with copy buttons), functions (deduplicated, severity-sorted table), PE details (header + suspicious-import highlighting), artifacts (carved / config / external tools / family matches), profile (classification, MITRE ATT&CK TTPs, crypto indicators, recommendations), log, and outputs (download buttons).
+- **In-browser downloads** for every generated format — `json`, `txt`, `iocs`, `yar`, `yml`, `stix`, and a **`pack`** option that streams the full report pack zipped on the fly (`archive/zip`).
+- **In-session scan history** (last 10 scans, click to reload a previous result).
+
+### Security
+
+- Server binds to **loopback only** (`127.0.0.1`) and ships **no authentication** — it is a single-user local tool. A clear warning is printed on startup.
+- **Per-job isolation** — every upload is written into its own `os.MkdirTemp` directory; all generated artifacts stay inside it. A background reaper deletes finished jobs and their temp dirs after 30 minutes.
+- **Upload filename sanitization** (`safeFileName`) strips path separators, `..` traversal, control characters, and quotes — preventing directory escape and `Content-Disposition` header injection.
+- **Upload size cap** of 256 MB enforced via `http.MaxBytesReader`; multipart spill files are cleaned up after the upload is copied out.
+- `X-Content-Type-Options: nosniff` is set on every response; no CORS headers are emitted.
+
+### Changed
+
+- Version bumped to **0.6.0** (the web UI footer and `--version` now report 0.6.0).
+- `main.go` gained two `Config` fields (`WebMode`, `WebPort`), two flag registrations, a `main()` dispatch branch, and a `--web` carve-out in the "no target specified" check, plus a new **WEB** section in `--help`.
+
+### Known Issues
+
+- The core scanner's parallel pipeline (`parallelRun` → `ExtractCryptoAndConfigWithCorpus` vs `BuildSimilarityInfo`) has a **pre-existing data race** that the race detector flags on a full scan (CLI and web alike). It is not introduced by the web GUI and is tracked for a fix. See QC_REPORT.md.
 
 ---
 

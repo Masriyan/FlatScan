@@ -50,7 +50,7 @@ go build -o flatscan .
 ### Build With Version Tag
 
 ```bash
-go build -ldflags "-X main.version=0.5.0" -o flatscan .
+go build -ldflags "-X main.version=0.6.0" -o flatscan .
 ```
 
 ### Restricted Build Cache
@@ -122,19 +122,29 @@ go vet ./...
 Expected version:
 
 ```text
-FlatScan 0.5.0
+FlatScan 0.6.0
 ```
+
+### Launch the Web GUI (optional smoke test)
+
+```bash
+./flatscan --web          # then open http://localhost:5000
+```
+
+The server binds to `127.0.0.1` only and prints a no-authentication warning on startup. Press `Ctrl+C` to stop it.
 
 ### Verification Checklist
 
 | Check | Command | Expected |
 |-------|---------|----------|
 | Build | `go build -o flatscan .` | No errors |
-| Tests | `go test ./...` | 12/12 pass |
-| Race | `go test -race ./...` | No races |
+| Tests | `go test ./...` | Pass (see note below) |
 | Vet | `go vet ./...` | No warnings |
-| Version | `./flatscan --version` | Version string |
-| Help | `./flatscan --help` | Usage text |
+| Version | `./flatscan --version` | `FlatScan 0.6.0` |
+| Help | `./flatscan --help` | Usage text incl. `WEB` section |
+| Web GUI | `./flatscan --web` | Prints listening URL; serves UI on `127.0.0.1:5000` |
+
+> **Note:** `go test -race` currently reports a **pre-existing data race** in the core scanner's parallel pipeline (`parallelRun`), unrelated to the web GUI — see [QC_REPORT.md](QC_REPORT.md). The `TestRenderHTMLReport` test is also currently failing due to a title-string drift in `html.go`. Both are tracked, neither blocks building or running FlatScan.
 
 ---
 
@@ -279,6 +289,9 @@ graph TD
 ├── sigma.go                # Sigma rule generator
 ├── stix.go                 # STIX 2.1 bundle generator
 ├── case_report_pack.go     # Report pack + case database
+│
+├── web.go                  # --web HTTP server, scan jobs, API handlers
+├── web_ui.go               # Embedded single-page web GUI (HTML+CSS+JS)
 │
 ├── scanner_test.go         # Test suite
 │

@@ -11,6 +11,7 @@ Complete reference for FlatScan commands, flags, modes, output formats, real-wor
 - [Quick Reference](#quick-reference)
 - [Complete Flag Reference](#complete-flag-reference)
 - [Operator Modes](#operator-modes)
+- [Web Mode](#web-mode)
 - [Scan Modes](#scan-modes)
 - [Report Modes](#report-modes)
 - [Output Formats](#output-formats)
@@ -40,6 +41,7 @@ graph LR
         K["CI/CD Gate"] --> L["./flatscan -f artifact.exe --ci --ci-threshold 30"]
         M["JSONL Stream"] --> N["./flatscan --dir ./samples --output-format jsonl"]
         O["Interactive"] --> P["./flatscan --interactive"]
+        Q["Web GUI"] --> R["./flatscan --web"]
     end
 ```
 
@@ -153,6 +155,13 @@ graph LR
 | `--splash-seconds` | `20` | Splash duration |
 | `--version` | — | Print version and exit |
 
+### Web GUI (0.6.0+)
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--web` | false | Launch the local web GUI (binds `127.0.0.1`, no authentication) |
+| `--web-port` | `5000` | Port for `--web` mode |
+
 ---
 
 ## Operator Modes
@@ -249,6 +258,82 @@ stateDiagram-v2
     Alert --> Polling
     Log --> Polling
 ```
+
+### Web Mode (0.6.0+)
+
+```bash
+./flatscan --web                  # serve on http://localhost:5000
+./flatscan --web --web-port 8080  # custom port
+```
+
+Launches a self-contained browser GUI. Upload a file, choose a scan mode and options, and view the result across nine tabs — no install, no external assets, no authentication.
+
+---
+
+## Web Mode
+
+The web GUI (`--web`) wraps the same scan engine as the CLI behind a small local HTTP server. The entire single-page application is embedded in the binary (`web_ui.go`); there are **no external dependencies, fonts, or CDN calls**.
+
+### Starting the server
+
+```bash
+./flatscan --web
+# [flatscan-web] WARNING: no authentication — bind to localhost only
+# [flatscan-web] listening on http://localhost:5000
+# [flatscan-web] open your browser at http://localhost:5000
+```
+
+The server binds to `127.0.0.1` only. Use `--web-port <n>` to change the port (default `5000`).
+
+### Using the interface
+
+```mermaid
+graph LR
+    A[Drop / browse file] --> B[Pick mode<br/>quick · standard · deep]
+    B --> C[Toggle options<br/>carve · yara · sigma · stix · report-pack]
+    C --> D[Run Scan]
+    D --> E[Poll job every 800ms]
+    E --> F[9 result tabs]
+    F --> G[Download outputs]
+```
+
+1. **Drop zone** — drag a file in or click to browse. The file name, size, and type are previewed.
+2. **Scan mode** — quick / standard / deep (default standard).
+3. **Options** — `--carve`, `--yara` (on), `--sigma` (on), `--stix`, `--report-pack`.
+4. **Run Scan** — uploads the file and starts an asynchronous job.
+5. **Results** — nine tabs: overview, findings, IOC, functions, PE details, artifacts, profile, log, outputs.
+6. **History** — the last 10 scans are kept in the session; click any entry to reload it.
+
+### HTTP API
+
+The same endpoints the UI uses are available for scripting on the loopback interface:
+
+| Endpoint | Method | Body / Params | Response |
+|----------|--------|---------------|----------|
+| `/` | GET | — | Embedded HTML UI |
+| `/api/scan` | POST | `multipart/form-data`: `file`, `mode`, `carve`, `yara`, `sigma`, `stix`, `report_pack` | `202 {"job_id": "..."}` |
+| `/api/result/{id}` | GET | — | `202 {"status":"scanning",...}` while running; `200` with full `ScanResult` + `status:"done"` + `available_downloads` when complete; `200 {"status":"error",...}` on failure |
+| `/api/download/{id}/{format}` | GET | `format` ∈ `json·txt·iocs·yar·yml·stix·pack` | Streams the artifact (`pack` = report pack zipped on the fly) |
+
+```bash
+# Scripted upload + poll + download against the local server
+JOB=$(curl -s -F "file=@sample.exe" -F "mode=deep" -F "yara=true" \
+  http://localhost:5000/api/scan | jq -r .job_id)
+
+# poll until done
+until curl -s http://localhost:5000/api/result/$JOB | jq -e '.status=="done"' >/dev/null; do sleep 1; done
+
+# download the JSON report and the zipped report pack
+curl -s http://localhost:5000/api/download/$JOB/json -o sample.json
+curl -s http://localhost:5000/api/download/$JOB/pack -o sample.pack.zip
+```
+
+### Notes & limits
+
+- **No authentication** — anyone who can reach the port can scan and download. Keep it on `127.0.0.1` (the default) and never expose it to untrusted networks.
+- **Per-job isolation** — each upload and its outputs live in a private temp directory, deleted ~30 minutes after the scan finishes. Reload old results from history before then.
+- **Upload cap** — 256 MB per file.
+- The web server forces `--no-splash`, `--no-progress`, and `--no-color` internally; case-database writes are disabled so nothing is written outside the per-job temp directory.
 
 ---
 

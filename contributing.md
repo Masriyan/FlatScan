@@ -118,6 +118,8 @@ graph TB
 | `formats.go` | File type detection | Adding new magic bytes |
 | `main.go` | CLI flags and dispatch | Adding new flags |
 | `batch.go` | Parallel batch directory scan | Batch output, worker pool tuning |
+| `web.go` | `--web` HTTP server, scan jobs, API handlers | Adding endpoints or changing the web scan/job flow |
+| `web_ui.go` | Embedded single-page web GUI (`webUIHTML` constant) | Changing the browser UI / result tabs |
 
 ### Data Flow
 
@@ -147,6 +149,8 @@ graph LR
 | Never execute target samples | Static analysis only |
 | No default network calls | Any enrichment must be explicit and optional |
 | Thread-safe finding writes | Use `AddFinding`/`AddFindingDetailed` — they hold `findingsMu` |
+| Thread-safe web job access | All reads/writes of `webServer.jobs` must hold `webServer.mu` (RLock for reads) |
+| No backticks in `web_ui.go` | `webUIHTML` is a Go raw string literal — the embedded JavaScript uses string concatenation, **not** template literals |
 
 ---
 
@@ -360,6 +364,7 @@ scanner: add Discord webhook exfiltration detection
 pdf: improve MITRE matrix wrapping
 yara: add generated rule export
 plugin: add JSON manifest loader
+web: add report-pack zip download endpoint
 docs: expand usage guide
 tests: cover IOC extraction
 perf: parallelize format analysis

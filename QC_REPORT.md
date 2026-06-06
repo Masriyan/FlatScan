@@ -1,8 +1,8 @@
 # FlatScan QA/QC Report
 
-**Last Updated**: 2026-05-26
-**Current Version**: 0.5.0
-**Scope**: Cumulative audit log — all releases from 0.3.0 through 0.5.0
+**Last Updated**: 2026-06-06
+**Current Version**: 0.6.0
+**Scope**: Cumulative audit log — all releases from 0.3.0 through 0.6.0
 
 ---
 
@@ -13,6 +13,7 @@
 | 0.3.0 | 2026-04-28 | ✅ | ✅ 12/12 | ✅ | ✅ | All fixed (see §7) |
 | 0.4.0 | 2026-05-xx | ✅ | ✅ | ✅ | ✅ | None |
 | 0.5.0 | 2026-05-26 | ✅ | ✅ | ✅ | ✅ | None |
+| 0.6.0 | 2026-06-06 | ✅ | ⚠️ 1 pre-existing fail | ⚠️ pre-existing race | ✅ | Scanner data race; `TestRenderHTMLReport` drift (both pre-existing, see §v0.6.0) |
 
 ---
 
@@ -302,12 +303,77 @@ No blocking issues. 0.5.0 is clean.
 
 ---
 
-## Open Items (tracked for 0.6.0)
+## v0.6.0 QA (2026-06-06)
+
+**New in 0.6.0**: self-contained local web GUI (`--web`, `--web-port`). Two new files — `web.go` (HTTP server, async scan jobs, four API endpoints) and `web_ui.go` (embedded single-page UI as a Go string constant). Zero new external dependencies. `main.go` gained two `Config` fields, two flags, a dispatch branch, a `--web` carve-out in the no-target check, and a `WEB` help section. Version bumped 0.5.0 → 0.6.0.
+
+### Build & Test Results
+
+| Check | Result |
+|-------|--------|
+| `go build` | ✅ Clean |
+| `go vet` | ✅ No warnings |
+| `gofmt` | ✅ `web.go` / `web_ui.go` clean |
+| `node --check` (embedded JS) | ✅ Valid ES2020; no stray `</script>`; tags balanced |
+| `go test` | ⚠️ Pass **except** `TestRenderHTMLReport` (pre-existing, see Issues) |
+| `go build -race` (full scan) | ⚠️ Pre-existing data race in core scanner (see Issues) — **none in `web.go`** |
+
+### New Files Audited
+
+| File | Purpose | Security Notes |
+|------|---------|---------------|
+| `web.go` | `--web` HTTP server, scan-job map, upload/result/download handlers, on-the-fly report-pack zip | Binds `127.0.0.1` only; no auth (by design, warned at startup); all `jobs` access guarded by `sync.RWMutex`; per-job `os.MkdirTemp` isolation; 30-min reaper; `safeFileName` strips traversal/control/quote chars; 256 MB `MaxBytesReader` cap; multipart spill cleaned via `RemoveAll`; per-scan `recover()`; `nosniff` on every response; no CORS |
+| `web_ui.go` | Embedded single-page UI (`webUIHTML` raw-string constant) | Static asset only; all dynamic values HTML-escaped client-side; no external CDN/fonts/npm; no backticks (JS uses string concatenation) |
+
+### Feature Verification
+
+| Feature | Test | Result |
+|---------|------|--------|
+| Startup banner | 3 lines incl. no-auth warning + listening URL | ✅ |
+| `GET /` | Serves embedded HTML, `Content-Type: text/html`, `nosniff` | ✅ |
+| `POST /api/scan` | Returns `202 {"job_id":...}` | ✅ |
+| Poll lifecycle | `202 scanning` → `200 done` with full `ScanResult` + `available_downloads` | ✅ |
+| Rich result | ELF binary deep scan → score 100, 38 findings, 53 functions, `pe:null` | ✅ |
+| Downloads | All 7 formats (`json·txt·iocs·yar·yml·stix·pack`) stream with correct `Content-Type`/`Content-Disposition` | ✅ |
+| Report-pack zip | `pack` format returns a valid zip of the full pack | ✅ |
+| Error paths | no file → 400; wrong method → 405; bad job/format → 404; all JSON | ✅ |
+| Path traversal | `../../../etc/evil..passwd` → stored as `evilpasswd` inside temp dir | ✅ |
+| Header injection | filename with `"` → well-formed `Content-Disposition` | ✅ |
+| Concurrency | 5–8 simultaneous scans + downloads all succeed | ✅ |
+| `web.go` race safety | race detector clean for `web.go` under concurrent read/write hammering | ✅ |
+
+### Issues Found
+
+| ID | Severity | Issue | Status |
+|----|----------|-------|--------|
+| 0.6-WEB-1 | 🟡 Medium | `safeFileName` did not strip quotes/control chars → `Content-Disposition` header-injection risk | ✅ Fixed — now strips control chars, `"`, `/`, leading dots |
+| 0.6-WEB-2 | 🟢 Low | Multipart spill temp files were not cleaned up | ✅ Fixed — `defer r.MultipartForm.RemoveAll()` in `handleScan` |
+| 0.6-PRE-1 | 🔴 High | **Pre-existing data race** in core scanner: `parallelRun` runs `ExtractCryptoAndConfigWithCorpus` (config_extract.go:77) and `BuildSimilarityInfo` (similarity.go:20) concurrently on shared state. Fires on a full scan via **both CLI and web** (the v0.5.0 race check missed it — the test suite does not exercise the racy path). **Not introduced by the web GUI.** | Open — tracked for 0.7.0 |
+| 0.6-PRE-2 | 🟢 Low | `TestRenderHTMLReport` expects `"FlatScan Malware Analysis Report"`, which only `pdf.go` emits; `html.go` uses a different title. Test/code drift, pre-existing. | Open — tracked for 0.7.0 |
+
+### Security Audit — v0.6.0
+
+| Check | Result |
+|-------|--------|
+| **No sample execution** | ✅ Web mode runs the same static engine; no execution |
+| **No outbound network** | ✅ Loopback HTTP only; no external calls |
+| **Bind scope** | ✅ `127.0.0.1` only (not `0.0.0.0`) |
+| **Authentication** | ⚠️ None by design — documented and warned; localhost-only |
+| **Writes stay in temp dir** | ✅ Per-job `os.MkdirTemp`; HTML/PDF/case writes disabled in web mode |
+| **Filename safety** | ✅ Traversal, control chars, and quotes stripped |
+| **Upload cap** | ✅ 256 MB via `MaxBytesReader`; spill files removed |
+| **Concurrency safety (web)** | ✅ `jobs` map fully guarded by `RWMutex`; race-clean |
+
+---
+
+## Open Items (tracked for 0.7.0)
 
 | ID | Severity | Description |
 |----|----------|-------------|
+| 0.6-PRE-1 | 🔴 High | Data race in `parallelRun` (`ExtractCryptoAndConfigWithCorpus` vs `BuildSimilarityInfo`) — serialize the two phases or give each isolated output and merge under a lock |
+| 0.6-PRE-2 | 🟢 Low | `TestRenderHTMLReport` drift — align `html.go` title with the test (or update the test) |
 | CQ-3 | 🟢 Low | Cache silently drops write errors — add debug log |
-| REC-1 | 🟡 Medium | Test coverage remains low (~2.6%) — add unit tests for cache, STIX, chains, packer |
+| REC-1 | 🟡 Medium | Test coverage remains low (~2.6%) — add unit tests for cache, STIX, chains, packer, and the web handlers |
 | CACHE-VER | 🟢 Low | Cache has no version key — stale results possible after upgrades |
 | REC-2 | 🟢 Low | `--watch` without `--dir` gives a generic error message |
 | REC-3 | 🟢 Low | Interactive mode doesn't mention STIX in output profile list |
