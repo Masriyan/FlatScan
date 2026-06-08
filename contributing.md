@@ -64,16 +64,19 @@ graph TD
 
 ## Development Setup
 
+> **Source layout:** all Go sources and `go.mod` live in the **`source go/`** directory (note the space). Run every `go`/`gofmt` command from inside it. The binary is emitted to the repo root (`-o ../flatscan`) so it sits next to `rules/` and `plugins/`.
+
 ```bash
 git clone https://github.com/Masriyan/FlatScan
-cd FlatScan
+cd "FlatScan/source go"
 go test ./...
-go build -o flatscan .
+go build -o ../flatscan .
 ```
 
 ### Verification
 
 ```bash
+# from inside source go/
 go vet ./...
 go test -race -count=1 ./...
 gofmt -w *.go
@@ -91,6 +94,10 @@ graph TB
         A["New Detection?"] --> B[signatures.go]
         A2["New Attack Chain?"] --> B2[chains.go]
         A3["New Packer?"] --> B3[packer.go]
+        A4["PE Header Intel?"] --> B4[pe_intel.go]
+        A5["DGA Detection?"] --> B5[dga.go]
+        A6[".NET Detection?"] --> B6[dotnet.go]
+        A7["False-Positive Fix?"] --> B7[falsepositive.go]
         C["New File Format?"] --> D[formats.go / apk.go]
         E["New IOC Type?"] --> F[ioc.go]
         G["New Output Format?"] --> H[report.go / new file]
@@ -111,11 +118,15 @@ graph TB
 | `signatures.go` | Behavioral detection | Adding new signature patterns, families |
 | `chains.go` | API behavioral chain detection | Adding multi-stage attack sequence detectors |
 | `packer.go` | Packer/protector fingerprinting | Adding new packer signatures |
+| `pe_intel.go` | PE Header Intelligence | Adding PE mitigation checks, Rich header, TLS, Authenticode, entry-point analysis |
+| `dga.go` | DGA domain scorer | Tuning lexical features, entropy thresholds, n-gram tables |
+| `dotnet.go` | .NET managed-code detection | Adding .NET-specific behavioral detections, obfuscator fingerprints |
+| `falsepositive.go` | Detection-artifact false-positive guard | Tuning archetype thresholds, adding new tool/catalog markers |
 | `plugin.go` | Plugin interface and registry | Adding built-in plugins |
 | `rules.go` | Rule pack engine | Adding new rule matching keys |
 | `ioc.go` | IOC extraction | Adding new IOC types (wallets, mutexes, pipes) |
 | `ioc_triage.go` | IOC suppression | Updating allowlists |
-| `formats.go` | File type detection | Adding new magic bytes |
+| `formats.go` | File type detection + PE/ELF/Mach-O parsing | Adding new magic bytes, extending format parsers |
 | `main.go` | CLI flags and dispatch | Adding new flags |
 | `batch.go` | Parallel batch directory scan | Batch output, worker pool tuning |
 | `web.go` | `--web` HTTP server, scan jobs, API handlers | Adding endpoints or changing the web scan/job flow |
@@ -159,11 +170,12 @@ graph LR
 ### Before Submitting
 
 ```bash
+# from inside source go/ (where go.mod lives)
 gofmt -w *.go
 go test -v ./...
 go vet ./...
 go test -race -count=1 ./...
-go build -o flatscan .
+go build -o ../flatscan .
 ```
 
 ### Smoke Tests

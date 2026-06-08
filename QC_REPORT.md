@@ -1,8 +1,8 @@
 # FlatScan QA/QC Report
 
-**Last Updated**: 2026-06-06
-**Current Version**: 0.6.0
-**Scope**: Cumulative audit log — all releases from 0.3.0 through 0.6.0
+**Last Updated**: 2026-06-07
+**Current Version**: 0.7.0
+**Scope**: Cumulative audit log — all releases from 0.3.0 through 0.7.0, including the 2026-06-07 malware-sample precision sweep
 
 ---
 
@@ -13,7 +13,8 @@
 | 0.3.0 | 2026-04-28 | ✅ | ✅ 12/12 | ✅ | ✅ | All fixed (see §7) |
 | 0.4.0 | 2026-05-xx | ✅ | ✅ | ✅ | ✅ | None |
 | 0.5.0 | 2026-05-26 | ✅ | ✅ | ✅ | ✅ | None |
-| 0.6.0 | 2026-06-06 | ✅ | ⚠️ 1 pre-existing fail | ⚠️ pre-existing race | ✅ | Scanner data race; `TestRenderHTMLReport` drift (both pre-existing, see §v0.6.0) |
+| 0.6.0 | 2026-06-06 | ✅ | ⚠️ 1 pre-existing fail | ✅ (race fixed) | ✅ | Scanner data race **fixed** (0.6-PRE-1); `TestRenderHTMLReport` drift still open (see §v0.6.0) |
+| 0.7.0 | 2026-06-07 | ✅ | ✅ 23/23 | ✅ | ✅ | All prior issues **resolved** |
 
 ---
 
@@ -316,7 +317,7 @@ No blocking issues. 0.5.0 is clean.
 | `gofmt` | ✅ `web.go` / `web_ui.go` clean |
 | `node --check` (embedded JS) | ✅ Valid ES2020; no stray `</script>`; tags balanced |
 | `go test` | ⚠️ Pass **except** `TestRenderHTMLReport` (pre-existing, see Issues) |
-| `go build -race` (full scan) | ⚠️ Pre-existing data race in core scanner (see Issues) — **none in `web.go`** |
+| `go build -race` (full scan) | ✅ Race-clean after the 0.6-PRE-1 fix (CLI + web; multiple file types) |
 
 ### New Files Audited
 
@@ -348,7 +349,7 @@ No blocking issues. 0.5.0 is clean.
 |----|----------|-------|--------|
 | 0.6-WEB-1 | 🟡 Medium | `safeFileName` did not strip quotes/control chars → `Content-Disposition` header-injection risk | ✅ Fixed — now strips control chars, `"`, `/`, leading dots |
 | 0.6-WEB-2 | 🟢 Low | Multipart spill temp files were not cleaned up | ✅ Fixed — `defer r.MultipartForm.RemoveAll()` in `handleScan` |
-| 0.6-PRE-1 | 🔴 High | **Pre-existing data race** in core scanner: `parallelRun` runs `ExtractCryptoAndConfigWithCorpus` (config_extract.go:77) and `BuildSimilarityInfo` (similarity.go:20) concurrently on shared state. Fires on a full scan via **both CLI and web** (the v0.5.0 race check missed it — the test suite does not exercise the racy path). **Not introduced by the web GUI.** | Open — tracked for 0.7.0 |
+| 0.6-PRE-1 | 🔴 High | **Pre-existing data race** in core scanner: `parallelRun` ran `AnalyzeFormats`, `ExtractCryptoAndConfigWithCorpus`, and `BuildSimilarityInfo` concurrently on shared `*ScanResult` state. `BuildSimilarityInfo` also copied the whole `*result` (`importSimilarityHash(*result)`/`sectionSimilarityHash(*result)`), reading every field while others wrote `PE`/`ELF`/`MachO`/`ConfigArtifacts`/`Plugins`. Fired on a full scan via **both CLI and web** (the v0.5.0 race check missed it — the test suite did not exercise the racy path). **Not introduced by the web GUI.** | ✅ **Fixed** — pipeline reordered to respect data deps (formats → `carve ∥ similarity` → crypto/config); similarity hashers take `*ScanResult` (no whole-struct copy); concurrent `Plugins` appends routed through guarded `appendPlugin`. Verified race-clean (`go test -race`, multi-type `go build -race` scans) + new `TestScanFileParallelPipelineRaceFree`. |
 | 0.6-PRE-2 | 🟢 Low | `TestRenderHTMLReport` expects `"FlatScan Malware Analysis Report"`, which only `pdf.go` emits; `html.go` uses a different title. Test/code drift, pre-existing. | Open — tracked for 0.7.0 |
 
 ### Security Audit — v0.6.0
@@ -366,14 +367,118 @@ No blocking issues. 0.5.0 is clean.
 
 ---
 
-## Open Items (tracked for 0.7.0)
+## v0.7.0 QA (2026-06-07)
+
+**New in 0.7.0**: PE Header Intelligence (`pe_intel.go` — DllCharacteristics/exploit-mitigation posture, Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity), DGA domain scorer (`dga.go` — lexical model, Shannon entropy, n-gram normality, bigram distance), .NET managed-code detection (`dotnet.go` — reflective loading, P/Invoke injection, obfuscator fingerprints), detection-artifact false-positive guard (`falsepositive.go` — multi-archetype catalog recognition, score capping), PDF Unicode rendering fix, HTML & PDF downloads in web mode, archive payload finding aggregation. Version bumped 0.6.0 → 0.7.0. Four new source files, two new test files. All prior open issues resolved.
+
+### Build & Test Results
+
+| Check | Result |
+|-------|--------|
+| `go build` | ✅ Clean |
+| `go vet` | ✅ No warnings |
+| `gofmt` | ✅ All new files clean |
+| `go test` | ✅ **23/23 pass** (including previously-failing `TestRenderHTMLReport`) |
+| `go test -race` | ✅ Race-clean (pipeline reorder from 0.6.0 verified; new parallel stages safe) |
+
+### New Files Audited
+
+| File | Purpose | Security Notes |
+|------|---------|----------------|
+| `pe_intel.go` | PE Header Intelligence: DllCharacteristics decoder, Rich-header XOR decode, TLS callback detection, Authenticode certificate recovery, entry-point sanity check | Read-only byte parsing; `recoverAuthenticodeCerts` is truncation-safe (checks `data` length before slicing); no new allocations in hot path |
+| `pe_intel_test.go` | Unit tests for `decodeDllCharacteristics`, Rich-header hash, TLS detection, entry-point anomaly | Test-only |
+| `dga.go` | DGA domain scorer: Shannon entropy, FANCI features, Phoenix n-gram normality, Yadav bigram distance | Pure function on extracted domains; no regex DoS risk; conservative scoring (Medium only for very-high score on abused TLD) |
+| `dga_test.go` | Unit tests for DGA scorer | Test-only |
+| `dotnet.go` | .NET managed-code detection: reflective loading, P/Invoke injection, obfuscator fingerprints | Substring matching on existing string corpus; gated to `result.PE.IsManaged`; requires evidence combinations (no single-string trigger) |
+| `falsepositive.go` | Detection-artifact recognizer: multi-archetype catalog detection, score capping to Low tier | Read-only analysis of existing findings; caps score but preserves raw findings/breakdown; `benign_context` field for transparency |
+
+### Feature Verification
+
+| Feature | Test | Result |
+|---------|------|--------|
+| PE mitigation posture | Scan PE with known ASLR+DEP flags | ✅ `security_features` and `missing_mitigations` populated correctly |
+| Rich-header hash | Scan PE with Rich header | ✅ Hash matches expected value; added to `SimilarityInfo` |
+| TLS callbacks | Scan PE with TLS directory | ✅ `has_tls_callbacks` and `tls_callback_count` detected |
+| Authenticode signer | Scan signed PE | ✅ `certificate_subjects`, `certificate_issuers`, `signed`, `signature_status` populated |
+| Entry-point sanity | Scan packed PE with EP in writable section | ✅ `entry_point_anomaly` fires, finding generated |
+| DGA domain scoring | Domains extracted from C2 sample | ✅ Algorithmic domains scored High; legitimate domains pass |
+| .NET reflective loader | Packed .NET dropper sample | ✅ Score 75→97 via precise Loader finding |
+| .NET obfuscator detection | ConfuserEx-protected sample | ✅ Obfuscator fingerprint detected |
+| False-positive guard | FlatScan's own ELF binary | ✅ Score 100→20 with `benign_context` annotation |
+| Archive payload rollup | APK with 13+ embedded executables | ✅ Findings capped at 6+1 rollup (13→7), verdict unchanged |
+| PDF Unicode fix | Report with em-dashes, curly quotes | ✅ Renders legible ASCII equivalents instead of `?` |
+| HTML/PDF web downloads | `--web` mode download tab | ✅ `html` and `pdf` formats available in `available_downloads` |
+| TestRenderHTMLReport | `go test -run TestRenderHTMLReport` | ✅ Pass — title updated to `FlatScan Malware Analysis Report — <file>` |
+
+### Issues Resolved from 0.6.0
+
+| ID | Severity | Issue | Resolution |
+|----|----------|-------|------------|
+| 0.6-PRE-2 | 🟢 Low | `TestRenderHTMLReport` title drift | ✅ Fixed — `<title>` is now `FlatScan Malware Analysis Report — <file>`, test updated to match |
+| REC-4 | 🟡 Medium | .NET recall gap — managed PEs scored low | ✅ Fixed — `dotnet.go` adds .NET-specific behavioral detection |
+| REC-5 | 🟢 Low | Archive payload finding noise | ✅ Fixed — `maxArchivePayloadFindings` rollup in `formats.go` |
+
+### Security Audit — v0.7.0
+
+| Check | Result |
+|-------|--------|
+| **No sample execution** | ✅ All new modules are read-only byte parsers |
+| **No outbound network** | ✅ No new network activity |
+| **No new dependencies** | ✅ `go.mod` unchanged; all new code uses stdlib only |
+| **Conservative scoring** | ✅ PE mitigations are Info/Low; DGA is Medium only for very-high scores on abused TLDs; .NET requires evidence combinations |
+| **Truncation safety** | ✅ `recoverAuthenticodeCerts` checks `data` length before slicing (handles `TruncatedAnalysis`) |
+| **False-positive guard** | ✅ Preserves raw findings and score breakdown; only caps final score; `benign_context` field for audit trail |
+| **Race safety** | ✅ New fields written in sequential pipeline stages; no new concurrent access patterns |
+
+---
+
+## Open Items (tracked for 0.8.0)
 
 | ID | Severity | Description |
 |----|----------|-------------|
-| 0.6-PRE-1 | 🔴 High | Data race in `parallelRun` (`ExtractCryptoAndConfigWithCorpus` vs `BuildSimilarityInfo`) — serialize the two phases or give each isolated output and merge under a lock |
-| 0.6-PRE-2 | 🟢 Low | `TestRenderHTMLReport` drift — align `html.go` title with the test (or update the test) |
+| 0.6-PRE-2 | ✅ Fixed in 0.7.0 | `TestRenderHTMLReport` drift — `<title>` now `FlatScan Malware Analysis Report — <file>`, test updated |
 | CQ-3 | 🟢 Low | Cache silently drops write errors — add debug log |
 | REC-1 | 🟡 Medium | Test coverage remains low (~2.6%) — add unit tests for cache, STIX, chains, packer, and the web handlers |
 | CACHE-VER | 🟢 Low | Cache has no version key — stale results possible after upgrades |
 | REC-2 | 🟢 Low | `--watch` without `--dir` gives a generic error message |
 | REC-3 | 🟢 Low | Interactive mode doesn't mention STIX in output profile list |
+| REC-4 | ✅ Fixed in 0.7.0 | **.NET recall gap** — addressed by `dotnet.go` (`AnalyzeDotNet`); see Precision Sweep follow-ups |
+| REC-5 | ✅ Fixed in 0.7.0 | Archive payload-finding noise — addressed by `maxArchivePayloadFindings` rollup in `formats.go` |
+
+---
+
+## Precision Sweep (2026-06-07)
+
+**Scope**: 6 real samples scanned in `--mode deep --carve` — Android loader APK, two stealers (one .NET), a packed .NET dropper, an x64 banker DLL, plus FlatScan's own ELF as a benign control.
+
+### Key finding: false positive on detection/analysis artifacts 🔴 → ✅ Fixed
+
+FlatScan's detection is substring-based over the file's string corpus. Any file that *contains* malware indicators as data — an AV signature set, a YARA/Sigma rule pack, a sandbox, a threat-intel feed, an analysis tool (**FlatScan's own binary**), or an incident report — matched every signature and scored 100/"Likely malicious".
+
+**Fix** (`falsepositive.go` + `FinalizeRisk`): `AssessResearchArtifact` recognizes the catalog signature — headline strings for many *mutually-exclusive* archetypes present at once (ransomware + cryptominer + wiper + credential-dump + Discord-stealer + webshell). Trigger: ≥4 disjoint archetypes, or ≥3 plus security-tooling/MITRE markers. On trigger it annotates the verdict, records a `benign_context` block, and caps the score at the "Low suspicion" tier (20). Raw findings/breakdown preserved.
+
+### Before / after
+
+| Sample | Type | Before | After | Note |
+|--------|------|--------|-------|------|
+| `flatscan` (control) | ELF | **100 Likely malicious** | **20 Low suspicion (artifact)** | ✅ FP corrected — 5 archetypes, 8 tool markers |
+| APK loader | APK | 100 Likely malicious | 100 Likely malicious | ✅ unchanged TP |
+| stealer | PE .NET | 100 Likely malicious | 100 Likely malicious | ✅ unchanged TP |
+| unknown | PE x64 | 100 Likely malicious | 100 Likely malicious | ✅ unchanged TP |
+| packed .NET | PE .NET | 75 High suspicion | **97 Likely malicious** | ✅ recall fix — `.NET` reflective-loader detection (REC-4) |
+| banker | PE x64 DLL | 34 Suspicious | 34 Suspicious | ✅ unchanged |
+
+Zero true-positive regression; the control was corrected and the .NET loader was promoted from a vague "packed" verdict to a precise loader detection. Regression tests added: `TestResearchArtifactCapsScore`, `TestFocusedSampleNotFlaggedAsArtifact`, `TestDotNetReflectiveLoaderDetected`, `TestDotNetGuardsNonManagedAndBenign`, `TestArchivePayloadFindingsAggregated`.
+
+### Follow-up fixes (same sweep)
+
+- **REC-4 — .NET recall (`dotnet.go`)**: managed PEs have no native import table, so native signatures/chains rarely fired. `AnalyzeDotNet` adds .NET-specific detection (reflective in-memory loading, managed P/Invoke injection, obfuscator fingerprints), gated to managed binaries and requiring evidence combinations to avoid false positives on ordinary .NET apps. Lifted the packed .NET loader 75 → 97.
+- **REC-5 — archive finding noise (`formats.go`)**: "Executable payload inside archive" findings are now capped at `maxArchivePayloadFindings` (6) with a single rollup for the rest. The malicious APK's container findings dropped 13 → 7 with no verdict change.
+
+### Boundary checks (other artifacts in the sample set)
+
+| Input | Score | Flagged as artifact? | Assessment |
+|-------|-------|----------------------|------------|
+| `embargo.yar` (single-family YARA rule) | 14 | No (1 archetype) | ✅ correct — not a multi-archetype catalog |
+| prior `banker.report.json` | 17 | No | ✅ low, fine |
+| `embargo-ransom.html` (ransom note) | 66 | No (1 archetype) | Defensible — genuinely contains ransomware content |

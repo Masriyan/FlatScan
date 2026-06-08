@@ -7,9 +7,9 @@
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Version](https://img.shields.io/badge/Version-0.6.0-e94560?style=flat)]()
+[![Version](https://img.shields.io/badge/Version-0.7.0-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-22%2F23-yellow)]()
+[![Tests](https://img.shields.io/badge/Tests-23%2F23-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
@@ -231,13 +231,14 @@ sequenceDiagram
 - ASCII and UTF-16LE string extraction with zero-allocation performance
 - IOC extraction: URLs, domains, IPv4, IPv6, emails, hashes, CVEs, registry keys, paths, **mutex names, named pipes, Ethereum/Monero/Bitcoin wallet addresses** (0.5.0)
 - IOC triage with built-in PKI, schema, OID, and loopback allowlists
+- **DGA (algorithmically-generated domain) scoring** on extracted domains — dictionary-free lexical model (entropy + FANCI features + n-gram normality) flagging likely C2 domains as MITRE T1568.002 (0.7.0)
 - Suspicious base64, hex, and URL-percent decoding with nesting depth control
 - Shannon entropy scoring and high-entropy region detection
 - **Per-category score breakdown** shown in every report and JSON output (0.5.0)
 
 ### Format Parsers
 
-- **PE**: imports, sections, timestamp, subsystem, certificate table, overlay, import hash, .NET detection
+- **PE**: imports, sections, timestamp, subsystem, certificate table, overlay, import hash, .NET detection, **exploit-mitigation posture (ASLR/DEP/CFG/HEVA), Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity** (0.7.0)
 - **ELF**: class, machine, type, imports, sections
 - **Mach-O**: CPU, type, imports, sections
 - **ZIP/APK/JAR/MSIX/AppX/Office XML**: entry inspection without disk extraction
@@ -261,6 +262,7 @@ mindmap
       Discord Webhook
       Named Pipe C2
       Lateral Movement Recon
+      DGA Domain Detection
     Persistence
       Registry Keys
       Startup Folders
@@ -289,6 +291,10 @@ mindmap
       Shadow Copy Deletion
       Disk Write APIs
       Boot Recovery Tampering
+    .NET Managed Code
+      Reflective Loading
+      P/Invoke Injection
+      Obfuscator Fingerprints
 ```
 
 ### Output Formats
@@ -339,11 +345,14 @@ graph LR
 
 ### Build
 
+The Go sources and `go.mod` live in the **`source go/`** directory; build from there and emit the binary to the repo root:
+
 ```bash
-go build -o flatscan .
+cd "source go"
+go build -o ../flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.6.0" -o flatscan .
+go build -ldflags "-X main.version=0.7.0" -o ../flatscan .
 ```
 
 ### Scan Commands
@@ -462,7 +471,7 @@ sequenceDiagram
         S-->>B: 202 scanning… / 200 done + ScanResult
     end
     B->>S: GET /api/download/{id}/{format}
-    S-->>B: stream artifact (json/txt/iocs/yar/yml/stix/pack)
+    S-->>B: stream artifact (json/txt/iocs/yar/yml/stix/html/pdf/pack)
 ```
 
 **Workflow:** drag a file onto the drop zone (or click to browse) → pick a scan mode (quick / standard / deep) → toggle options (`--carve`, `--yara`, `--sigma`, `--stix`, `--report-pack`) → **Run Scan**. The page polls the job and renders the result across **nine tabs**: overview, findings, IOC, functions, PE details, artifacts, profile, log, and outputs. Every generated format can be downloaded directly from the **outputs** tab, including the full report pack as a `.zip`. The last 10 scans are kept in an in-session history for quick reload.
@@ -493,7 +502,7 @@ The web GUI analyzing a Windows banker trojan sample (`banker.exe` — verdict *
 | `/api/result/{id}` | GET | Poll job status; returns the full `ScanResult` + `available_downloads` when done |
 | `/api/download/{id}/{format}` | GET | Streams one artifact (`json`, `txt`, `iocs`, `yar`, `yml`, `stix`, `pack`) |
 
-> 🔒 **Security:** the server binds to `127.0.0.1` only and has **no authentication** — it is a single-user local tool. Each upload is isolated in its own temp directory (reaped after 30 minutes), filenames are sanitized, and uploads are capped at 256 MB. Do not expose the port to untrusted networks. See [security.md](security.md#web-gui-security).
+> 🔒 **Security:** the server binds to `127.0.0.1` only and has **no authentication** — it is a single-user local tool. Each upload is isolated in its own temp directory (reaped after 30 minutes), filenames are sanitized, and uploads are capped at 256 MB. Do not expose the port to untrusted networks. See [security.md](security.md#web-gui-security). As of v0.7.0, the web GUI also serves HTML and PDF report downloads.
 
 ---
 
@@ -650,7 +659,7 @@ Suspicious strings:
 
 </details>
 
-> The sample report above was generated with FlatScan 0.5.0; the engine and output format are unchanged in 0.6.0. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
+> The sample report above was generated with FlatScan 0.5.0. The engine and output format are unchanged in later versions (0.6.0, 0.7.0); v0.7.0 adds PE Header Intelligence fields (mitigations, Rich hash, TLS callbacks, Authenticode, entry-point) to the PE details section. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
 
 ---
 
@@ -851,6 +860,8 @@ graph LR
 
 ## Module Map
 
+> All Go source files below live in the **`source go/`** directory alongside `go.mod`. Runtime assets (`rules/`, `plugins/`) and documentation stay at the repository root.
+
 ```mermaid
 graph TB
     subgraph "Entry Points"
@@ -875,6 +886,10 @@ graph TB
         strings_extract.go
         decode.go
         formats.go
+        pe_intel.go
+        dga.go
+        dotnet.go
+        falsepositive.go
     end
     
     subgraph "Format Parsers"
@@ -939,13 +954,13 @@ graph TB
 | Category | Files | Lines of Code |
 |----------|-------|---------------|
 | **Core Engine** | 4 | ~1,300 |
-| **Analysis Modules** | 7 | ~2,800 |
+| **Analysis Modules** | 11 | ~3,600 |
 | **Format Parsers** | 5 | ~2,500 |
 | **Output Renderers** | 7 | ~3,200 |
 | **Architecture** | 11 | ~2,100 |
 | **Web Interface** | 2 | ~1,380 |
-| **Tests** | 1 | ~314 |
-| **Total** | **41** | **~13,247** |
+| **Tests** | 3 | ~700 |
+| **Total** | **47** | **~15,400** |
 
 ---
 
@@ -984,6 +999,8 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 | [contributing.md](contributing.md) | Code style, testing, adding detections, PR guidelines |
 | [security.md](security.md) | Security policy, safe handling, output safety, dependency policy |
 | [changelog.md](changelog.md) | Version history with all changes |
+| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.7.0) and the 5-year direction |
+| [QC_REPORT.md](QC_REPORT.md) | Cumulative quality-assurance audit log per release |
 
 ---
 

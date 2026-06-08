@@ -271,7 +271,7 @@ The `--web` mode (0.6.0+) runs a small local HTTP server. It is designed as a **
 
 | Version | Network Activity |
 |---------|-----------------|
-| **Current (0.6.0)** | **No external network activity.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. |
+| **Current (0.7.0)** | **No external network activity.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. |
 | **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---

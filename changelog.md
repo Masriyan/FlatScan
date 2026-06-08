@@ -15,6 +15,7 @@ graph LR
     C -->|"UX & Reporting"| D["v0.4.0<br/>Analyst UX"]
     D -->|"Detection Depth<br/>CI/CD & Workflow"| E["v0.5.0<br/>Power Analyst"]
     E -->|"Local Web GUI"| F["v0.6.0<br/>Browser Analyst"]
+    F -->|"PE Intelligence<br/>Network Heuristics"| G["v0.7.0<br/>Deep Static Analyst"]
     
     style A fill:#16213e,color:#fff
     style B fill:#0f3460,color:#fff
@@ -22,16 +23,53 @@ graph LR
     style D fill:#e94560,color:#fff
     style E fill:#c62a47,color:#fff
     style F fill:#2dd4bf,color:#000
+    style G fill:#58a6ff,color:#000
 ```
 
 | Version | Focus | Key Features |
 |---------|-------|-------------|
+| **0.7.0** | PE Intelligence & Network Heuristics | PE Header Intelligence (DllCharacteristics/exploit-mitigation posture, Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity), DGA domain scorer, .NET detection, detection-artifact false-positive guard, PDF Unicode rendering fix, HTML/PDF downloads in web mode |
 | **0.6.0** | Local Web GUI | Self-contained `--web` browser interface (zero new dependencies), drag-and-drop upload, async scan jobs, 9 result tabs, on-the-fly download of every output format incl. zipped report pack |
 | **0.5.0** | Detection Depth & CI/CD | API chain detection, packer fingerprinting, CI/CD mode, semantic exit codes, parallel batch, score breakdown, new IOC types, cryptominer/wiper families |
 | **0.4.0** | Analyst UX & Reporting | Shell completion, grouped help, post-scan hints, dark HTML report, PDF risk bar, batch Size column |
 | **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
 | **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
+
+---
+
+## 0.7.0 - PE Intelligence & Network Heuristics Release
+
+_Released 2026-06-07._
+
+### Added
+
+- **PE Header Intelligence** (`pe_intel.go`, extends `formats.go`) — deepens Windows PE static analysis with the fields analysts reach for first, all parsed with the Go standard library (no new dependencies). New `PEInfo` fields surface in every renderer (text/JSON/PDF/HTML/web):
+  - **Exploit-mitigation posture** — decodes `DllCharacteristics` into enabled mitigations (ASLR, DEP, CFG, High-Entropy VA, Force Integrity, …) and the absent baseline set, with naming aligned to winchecksec / BinSkim / PESecurity. A *Conservative* finding fires only when both ASLR and DEP are missing (legacy-but-benign binaries also lack mitigations); partial gaps are informational. Grounded in the SHAP analysis of Barnes & Ghafarian (JCP 2025), which found `DllCharacteristics` the single most discriminative static PE-header feature.
+  - **Rich-header hash** — XOR-decodes the MSVC build-toolchain "Rich" header (Pistelli's algorithm) into a clustering/attribution fingerprint, added to `SimilarityInfo`.
+  - **TLS callbacks** — detects routines that execute before `main` (anti-debug / early-exec). MITRE T1574.
+  - **Authenticode signer** — recovers signer subject/issuer and signed / self-signed status by scanning the WIN_CERTIFICATE PKCS#7 blob for embedded X.509 certificates (read from file, truncation-safe). The MSIX signature path now shares this recovery.
+  - **Entry-point sanity** — flags an entry point in a writable section or outside all mapped sections (packer/injection tells). MITRE T1027.
+- **DGA domain scorer** (`dga.go`) — scores every extracted domain for algorithmic generation using a dictionary-free lexical model grounded in FANCI (USENIX 2018) features, Shannon entropy, and a Phoenix-style n-gram normality / Yadav bigram-distance signal. High scorers raise a Command-and-Control finding (MITRE **T1568.002**, Dynamic Resolution: DGA) and populate the new `dga_domains` result field. Conservative: Medium only for a very-high score on a frequently-abused TLD.
+- **Managed-code (.NET) detection** (`dotnet.go`) — closes a recall gap surfaced by the sample sweep. A managed PE has almost no native import table, so the generic native signatures and API chains rarely fire on .NET malware (a reflective .NET loader scored on packing/entropy alone). `AnalyzeDotNet` adds managed-specific behavioral findings, gated to .NET binaries and requiring evidence *combinations* so ordinary .NET apps (which all use reflection/AES/AppDomain) don't trip:
+  - **In-memory reflective loading** — `System.Reflection` dynamic invocation co-occurring with symmetric decryption **and** stream decompression (High), or with one of the two (Medium). MITRE T1620.
+  - **Managed P/Invoke into native injection APIs** — `DllImport`/delegate marshaling plus `VirtualAlloc`/`WriteProcessMemory`/`CreateRemoteThread` (High). MITRE T1055.
+  - **.NET obfuscator/protector fingerprints** — ConfuserEx, .NET Reactor, SmartAssembly, Eazfuscator, Babel, Dotfuscator, Agile.NET, etc. (Medium).
+  - *Result*: the packed .NET loader in the sweep went **75 "High suspicion" → 97 "Likely malicious"** via a precise `Loader` finding instead of an opaque "packed" verdict; the other .NET stealer (already 100) was unchanged.
+- **Detection/analysis-artifact recognizer** (`falsepositive.go`) — a major precision fix. FlatScan's detection is substring-based over a file's string corpus, so any file that *contains* malware indicators as data (an AV signature set, a YARA/Sigma rule pack, a sandbox, a threat-intel feed, an analysis tool — including FlatScan's own binary — or an incident report) previously lit up every signature and scored 100/"Likely malicious". `AssessResearchArtifact` recognizes this: a real specimen is focused, but a catalog carries headline strings for many *mutually-exclusive* archetypes at once (ransomware **and** cryptominer **and** wiper **and** credential dumper **and** Discord stealer **and** webshell). When ≥4 disjoint archetypes are present (or ≥3 plus security-tooling/MITRE markers), the verdict is annotated and the score is capped to the "Low suspicion" tier. Raw findings and score breakdown are preserved for transparency via the new `benign_context` field.
+  - *Measured on a 6-sample malware set*: FlatScan's own ELF dropped from **100 "Likely malicious"** → **20 "Low suspicion (likely security tool…)"**, while all five real samples (APK loader 100, two stealers 100, packed .NET 75, banker 34) were **unchanged** — zero true-positive regression.
+
+- **HTML & PDF downloads in web mode** (`web.go`) — the `--web` UI now renders and serves the analyst (HTML) and management (PDF) reports as downloads alongside the machine-readable formats; `available_downloads` now includes `html` and `pdf`.
+
+### Fixed
+
+- **Core scanner data race** in `parallelRun` — `AnalyzeFormats`, `ExtractCryptoAndConfigWithCorpus`, and `BuildSimilarityInfo` ran concurrently on shared `*ScanResult` state (and `BuildSimilarityInfo` copied the whole struct), firing on every scan and yielding nondeterministic similarity hashes. The pipeline now respects data dependencies (formats → `carve ∥ similarity` → crypto/config), similarity hashers take `*ScanResult`, and concurrent `Plugins` appends are serialized via `appendPlugin`. Verified race-clean (`go test -race`, multi-type `go build -race`).
+- **PDF Unicode punctuation rendering** (`pdf.go`) — `escapePDFText` previously replaced *every* non-ASCII rune with `?`, so em-dashes, curly quotes, ellipses, and bullets throughout the PDF rendered as `?`. A typographic→ASCII replacer now maps them to legible equivalents (`—`→`-`, `'`/`'`→`'`, `…`→`...`, `•`→`-`, …) before escaping — a report-wide formatting fix.
+- **`TestRenderHTMLReport` drift** — the HTML report's redesign had dropped the literal title the test asserted. The document `<title>` is now the descriptive `FlatScan Malware Analysis Report — <file>`, restoring a green test suite (**23/23**) and improving the browser-tab title.
+
+### Changed
+
+- **Archive payload findings are now aggregated** — archives with many embedded executables (e.g. an APK bundling native libraries) previously emitted one High "Executable payload inside archive" finding per entry, flooding the report. The first `maxArchivePayloadFindings` (6) are listed individually; the remainder roll up into a single "Multiple executable payloads inside archive" finding. The malicious APK in the sweep dropped from 13 to 7 container findings (still 100).
 
 ---
 
