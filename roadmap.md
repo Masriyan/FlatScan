@@ -91,8 +91,10 @@ Finish the research-backed static depth and reach a stable 1.0.
 - **Deeper format coverage:** Office macros (OLE/VBA extraction + deobfuscation), LNK, OneNote,
   ISO/IMG/VHD/VHDX containers, email (EML/MSG), `.deb`/`.rpm`, and script unpacking
   (PowerShell / JS / VBS / HTA layered decode).
-- **Hybrid context (still static):** import an external **sandbox/dynamic report**
-  (CAPE / Cuckoo / Triage JSON) to overlay runtime IOCs onto the static profile — never executes.
+- **Dynamic Context without detonation — Tiers 1 & 3** (see the [Flagship Epic](#flagship-epic--dynamic-context-without-detonation)):
+  **recursive static payload resolution** (peel every encoded/compressed/encrypted layer into a payload tree)
+  + **external sandbox-report fusion** (ingest CAPE / Cuckoo / Triage JSON, overlay runtime + network IOCs).
+  Both pure-stdlib and 100% static — the sample is never executed.
 - **Taxonomy completeness:** canonical **MITRE Mobile** technique IDs on Android findings,
   **CAPEC** cross-references alongside ATT&CK, consistent technique IDs across all modules.
 - **Visualization:** byteplot / entropy-map image in the HTML report (stdlib `image/png`).
@@ -113,6 +115,9 @@ Move from single-file triage to corpus-scale workflows and the wider ecosystem.
   single-user loopback web GUI; rate limiting, RBAC, audit log.
 - **Performance at scale:** streaming analysis for multi-GB files, distributed/parallel batch,
   incremental re-scan, content-addressed result cache with version keys.
+- **Dynamic Context — Tier 4** (see the [Flagship Epic](#flagship-epic--dynamic-context-without-detonation)):
+  opt-in **orchestrated detonation** — submit to a delegated isolated backend (local QEMU/Firecracker
+  microVM or a sandbox service API) for live network behavior; FlatScan orchestrates, never contains.
 
 ### Year 3 — Intelligence Layer  ·  `v2.0`
 
@@ -154,6 +159,102 @@ Analyst-grade autonomy and the assurance to trust it in regulated environments.
 
 ---
 
+## Flagship Epic — Dynamic Context (without Detonation)
+
+The single biggest lift to zero-day recall is getting **behavioral and network insight** — the things
+static analysis can't see — *without* betraying FlatScan's core promise of never running malware on the
+analyst's machine. This epic spans Years 1–2 and rests on one precise distinction:
+
+> **Execution ≠ Detonation.** *Detonation* = real-world effects (real syscalls, filesystem, network,
+> processes on a real/VM OS). *Execution* can also mean running instructions on a **virtual CPU over a
+> memory buffer with no OS underneath** — no syscall reaches a kernel, no packet hits a NIC. "Dynamic
+> Context without detonation" obtains the *information* detonation would give while never granting the
+> sample real OS resources.
+
+It is delivered as four tiers along a safety gradient. Every dynamic datum is **labeled by provenance**
+(`static` | `emulated` | `sandbox:<name>`) so an analyst always knows what was inferred vs. observed.
+
+### Tier 1 — Recursive Static Payload Resolution  *(safe · pure stdlib · Year 1)*
+Peel every layer of a package until the real code is reached, producing a **payload tree**.
+- **How:** per artifact, detect container/encoding/compression/encryption → decompress (`compress/*`)
+  → decode base64/hex/url (`decode.go`) → **decrypt with keys FlatScan already extracts**
+  (single/multi-byte XOR, RC4, AES from embedded key candidates in `config_extract.go`) →
+  re-detect file type → if a new PE/ELF/script/archive emerges, **recurse and full-scan it**.
+- **Builds on:** `carve.go`, `decode.go`, `config_extract.go` (makes them recursive + exhaustive).
+- **Yields:** the buried stage surfaced and scored, each node carrying provenance (offset, method, key).
+- **Limit:** can't decrypt when the key isn't in the file (e.g. C2-delivered keys).
+- **Detonation? No** — pure data transformation.
+
+### Tier 2 — Constrained Code Emulation  *(opt-in plugin · Year 1–2)*
+"**Emulate the unpacker, not the malware.**" Run *only* code stretches on a CPU emulator
+(Unicorn/Qiling/speakeasy-style) whose entire world is a virtual CPU + virtual memory.
+- **How:** map the binary into emulated memory, set a fake stack, emulate from the entry point;
+  **trap every syscall/API call** — log `would-call connect(1.2.3.4:443)` but never forward it; hook
+  memory writes to detect self-modifying code; stop at the original entry point and **dump the
+  decrypted image** back into Tier 1.
+- **Three payoffs:** (1) automatic unpacking (defeats UPX/custom packers); (2) deobfuscation of
+  stack-strings and **API-hashing resolvers**; (3) a **behavioral API trace without real execution** —
+  the trapped-call log *is* a behavior list.
+- **Detonation? No, but it does execute instructions** — safe because there is no OS to escape to and
+  no NIC to reach; syscalls are stubbed. Residual emulator-bug risk is contained by running the
+  emulator in a locked-down child process (seccomp, no-net).
+- **Cost (honest):** breaks pure zero-dep (Unicorn is cgo) → ships as an **opt-in plugin / build tag**,
+  never in the core; emulation coverage is incomplete (heavy threading/exceptions/virtualization-based
+  obfuscation defeat emulators).
+
+### Tier 3 — External Sandbox Report Fusion  *(safest · pure stdlib · Year 1)*
+FlatScan stays 100% static but **ingests a JSON report** from a real sandbox
+(CAPE/Cuckoo/Joe/Triage/Hybrid-Analysis) that detonated the sample **elsewhere**.
+- **How:** a normalizer maps each vendor schema → FlatScan's model (matched by SHA-256), overlaying
+  **network IOCs (C2 IPs/domains/URLs, DNS, HTTP), dropped files, registry/persistence, processes,
+  mutexes, dynamic ATT&CK**.
+- **The value is fusion:** cross-validate static vs. dynamic — *static capability + dynamic confirmation*
+  → high confidence; *static-only* → "potential"; *dynamic-only* → "runtime-only, statically missed" —
+  yielding a unified verdict and a **"behaviorally confirmed"** confidence boost.
+- **Detonation? No** — just parsing JSON; a hardened external platform did the running.
+
+### Tier 4 — Orchestrated Detonation  *(opt-in · delegated isolation · Year 2)*
+For fresh runtime + live network when no report exists: FlatScan **submits** the sample to a properly
+isolated backend and pulls results back — it **orchestrates, never contains**.
+- **Backends:** a local libvirt/QEMU/Firecracker microVM with a guest agent + network simulation
+  (INetSim/FakeNet), **or** a sandbox service API (Triage / Joe / Hybrid Analysis). Results fold into
+  Tier 3's normalizer.
+- **Detonation? Yes — but delegated** to a battle-tested separate-kernel VM or remote service, **off by
+  default**, and loudly flagged. FlatScan's own process never holds live malware.
+
+### Data model
+A new provenance-tagged `DynamicContext` on `ScanResult`:
+```
+DynamicContext{
+  PayloadTree      []PayloadNode    // T1/T2: method, offset, key, per-node verdict
+  EmulatedCalls    []APICall        // T2: name + args, "would-call" (never executed)
+  RecoveredStrings []string         // T2: deobfuscated stack-strings / resolved API names
+  NetworkBehavior  NetworkBehavior  // T3/T4: DNS, HTTP, TCP/UDP endpoints, user-agents
+  RuntimeArtifacts RuntimeArtifacts // T3/T4: dropped files, registry, persistence, processes, mutexes
+  Confirmed        []string         // static capabilities the dynamic side confirmed fired
+  Source           string           // "static" | "emulated" | "sandbox:<name>"
+}
+```
+
+### Safety invariant
+> In **Tiers 1–3, FlatScan's host never makes a real syscall or network connection on the sample's
+> behalf.** Tier 2 executes instructions only inside an OS-less CPU emulator. Tier 4 *delegates*
+> detonation to an external isolated backend and is opt-in and off by default.
+
+### Phasing & honest limits
+| Phase | Tiers | Zero-dep | Notes |
+|-------|-------|----------|-------|
+| 1 | Recursive unpack (T1) + sandbox fusion (T3) | ✅ stdlib | Highest ROI; start here |
+| 2 | Constrained emulation (T2) | ❌ opt-in plugin (cgo) | Recovers behavior with no sandbox |
+| 3 | Orchestrated detonation (T4) | core stdlib; backend external | Opt-in, flagged |
+
+Still out of reach (kept honest): C2-delivered decryption keys (T1), virtualization-based obfuscation
+that defeats emulators (T2), and malware that evades *the chosen sandbox* (T3/T4). This is **much higher
+behavioral recall, safely — not 100%**. Tiers 1 + 3 alone (both pure-stdlib, fully static) already
+deliver most of "read the buried zero-day stage *and* see its network calls."
+
+---
+
 ## Themes at a glance
 
 | Year | Version line | Theme | North-star outcome |
@@ -170,7 +271,10 @@ Analyst-grade autonomy and the assurance to trust it in regulated environments.
 
 To keep the project focused, FlatScan will **not**:
 
-- Execute or detonate samples in its core (dynamic data is *imported*, never produced by running malware).
+- **Detonate** samples — give them real OS resources (syscalls, filesystem, network, processes) — in its
+  core. The static core never runs malware; runtime data is *imported* (Tier 3) or *delegated* to an
+  external isolated backend (Tier 4, opt-in). Constrained **CPU emulation with no OS** (Tier 2) is an
+  opt-in plugin and is not detonation — see the Flagship Epic for the execution-vs-detonation distinction.
 - Require network access, an account, or a cloud service for a complete scan.
 - Pull mandatory third-party Go modules into the core engine.
 - Ship telemetry or "phone-home" behavior.
