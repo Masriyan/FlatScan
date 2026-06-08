@@ -88,7 +88,7 @@ func ClassifyMalwareFamiliesWithCorpus(result *ScanResult, stringsFound []Extrac
 	})
 	result.FamilyMatches = matches
 	if len(matches) > 0 {
-		result.Plugins = append(result.Plugins, PluginResult{Name: "family-classifier", Version: version, Status: "complete", Summary: fmt.Sprintf("%d family hypotheses", len(matches)), Findings: len(matches)})
+		appendPlugin(result, PluginResult{Name: "family-classifier", Version: version, Status: "complete", Summary: fmt.Sprintf("%d family hypotheses", len(matches)), Findings: len(matches)})
 		top := matches[0]
 		AddFinding(result, "Info", "Classifier", "Malware family hypothesis", top.Family+" ("+top.Confidence+")", 0, 0)
 	}

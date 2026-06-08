@@ -1,5 +1,0 @@
-#!/usr/bin/env sh
-set -eu
-
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-exec java -XX:+PerfDisableSharedMem -jar "$SCRIPT_DIR/../apktool/apktool_3.0.2.jar" "$@"

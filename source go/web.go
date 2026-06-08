@@ -20,12 +20,14 @@ const maxUploadBytes = 256 << 20
 
 // downloadOrder defines the deterministic ordering used when reporting
 // available_downloads to the client.
-var downloadOrder = []string{"json", "txt", "iocs", "yar", "yml", "stix", "pack"}
+var downloadOrder = []string{"json", "txt", "html", "pdf", "iocs", "yar", "yml", "stix", "pack"}
 
 // downloadContentType maps a download format to its HTTP Content-Type.
 var downloadContentType = map[string]string{
 	"json": "application/json",
 	"txt":  "text/plain; charset=utf-8",
+	"html": "text/html; charset=utf-8",
+	"pdf":  "application/pdf",
 	"iocs": "text/plain; charset=utf-8",
 	"yar":  "text/plain; charset=utf-8",
 	"yml":  "text/plain; charset=utf-8",
@@ -258,6 +260,19 @@ func (s *webServer) runScan(job *scanJob) {
 		return
 	}
 
+	// HTML (analyst) and PDF (management) reports are rendered explicitly here:
+	// RunConfiguredScan performs the scan but does not emit report files (the CLI
+	// caller normally does that). Generating them lets the web UI offer both as
+	// downloads alongside the machine-readable formats.
+	htmlPath := filepath.Join(job.OutDir, job.FileName+".html")
+	if writeErr := WriteHTMLReport(htmlPath, result); writeErr != nil {
+		htmlPath = ""
+	}
+	pdfPath := filepath.Join(job.OutDir, job.FileName+".pdf")
+	if writeErr := WritePDFReport(pdfPath, result); writeErr != nil {
+		pdfPath = ""
+	}
+
 	outputs := make(map[string]string)
 	addOut := func(format, path string) {
 		if path == "" {
@@ -269,6 +284,8 @@ func (s *webServer) runScan(job *scanJob) {
 	}
 	addOut("json", scanCfg.JSONPath)
 	addOut("txt", scanCfg.ReportPath)
+	addOut("html", htmlPath)
+	addOut("pdf", pdfPath)
 	addOut("iocs", scanCfg.IOCPath)
 	addOut("yar", scanCfg.YARAPath)
 	addOut("yml", scanCfg.SigmaPath)

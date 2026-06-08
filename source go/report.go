@@ -364,6 +364,12 @@ func writeAdvancedDetails(b *strings.Builder, result ScanResult) {
 			}
 		}
 	}
+	if len(result.DGADomains) > 0 {
+		fmt.Fprintf(b, "\nAlgorithmically-generated (DGA) domains: %d\n", len(result.DGADomains))
+		for _, d := range result.DGADomains {
+			fmt.Fprintf(b, "- %s (score %.2f) %s\n", d.Domain, d.Score, strings.Join(d.Reasons, ", "))
+		}
+	}
 	if len(result.ExternalTools) > 0 {
 		fmt.Fprintf(b, "\nExternal tool integration: %d tools\n", len(result.ExternalTools))
 		for _, tool := range result.ExternalTools {
@@ -524,6 +530,33 @@ func writeFormatDetails(b *strings.Builder, result ScanResult) {
 		fmt.Fprintf(b, "- Entry point: %s\n", result.PE.EntryPoint)
 		fmt.Fprintf(b, "- Managed .NET runtime: %v\n", result.PE.ManagedRuntime)
 		fmt.Fprintf(b, "- Certificate table present: %v\n", result.PE.HasCertificate)
+		if result.PE.SignatureStatus != "" {
+			fmt.Fprintf(b, "- Signature: %s\n", result.PE.SignatureStatus)
+		}
+		if len(result.PE.CertificateSubjects) > 0 {
+			fmt.Fprintf(b, "- Signer subject(s): %s\n", strings.Join(result.PE.CertificateSubjects, "; "))
+		}
+		if result.PE.SelfSigned {
+			fmt.Fprintln(b, "- Self-signed: true")
+		}
+		if len(result.PE.SecurityFeatures) > 0 {
+			fmt.Fprintf(b, "- Security mitigations: %s\n", strings.Join(result.PE.SecurityFeatures, ", "))
+		}
+		if len(result.PE.MissingMitigations) > 0 {
+			fmt.Fprintf(b, "- Missing mitigations: %s\n", strings.Join(result.PE.MissingMitigations, ", "))
+		}
+		if len(result.PE.ImageCharacteristics) > 0 {
+			fmt.Fprintf(b, "- Image characteristics: %s\n", strings.Join(result.PE.ImageCharacteristics, ", "))
+		}
+		if result.PE.HasTLSCallbacks {
+			fmt.Fprintf(b, "- TLS callbacks: %d\n", result.PE.TLSCallbackCount)
+		}
+		if result.PE.EntryPointAnomaly != "" {
+			fmt.Fprintf(b, "- Entry point: %s (%s)\n", result.PE.EntryPointSection, result.PE.EntryPointAnomaly)
+		}
+		if result.PE.RichHeaderHash != "" {
+			fmt.Fprintf(b, "- Rich header hash: %s\n", result.PE.RichHeaderHash)
+		}
 		if result.PE.OverlaySize > 0 {
 			fmt.Fprintf(b, "- Overlay: offset=0x%x size=%s\n", result.PE.OverlayOffset, formatBytes(result.PE.OverlaySize))
 		}

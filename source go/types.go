@@ -126,6 +126,21 @@ type PEInfo struct {
 	OverlayOffset      int64         `json:"overlay_offset,omitempty"`
 	OverlaySize        int64         `json:"overlay_size,omitempty"`
 	SuspiciousSections []string      `json:"suspicious_sections,omitempty"`
+	// PE Header Intelligence (security posture, toolchain, signer).
+	DllCharacteristics   uint16   `json:"dll_characteristics,omitempty"`
+	SecurityFeatures     []string `json:"security_features,omitempty"`
+	MissingMitigations   []string `json:"missing_mitigations,omitempty"`
+	ImageCharacteristics []string `json:"image_characteristics,omitempty"`
+	HasTLSCallbacks      bool     `json:"has_tls_callbacks,omitempty"`
+	TLSCallbackCount     int      `json:"tls_callback_count,omitempty"`
+	RichHeaderHash       string   `json:"rich_header_hash,omitempty"`
+	Signed               bool     `json:"signed,omitempty"`
+	SignatureStatus      string   `json:"signature_status,omitempty"`
+	SelfSigned           bool     `json:"self_signed,omitempty"`
+	CertificateSubjects  []string `json:"certificate_subjects,omitempty"`
+	CertificateIssuers   []string `json:"certificate_issuers,omitempty"`
+	EntryPointSection    string   `json:"entry_point_section,omitempty"`
+	EntryPointAnomaly    string   `json:"entry_point_anomaly,omitempty"`
 }
 
 type SectionInfo struct {
@@ -305,6 +320,15 @@ type SimilarityInfo struct {
 	SectionHash        string `json:"section_hash,omitempty"`
 	DEXStringHash      string `json:"dex_string_hash,omitempty"`
 	ArchiveContentHash string `json:"archive_content_hash,omitempty"`
+	RichHeaderHash     string `json:"rich_header_hash,omitempty"`
+}
+
+// DGADomain records a domain that lexical analysis flags as likely
+// algorithmically generated (DGA-based C2). Score is in [0,1].
+type DGADomain struct {
+	Domain  string   `json:"domain"`
+	Score   float64  `json:"score"`
+	Reasons []string `json:"reasons,omitempty"`
 }
 
 type ExternalToolResult struct {
@@ -362,6 +386,7 @@ type ScanResult struct {
 	ConfigArtifacts    []ConfigArtifact     `json:"config_artifacts,omitempty"`
 	CryptoConfig       CryptoConfigSummary  `json:"crypto_config,omitempty"`
 	Similarity         SimilarityInfo       `json:"similarity,omitempty"`
+	DGADomains         []DGADomain          `json:"dga_domains,omitempty"`
 	ExternalTools      []ExternalToolResult `json:"external_tools,omitempty"`
 	Case               *CaseRecord          `json:"case,omitempty"`
 	PE                 *PEInfo              `json:"pe,omitempty"`
@@ -372,5 +397,20 @@ type ScanResult struct {
 	RiskScore          int                  `json:"risk_score"`
 	ScoreBreakdown     map[string]int       `json:"score_breakdown,omitempty"`
 	Verdict            string               `json:"verdict"`
+	BenignContext      *BenignContext       `json:"benign_context,omitempty"`
 	DebugLog           []string             `json:"debug_log,omitempty"`
+}
+
+// BenignContext records evidence that a file is a detection/analysis artifact
+// (an AV signature set, a YARA/Sigma rule pack, a sandbox, a malware-analysis
+// tool, or a threat report) rather than a live malware specimen. When set, the
+// indicator matches are treated as references, not behavior, and the risk score
+// is capped so the verdict does not read as "Likely malicious".
+type BenignContext struct {
+	Reason        string   `json:"reason"`
+	Archetypes    []string `json:"archetypes,omitempty"`
+	ToolMarkers   []string `json:"tool_markers,omitempty"`
+	MITRETechRefs int      `json:"mitre_technique_refs,omitempty"`
+	ScoreCap      int      `json:"score_cap"`
+	OriginalScore int      `json:"original_score"`
 }

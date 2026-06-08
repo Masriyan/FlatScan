@@ -1,6 +1,0 @@
-#!/usr/bin/env sh
-set -eu
-
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-export JADX_OPTS="-XX:+PerfDisableSharedMem ${JADX_OPTS:-}"
-exec "$SCRIPT_DIR/../jadx/bin/jadx" "$@"

@@ -162,10 +162,10 @@ func (p *pdfReport) drawSegmentedRiskBar(score int) {
 
 	// Segment widths proportional to the 0-30-55-80-100 bands
 	segs := [][3]float64{
-		{0.26, 0.48, 0.32},  // green  0–30
-		{0.79, 0.58, 0.12},  // amber  30–55
-		{0.86, 0.36, 0.10},  // orange 55–80
-		{0.70, 0.12, 0.12},  // red    80–100
+		{0.26, 0.48, 0.32}, // green  0–30
+		{0.79, 0.58, 0.12}, // amber  30–55
+		{0.86, 0.36, 0.10}, // orange 55–80
+		{0.70, 0.12, 0.12}, // red    80–100
 	}
 	bandPcts := []float64{30.0, 25.0, 25.0, 20.0} // sum=100
 	x := barX
@@ -437,6 +437,33 @@ func (p *pdfReport) formatDetails(result ScanResult) {
 		p.kv("Entry point", result.PE.EntryPoint)
 		p.kv("Managed .NET runtime", fmt.Sprintf("%v", result.PE.ManagedRuntime))
 		p.kv("Certificate table", fmt.Sprintf("%v", result.PE.HasCertificate))
+		if result.PE.SignatureStatus != "" {
+			p.kv("Signature", result.PE.SignatureStatus)
+		}
+		if len(result.PE.CertificateSubjects) > 0 {
+			p.kv("Signer subject(s)", strings.Join(result.PE.CertificateSubjects, "; "))
+		}
+		if result.PE.SelfSigned {
+			p.kv("Self-signed", "true")
+		}
+		if len(result.PE.SecurityFeatures) > 0 {
+			p.kv("Security mitigations", strings.Join(result.PE.SecurityFeatures, ", "))
+		}
+		if len(result.PE.MissingMitigations) > 0 {
+			p.kv("Missing mitigations", strings.Join(result.PE.MissingMitigations, ", "))
+		}
+		if len(result.PE.ImageCharacteristics) > 0 {
+			p.kv("Image characteristics", strings.Join(result.PE.ImageCharacteristics, ", "))
+		}
+		if result.PE.HasTLSCallbacks {
+			p.kv("TLS callbacks", fmt.Sprintf("%d", result.PE.TLSCallbackCount))
+		}
+		if result.PE.EntryPointAnomaly != "" {
+			p.kv("Entry point", fmt.Sprintf("%s (%s)", result.PE.EntryPointSection, result.PE.EntryPointAnomaly))
+		}
+		if result.PE.RichHeaderHash != "" {
+			p.kv("Rich header hash", result.PE.RichHeaderHash)
+		}
 		if result.PE.OverlaySize > 0 {
 			p.kv("Overlay", fmt.Sprintf("offset=0x%x size=%s", result.PE.OverlayOffset, formatBytes(result.PE.OverlaySize)))
 		}
@@ -625,6 +652,12 @@ func (p *pdfReport) advancedEvidence(result ScanResult) {
 			if line != "" {
 				p.monoBullet(line)
 			}
+		}
+	}
+	if len(result.DGADomains) > 0 {
+		p.subsection("Algorithmically-generated (DGA) domains")
+		for _, d := range result.DGADomains {
+			p.monoBullet(fmt.Sprintf("%s (score %.2f) %s", d.Domain, d.Score, strings.Join(d.Reasons, ", ")))
 		}
 	}
 }
@@ -938,7 +971,26 @@ func buildPDF(pages []string) []byte {
 	return out.Bytes()
 }
 
+// pdfPunctReplacer maps common typographic characters to ASCII equivalents so
+// the PDF (which draws text with a Latin/ASCII font encoding) renders them
+// legibly instead of substituting '?'. Applied before escaping.
+var pdfPunctReplacer = strings.NewReplacer(
+	"—", "-", // em dash —
+	"–", "-", // en dash –
+	"−", "-", // minus sign −
+	"‘", "'", // left single quote ‘
+	"’", "'", // right single quote ’
+	"“", "\"", // left double quote “
+	"”", "\"", // right double quote ”
+	"…", "...", // ellipsis …
+	"•", "-", // bullet •
+	"·", "-", // middle dot ·
+	"→", "->", // right arrow →
+	" ", " ", // non-breaking space
+)
+
 func escapePDFText(text string) string {
+	text = pdfPunctReplacer.Replace(text)
 	var b strings.Builder
 	for _, r := range text {
 		switch r {

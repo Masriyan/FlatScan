@@ -55,7 +55,7 @@ func RunExternalToolIntegrations(result *ScanResult, cfg Config, debugf debugLog
 		}
 		result.ExternalTools = append(result.ExternalTools, entry)
 	}
-	result.Plugins = append(result.Plugins, PluginResult{Name: "external-tools", Version: version, Status: "complete", Summary: fmt.Sprintf("%d tools checked", len(result.ExternalTools))})
+	appendPlugin(result, PluginResult{Name: "external-tools", Version: version, Status: "complete", Summary: fmt.Sprintf("%d tools checked", len(result.ExternalTools))})
 }
 
 func lookExternalTool(name string) (string, error) {

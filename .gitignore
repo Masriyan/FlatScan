@@ -1,0 +1,62 @@
+# Build outputs
+flatscan
+flatscan.exe
+flatscan-*
+*.test
+*.out
+
+# Generated analysis output
+reports/
+*.full.txt
+*.iocs.txt
+*.report.json
+*.ciso.pdf
+*.yar
+*.sigma.yml
+*.html
+*.jsonl
+*.executive.md
+new md/
+report-pack/
+*-pack/
+
+# Malware samples and extracted sample material
+sample/
+samples/
+malware/
+artifacts/
+quarantine/
+
+# Archives and binaries commonly used for malware samples
+*.7z
+*.zip
+*.rar
+*.tar
+*.tar.gz
+*.gz
+*.xz
+*.bz2
+*.exe
+*.dll
+*.scr
+*.sys
+*.bin
+*.apk
+*.jar
+*.docm
+*.xlsm
+*.pptm
+
+# Local/editor files
+.codex
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Go local caches and coverage
+coverage.out
+*.coverprofile
+
+# Bundled third-party tooling (jadx, sigmac) — large, not part of the project source
+tools/

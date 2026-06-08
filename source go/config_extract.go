@@ -83,12 +83,12 @@ func ExtractCryptoAndConfigWithCorpus(result *ScanResult, data []byte, stringsFo
 		ConfigArtifacts:    len(artifacts),
 	}
 	if len(artifacts) > 0 {
-		result.Plugins = append(result.Plugins, PluginResult{Name: "crypto-config-extractor", Version: version, Status: "complete", Summary: fmt.Sprintf("%d config artifacts", len(artifacts)), Findings: len(artifacts)})
+		appendPlugin(result, PluginResult{Name: "crypto-config-extractor", Version: version, Status: "complete", Summary: fmt.Sprintf("%d config artifacts", len(artifacts)), Findings: len(artifacts)})
 		if len(artifacts) >= 3 {
 			AddFindingDetailed(result, "Low", "Configuration", "Static configuration artifacts extracted", fmt.Sprintf("%d likely configuration or secret-handling artifacts", len(artifacts)), 4, 0, "Discovery", "Data from Local System", "Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.")
 		}
 	} else {
-		result.Plugins = append(result.Plugins, PluginResult{Name: "crypto-config-extractor", Version: version, Status: "complete", Summary: "no config artifacts extracted"})
+		appendPlugin(result, PluginResult{Name: "crypto-config-extractor", Version: version, Status: "complete", Summary: "no config artifacts extracted"})
 	}
 }
 

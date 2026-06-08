@@ -47,7 +47,7 @@ func RunRegisteredPlugins(result *ScanResult, data []byte, extracted []Extracted
 		plugin.Run(result, data, extracted, corpus, cfg, debugf)
 		elapsed := time.Since(start)
 		debugf("plugin %s: completed in %s", plugin.Name(), elapsed)
-		result.Plugins = append(result.Plugins, PluginResult{
+		appendPlugin(result, PluginResult{
 			Name:    plugin.Name(),
 			Version: plugin.Version(),
 			Status:  "complete",
