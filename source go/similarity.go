@@ -16,13 +16,16 @@ func BuildSimilarityInfo(result *ScanResult, data []byte, stringsFound []Extract
 		FlatHash:           flatFuzzyHash(data),
 		ByteHistogramHash:  byteHistogramHash(data),
 		StringSetHash:      stringSetHash(stringsFound),
-		ImportHash:         importSimilarityHash(*result),
-		SectionHash:        sectionSimilarityHash(*result),
+		ImportHash:         importSimilarityHash(result),
+		SectionHash:        sectionSimilarityHash(result),
 		DEXStringHash:      dexStringSimilarityHash(result.DEXFiles),
 		ArchiveContentHash: archiveContentHash(result.ArchiveEntries),
 	}
+	if result.PE != nil {
+		info.RichHeaderHash = result.PE.RichHeaderHash
+	}
 	result.Similarity = info
-	result.Plugins = append(result.Plugins, PluginResult{Name: "similarity", Version: version, Status: "complete", Summary: "computed FlatHash and structural similarity hashes"})
+	appendPlugin(result, PluginResult{Name: "similarity", Version: version, Status: "complete", Summary: "computed FlatHash and structural similarity hashes"})
 }
 
 func byteHistogramHash(data []byte) string {
@@ -88,7 +91,10 @@ func stringSetHash(stringsFound []ExtractedString) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func importSimilarityHash(result ScanResult) string {
+func importSimilarityHash(result *ScanResult) string {
+	if result == nil {
+		return ""
+	}
 	var imports []string
 	if result.PE != nil {
 		imports = append(imports, result.PE.Imports...)
@@ -110,7 +116,10 @@ func importSimilarityHash(result ScanResult) string {
 	return hex.EncodeToString(sum[:])
 }
 
-func sectionSimilarityHash(result ScanResult) string {
+func sectionSimilarityHash(result *ScanResult) string {
+	if result == nil {
+		return ""
+	}
 	var sections []SectionInfo
 	if result.PE != nil {
 		sections = append(sections, result.PE.Sections...)

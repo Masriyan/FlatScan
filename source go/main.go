@@ -23,7 +23,7 @@ func stderrColorEnabled() bool {
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-const defaultVersion = "0.6.0"
+const defaultVersion = "0.7.0"
 
 // version can be overridden at build time via:
 //   go build -ldflags "-X main.version=1.0.0" .

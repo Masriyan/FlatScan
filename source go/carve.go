@@ -40,7 +40,7 @@ func AnalyzeCarvedArtifacts(result *ScanResult, data []byte, cfg Config, debugf 
 		result.CarvedArtifacts = append(result.CarvedArtifacts, artifact)
 	}
 	if len(result.CarvedArtifacts) == 0 {
-		result.Plugins = append(result.Plugins, PluginResult{Name: "safe-carver", Version: version, Status: "complete", Summary: "no embedded artifacts found"})
+		appendPlugin(result, PluginResult{Name: "safe-carver", Version: version, Status: "complete", Summary: "no embedded artifacts found"})
 		return
 	}
 	execCount := 0
@@ -56,7 +56,7 @@ func AnalyzeCarvedArtifacts(result *ScanResult, data []byte, cfg Config, debugf 
 	if len(result.CarvedArtifacts) >= cfg.MaxCarves {
 		AddFinding(result, "Info", "Carving", "Carving result cap reached", fmt.Sprintf("%d artifacts reported", cfg.MaxCarves), 0, 0)
 	}
-	result.Plugins = append(result.Plugins, PluginResult{
+	appendPlugin(result, PluginResult{
 		Name:     "safe-carver",
 		Version:  version,
 		Status:   "complete",

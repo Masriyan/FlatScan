@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"crypto/md5"
 	"crypto/sha256"
-	"crypto/x509"
 	"debug/elf"
 	"debug/macho"
 	"debug/pe"
@@ -13,6 +12,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -74,7 +74,7 @@ func DetectFileType(data []byte, path string) string {
 func AnalyzeFormats(result *ScanResult, cfg Config, data []byte, debugf debugLogger) error {
 	switch result.FileType {
 	case "PE executable":
-		return analyzePE(result, cfg)
+		return analyzePE(result, cfg, data)
 	case "ELF binary":
 		return analyzeELF(result, cfg)
 	case "Mach-O binary":
@@ -97,7 +97,7 @@ func AnalyzeFormats(result *ScanResult, cfg Config, data []byte, debugf debugLog
 	return nil
 }
 
-func analyzePE(result *ScanResult, cfg Config) error {
+func analyzePE(result *ScanResult, cfg Config, data []byte) error {
 	file, err := pe.Open(result.Target)
 	if err != nil {
 		return err
@@ -137,20 +137,36 @@ func analyzePE(result *ScanResult, cfg Config) error {
 		}
 	}
 
+	var (
+		dllChar      uint16
+		entryRVA     uint32
+		secDirOffset int64
+		secDirSize   int64
+	)
 	switch header := file.OptionalHeader.(type) {
 	case *pe.OptionalHeader32:
 		info.Subsystem = peSubsystem(header.Subsystem)
 		info.ImageBase = fmt.Sprintf("0x%x", header.ImageBase)
 		info.EntryPoint = fmt.Sprintf("0x%x", header.AddressOfEntryPoint)
+		dllChar = header.DllCharacteristics
+		entryRVA = header.AddressOfEntryPoint
 		if len(header.DataDirectory) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY {
-			info.HasCertificate = header.DataDirectory[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].Size > 0
+			sec := header.DataDirectory[pe.IMAGE_DIRECTORY_ENTRY_SECURITY]
+			info.HasCertificate = sec.Size > 0
+			secDirOffset = int64(sec.VirtualAddress)
+			secDirSize = int64(sec.Size)
 		}
 	case *pe.OptionalHeader64:
 		info.Subsystem = peSubsystem(header.Subsystem)
 		info.ImageBase = fmt.Sprintf("0x%x", header.ImageBase)
 		info.EntryPoint = fmt.Sprintf("0x%x", header.AddressOfEntryPoint)
+		dllChar = header.DllCharacteristics
+		entryRVA = header.AddressOfEntryPoint
 		if len(header.DataDirectory) > pe.IMAGE_DIRECTORY_ENTRY_SECURITY {
-			info.HasCertificate = header.DataDirectory[pe.IMAGE_DIRECTORY_ENTRY_SECURITY].Size > 0
+			sec := header.DataDirectory[pe.IMAGE_DIRECTORY_ENTRY_SECURITY]
+			info.HasCertificate = sec.Size > 0
+			secDirOffset = int64(sec.VirtualAddress)
+			secDirSize = int64(sec.Size)
 		}
 	}
 
@@ -196,8 +212,86 @@ func analyzePE(result *ScanResult, cfg Config) error {
 		}
 	}
 
+	analyzePEPosture(result, info, file, data, dllChar, entryRVA, secDirOffset, secDirSize)
+
 	result.PE = info
 	return nil
+}
+
+// analyzePEPosture populates the PE Header Intelligence fields (exploit
+// mitigations, Rich-header hash, TLS callbacks, entry-point sanity, signer)
+// and emits Conservative posture findings. Scoring is intentionally low: a
+// single posture weakness must not tip a verdict on its own.
+func analyzePEPosture(result *ScanResult, info *PEInfo, file *pe.File, data []byte, dllChar uint16, entryRVA uint32, secDirOffset, secDirSize int64) {
+	info.DllCharacteristics = dllChar
+	enabled, missing := decodeDllCharacteristics(dllChar)
+	info.SecurityFeatures = enabled
+	info.MissingMitigations = missing
+	info.ImageCharacteristics = decodeImageCharacteristics(file.FileHeader.Characteristics)
+	info.RichHeaderHash = computeRichHeaderHash(data)
+
+	if n := parseTLSCallbacks(file, data); n > 0 {
+		info.HasTLSCallbacks = true
+		info.TLSCallbackCount = n
+		AddFindingDetailed(result, "Low", "PE Posture", "PE TLS callbacks present",
+			fmt.Sprintf("%d TLS callback(s) execute before the entry point", n), 4, 0,
+			"Execution", "Hijack Execution Flow (T1574)",
+			"TLS callbacks run before main and are a common anti-debug / early-execution technique; inspect the callback routines.")
+	}
+
+	if entryRVA > 0 {
+		secName, writable, found := peSectionForRVA(file, entryRVA)
+		info.EntryPointSection = secName
+		switch {
+		case !found:
+			info.EntryPointAnomaly = "entry point is outside all mapped sections"
+			AddFindingDetailed(result, "Low", "PE Posture", "PE entry point outside sections",
+				fmt.Sprintf("entry RVA 0x%x maps to no section", entryRVA), 4, 0,
+				"Defense Evasion", "Obfuscated Files or Information (T1027)",
+				"An entry point outside known sections is a common packer/loader trait; unpack before further analysis.")
+		case writable:
+			info.EntryPointAnomaly = "entry point is in a writable section"
+			AddFindingDetailed(result, "Low", "PE Posture", "PE entry point in writable section",
+				fmt.Sprintf("entry RVA 0x%x is in writable section %s", entryRVA, secName), 6, 0,
+				"Defense Evasion", "Obfuscated Files or Information (T1027)",
+				"A writable entry section suggests self-modifying or unpacking code; analyze in a sandbox.")
+		}
+	}
+
+	// Missing exploit mitigations (Conservative): only score when both ASLR and
+	// DEP are absent; otherwise informational. Legacy-but-benign binaries also
+	// lack mitigations.
+	if len(missing) > 0 {
+		hasASLR := dllChar&dllCharDynamicBase != 0
+		hasDEP := dllChar&dllCharNXCompat != 0
+		if !hasASLR && !hasDEP {
+			AddFindingDetailed(result, "Low", "PE Posture", "PE lacks ASLR and DEP",
+				"missing exploit mitigations: "+strings.Join(missing, ", "), 3, 0,
+				"", "", "Modern toolchains enable ASLR (/DYNAMICBASE) and DEP (/NXCOMPAT); their absence is common in older or hand-crafted binaries — correlate with other signals.")
+		} else {
+			AddFinding(result, "Info", "PE Posture", "PE missing some exploit mitigations",
+				"missing: "+strings.Join(missing, ", "), 0, 0)
+		}
+	}
+
+	// Authenticode signer.
+	if info.HasCertificate {
+		info.Signed = true
+		if f, err := os.Open(result.Target); err == nil {
+			subjects, issuers, status, selfSigned := extractPECertificates(f, secDirOffset, secDirSize)
+			f.Close()
+			info.CertificateSubjects = subjects
+			info.CertificateIssuers = issuers
+			info.SignatureStatus = status
+			info.SelfSigned = selfSigned
+			if selfSigned {
+				AddFinding(result, "Low", "PE Posture", "PE has a self-signed certificate", strings.Join(subjects, "; "), 3, 0)
+			}
+		}
+	} else {
+		info.SignatureStatus = "unsigned"
+		AddFinding(result, "Info", "PE Posture", "PE is not Authenticode-signed", "no certificate table present", 0, 0)
+	}
 }
 
 func analyzeELF(result *ScanResult, cfg Config) error {
@@ -271,6 +365,12 @@ func analyzeMachO(result *ScanResult, cfg Config) error {
 	return nil
 }
 
+// maxArchivePayloadFindings caps how many individual "Executable payload inside
+// archive" findings are emitted before the rest are rolled up into one summary
+// finding. Archives such as APKs legitimately bundle many native libraries, and
+// one High finding per entry floods the report without adding signal.
+const maxArchivePayloadFindings = 6
+
 func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 	reader, err := zip.OpenReader(result.Target)
 	if err != nil {
@@ -280,6 +380,7 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 
 	detectMSIXPackage(result, reader.File, debugf)
 
+	var archiveExecPayloads []string
 	entryLimit := cfg.MaxArchiveFiles
 	for index, file := range reader.File {
 		if index >= entryLimit {
@@ -330,7 +431,10 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 		entry.Entropy = ShannonEntropy(content)
 		result.ArchiveEntries[entryIndex] = entry
 		if entryType == "PE executable" || entryType == "ELF binary" || entryType == "Mach-O binary" || (entryType == "DEX bytecode" && result.FileType != "APK package") {
-			AddFindingDetailed(result, "High", "Container", "Executable payload inside archive", file.Name+" detected as "+entryType, 20, 0, "Defense Evasion", "Obfuscated Files or Information (T1027)", "Reverse engineer embedded executable payloads and hunt for the container hash plus embedded payload hashes.")
+			archiveExecPayloads = append(archiveExecPayloads, file.Name+" ("+entryType+")")
+			if len(archiveExecPayloads) <= maxArchivePayloadFindings {
+				AddFindingDetailed(result, "High", "Container", "Executable payload inside archive", file.Name+" detected as "+entryType, 20, 0, "Defense Evasion", "Obfuscated Files or Information (T1027)", "Reverse engineer embedded executable payloads and hunt for the container hash plus embedded payload hashes.")
+			}
 		}
 		if entryType == "PE executable" && archivePEPayloadName(file.Name) {
 			promoteArchivePEHash(result, file, entry, dataOffset)
@@ -343,6 +447,13 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 		for _, sample := range suspiciousStringSamples(entryStrings, 5) {
 			result.SuspiciousStrings = appendUnique(result.SuspiciousStrings, "archive:"+file.Name+": "+sample)
 		}
+	}
+	if len(archiveExecPayloads) > maxArchivePayloadFindings {
+		AddFindingDetailed(result, "High", "Container", "Multiple executable payloads inside archive",
+			fmt.Sprintf("%d embedded executables detected (first %d listed individually); e.g. %s",
+				len(archiveExecPayloads), maxArchivePayloadFindings, strings.Join(archiveExecPayloads[:3], ", ")),
+			24, 0, "Defense Evasion", "Obfuscated Files or Information (T1027)",
+			"Triage the embedded executables as a set; pivot on the container hash and each payload hash.")
 	}
 	return nil
 }
@@ -465,8 +576,8 @@ func extractMSIXSignatureCertificates(info *MSIXInfo, data []byte) {
 	if info == nil {
 		return
 	}
-	certs, err := x509.ParseCertificates(data)
-	if err != nil || len(certs) == 0 {
+	certs, ok := parseDERCertificates(data)
+	if !ok {
 		info.SignatureParseStatus = "PKCS#7/CMS signature present; direct X.509 parse unavailable without CMS parser"
 		return
 	}

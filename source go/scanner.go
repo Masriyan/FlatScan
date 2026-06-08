@@ -20,17 +20,17 @@ import (
 // Analysis pipeline constants — avoid magic numbers throughout the codebase.
 const (
 	defaultMaxCorpusBytes     = 48 * 1024 * 1024 // max corpus size for pattern matching
-	defaultReadBufSize        = 1024 * 1024       // 1 MiB read buffer for file hashing
-	defaultMIMESniffBytes     = 512               // bytes fed to http.DetectContentType
-	defaultEntropyWindow      = 64 * 1024         // sliding window for high-entropy region scan
-	defaultEntropyStep        = 32 * 1024         // step size for entropy window
-	defaultEntropyThreshold   = 7.20              // minimum entropy to flag a region
-	defaultMaxEntropyRegions  = 25                // cap on reported high-entropy regions
-	defaultMaxArchiveReadSize = 2 * 1024 * 1024   // max bytes read from a single archive entry
-	defaultMaxCarveChunkSize  = 2 * 1024 * 1024   // max bytes carved per embedded artifact
-	defaultXORScanLimit       = 256 * 1024        // max bytes scanned for single-byte XOR
-	defaultXORMaxResults      = 8                 // max XOR candidates reported
-	defaultXORPrintableRatio  = 0.70              // min printable ratio for XOR candidate
+	defaultReadBufSize        = 1024 * 1024      // 1 MiB read buffer for file hashing
+	defaultMIMESniffBytes     = 512              // bytes fed to http.DetectContentType
+	defaultEntropyWindow      = 64 * 1024        // sliding window for high-entropy region scan
+	defaultEntropyStep        = 32 * 1024        // step size for entropy window
+	defaultEntropyThreshold   = 7.20             // minimum entropy to flag a region
+	defaultMaxEntropyRegions  = 25               // cap on reported high-entropy regions
+	defaultMaxArchiveReadSize = 2 * 1024 * 1024  // max bytes read from a single archive entry
+	defaultMaxCarveChunkSize  = 2 * 1024 * 1024  // max bytes carved per embedded artifact
+	defaultXORScanLimit       = 256 * 1024       // max bytes scanned for single-byte XOR
+	defaultXORMaxResults      = 8                // max XOR candidates reported
+	defaultXORPrintableRatio  = 0.70             // min printable ratio for XOR candidate
 )
 
 type debugLogger func(format string, args ...any)
@@ -39,6 +39,21 @@ type debugLogger func(format string, args ...any)
 // parallelRun. A package-level mutex avoids embedding sync.Mutex in
 // ScanResult (which would cause copy-lock issues across the codebase).
 var findingsMu sync.Mutex
+
+// pluginsMu guards concurrent appends to ScanResult.Plugins, mirroring
+// findingsMu. Several analysis stages record a PluginResult, and some of
+// them (carving, similarity hashing) run inside parallelRun, so every
+// append goes through appendPlugin rather than touching the slice directly.
+var pluginsMu sync.Mutex
+
+func appendPlugin(result *ScanResult, plugin PluginResult) {
+	if result == nil {
+		return
+	}
+	pluginsMu.Lock()
+	result.Plugins = append(result.Plugins, plugin)
+	pluginsMu.Unlock()
+}
 
 func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	progress.Set(1, "initializing scanner")
@@ -136,27 +151,41 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 
 	progress.Set(82, "inspecting file structure")
 
-	// Parallel group 1: Independent analysis stages that don't share
-	// mutable state. These are safe to run concurrently because they
-	// write to separate result fields and AddFinding is mutex-protected.
+	// Format analysis must finish before the stages that follow: similarity
+	// hashing reads the PE/ELF/Mach-O/DEX/archive structures it produces,
+	// and crypto/config extraction reads the IOCs it merges from archive
+	// entries. The previous design ran all four stages concurrently, which
+	// both raced on those shared fields and yielded nondeterministic results
+	// when format analysis had not yet populated them.
+	if err := AnalyzeFormats(&result, cfg, data, debugf); err != nil {
+		AddFinding(&result, "Low", "Format", "Format-specific parser error", err.Error(), 2, 0)
+		debugf("format parser error: %v", err)
+	}
+
+	// Carving and similarity hashing are independent of each other: each
+	// only reads the now-complete format output plus the immutable data and
+	// strings inputs, and each writes a disjoint set of result fields. Their
+	// one shared sink, result.Plugins, is appended via appendPlugin, which
+	// serializes the writes under pluginsMu.
 	parallelRun(
-		func() { // Format analysis
-			if err := AnalyzeFormats(&result, cfg, data, debugf); err != nil {
-				AddFinding(&result, "Low", "Format", "Format-specific parser error", err.Error(), 2, 0)
-				debugf("format parser error: %v", err)
-			}
-		},
 		func() { // Carving + payload promotion
 			AnalyzeCarvedArtifacts(&result, data, cfg, debugf)
 			PromoteCarvedPayloadIOCs(&result)
-		},
-		func() { // Crypto and config extraction
-			ExtractCryptoAndConfigWithCorpus(&result, data, extracted, cfg, corpus)
 		},
 		func() { // Similarity hashing
 			BuildSimilarityInfo(&result, data, extracted)
 		},
 	)
+
+	// Crypto/config extraction reads result.IOCs, including the PE-hash IOCs
+	// added by PromoteCarvedPayloadIOCs above, so it runs after the parallel
+	// group rather than concurrently with it.
+	ExtractCryptoAndConfigWithCorpus(&result, data, extracted, cfg, corpus)
+
+	// Managed-code (.NET) behavioral detection. Runs after format analysis so
+	// result.PE.ManagedRuntime is known, and before classification so family
+	// hypotheses can react to the findings it adds.
+	AnalyzeDotNet(&result, corpus)
 
 	progress.Set(88, "running rules and classification")
 
@@ -166,6 +195,7 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	ApplyRulePacksWithCorpus(&result, extracted, cfg, debugf, corpus)
 	ApplyIOCTriage(&result, cfg, debugf)
 	ClassifyMalwareFamiliesWithCorpus(&result, extracted, corpus)
+	AnalyzeDGADomains(&result)
 
 	progress.Set(90, "running analysis plugins")
 	RunRegisteredPlugins(&result, data, extracted, corpus, cfg, debugf)
@@ -178,6 +208,11 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	if result.TruncatedAnalysis {
 		AddFinding(&result, "Info", "Coverage", "Analysis bytes were capped", fmt.Sprintf("retained %d of %d bytes", result.AnalyzedBytes, result.Size), 0, 0)
 	}
+	// Recognize detection/analysis artifacts (signature sets, rule packs,
+	// analysis tools, reports) so their catalogued indicator strings are not
+	// scored as live behavior. Must run before FinalizeRisk, which applies the
+	// score cap this records.
+	AssessResearchArtifact(&result, corpus)
 	FinalizeRisk(&result)
 	EnrichAnalysisProfileWithCorpus(&result, extracted, corpus)
 
@@ -317,6 +352,14 @@ func FinalizeRisk(result *ScanResult) {
 	if score > 100 {
 		score = 100
 	}
+	// A recognized detection/analysis artifact carries indicator strings as
+	// data, not behavior. Cap its aggregate score so the verdict reads as a
+	// reference catalog rather than a live threat; the raw breakdown and
+	// findings are preserved for transparency.
+	if result.BenignContext != nil && score > result.BenignContext.ScoreCap {
+		result.BenignContext.OriginalScore = score
+		score = result.BenignContext.ScoreCap
+	}
 	result.RiskScore = score
 	if len(breakdown) > 0 {
 		result.ScoreBreakdown = breakdown
@@ -332,6 +375,9 @@ func FinalizeRisk(result *ScanResult) {
 		result.Verdict = "Low suspicion"
 	default:
 		result.Verdict = "No strong indicators"
+	}
+	if result.BenignContext != nil {
+		result.Verdict += " (likely security tool or signature/analysis artifact)"
 	}
 }
 

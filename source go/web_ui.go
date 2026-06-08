@@ -555,6 +555,7 @@ function renderOverview(r){
   hb+=kvRow("SHA-256",esc(h.sha256||"—")+cp(h.sha256||""));
   hb+=kvRow("SHA-512",esc(h.sha512||"—")+cp(h.sha512||""));
   if(pe&&pe.import_hash) hb+=kvRow("PE imphash",esc(pe.import_hash)+cp(pe.import_hash));
+  if(sim.rich_header_hash) hb+=kvRow("Rich hash",esc(sim.rich_header_hash)+cp(sim.rich_header_hash));
   if(sim.flat_hash) hb+=kvRow("FlatHash",esc(sim.flat_hash)+cp(sim.flat_hash));
   if(sim.byte_histogram_hash) hb+=kvRow("BHH",esc(sim.byte_histogram_hash)+cp(sim.byte_histogram_hash));
   if(sim.string_set_hash) hb+=kvRow("StringSetHash",esc(sim.string_set_hash)+cp(sim.string_set_hash));

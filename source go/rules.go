@@ -47,7 +47,7 @@ func ApplyRulePacksWithCorpus(result *ScanResult, stringsFound []ExtractedString
 	if len(paths) == 0 {
 		return
 	}
-	result.Plugins = append(result.Plugins, PluginResult{Name: "declarative-rule-engine", Version: version, Status: "enabled", Summary: "FlatScan custom rule/plugin pack engine"})
+	appendPlugin(result, PluginResult{Name: "declarative-rule-engine", Version: version, Status: "enabled", Summary: "FlatScan custom rule/plugin pack engine"})
 	for _, path := range paths {
 		summary := RulePackSummary{Path: path}
 		pack, warnings, err := loadRulePackPath(path)
@@ -87,7 +87,7 @@ func ApplyRulePacksWithCorpus(result *ScanResult, stringsFound []ExtractedString
 		result.RulePacks = append(result.RulePacks, summary)
 	}
 	for _, summary := range result.RulePacks {
-		result.Plugins = append(result.Plugins, PluginResult{
+		appendPlugin(result, PluginResult{
 			Name:     "rule-pack:" + nonEmpty(summary.Name, filepath.Base(summary.Path)),
 			Version:  version,
 			Status:   "loaded",

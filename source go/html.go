@@ -41,7 +41,7 @@ func RenderHTMLReport(result ScanResult) string {
 // ── CSS ─────────────────────────────────────────────────────────────────────
 
 func htmlHead(b *strings.Builder, result ScanResult) {
-	fmt.Fprintf(b, `<!doctype html><html data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FlatScan — %s</title>`, h(result.FileName))
+	fmt.Fprintf(b, `<!doctype html><html data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FlatScan Malware Analysis Report — %s</title>`, h(result.FileName))
 	b.WriteString("<style>")
 	b.WriteString(htmlCSS())
 	b.WriteString("</style></head><body>")
@@ -599,6 +599,33 @@ func htmlTechnical(b *strings.Builder, result ScanResult) {
 		htmlKVRow(b, "Import hash", result.PE.ImportHash)
 		htmlKVRow(b, "Managed (.NET)", fmt.Sprintf("%v", result.PE.ManagedRuntime))
 		htmlKVRow(b, "Certificate table", fmt.Sprintf("%v", result.PE.HasCertificate))
+		if result.PE.SignatureStatus != "" {
+			htmlKVRow(b, "Signature", result.PE.SignatureStatus)
+		}
+		if len(result.PE.CertificateSubjects) > 0 {
+			htmlKVRow(b, "Signer subject(s)", strings.Join(result.PE.CertificateSubjects, "; "))
+		}
+		if result.PE.SelfSigned {
+			htmlKVRow(b, "Self-signed", "true")
+		}
+		if len(result.PE.SecurityFeatures) > 0 {
+			htmlKVRow(b, "Security mitigations", strings.Join(result.PE.SecurityFeatures, ", "))
+		}
+		if len(result.PE.MissingMitigations) > 0 {
+			htmlKVRow(b, "Missing mitigations", strings.Join(result.PE.MissingMitigations, ", "))
+		}
+		if len(result.PE.ImageCharacteristics) > 0 {
+			htmlKVRow(b, "Image characteristics", strings.Join(result.PE.ImageCharacteristics, ", "))
+		}
+		if result.PE.HasTLSCallbacks {
+			htmlKVRow(b, "TLS callbacks", fmt.Sprintf("%d", result.PE.TLSCallbackCount))
+		}
+		if result.PE.EntryPointAnomaly != "" {
+			htmlKVRow(b, "Entry point", fmt.Sprintf("%s (%s)", result.PE.EntryPointSection, result.PE.EntryPointAnomaly))
+		}
+		if result.PE.RichHeaderHash != "" {
+			htmlKVRow(b, "Rich header hash", result.PE.RichHeaderHash)
+		}
 		b.WriteString(`</table>`)
 		if len(result.PE.Sections) > 0 {
 			b.WriteString(`<table style="margin-top:8px"><tr><th>Section</th><th>Raw offset</th><th>Raw size</th><th>Entropy</th><th>Exec</th><th>Write</th></tr>`)
@@ -623,6 +650,14 @@ func htmlTechnical(b *strings.Builder, result ScanResult) {
 		b.WriteString(`<details open><summary>Mach-O Details</summary><div class="details-body"><table>`)
 		htmlKVRow(b, "CPU", result.MachO.CPU)
 		htmlKVRow(b, "Type", result.MachO.Type)
+		b.WriteString(`</table></div></details>`)
+	}
+
+	if len(result.DGADomains) > 0 {
+		b.WriteString(`<details open><summary>Algorithmically-Generated Domains (DGA)</summary><div class="details-body"><table><tr><th>Domain</th><th>Score</th><th>Signals</th></tr>`)
+		for _, d := range result.DGADomains {
+			fmt.Fprintf(b, `<tr><td><code>%s</code></td><td>%.2f</td><td>%s</td></tr>`, h(d.Domain), d.Score, h(strings.Join(d.Reasons, ", ")))
+		}
 		b.WriteString(`</table></div></details>`)
 	}
 
@@ -838,6 +873,9 @@ func formatSimilarity(info SimilarityInfo) string {
 	}
 	if info.ImportHash != "" {
 		fmt.Fprintf(&b, "Import hash:       %s\n", info.ImportHash)
+	}
+	if info.RichHeaderHash != "" {
+		fmt.Fprintf(&b, "Rich header:       %s\n", info.RichHeaderHash)
 	}
 	if info.SectionHash != "" {
 		fmt.Fprintf(&b, "Section hash:      %s\n", info.SectionHash)

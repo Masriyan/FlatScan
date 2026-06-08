@@ -2,6 +2,8 @@ package main
 
 import (
 	"archive/zip"
+	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -540,6 +542,223 @@ func TestParallelRunAddFindingThreadSafe(t *testing.T) {
 	if len(result.Findings) != 2 {
 		t.Fatalf("expected 2 unique findings after dedup, got %d", len(result.Findings))
 	}
+}
+
+// TestScanFileParallelPipelineRaceFree drives the full ScanFile pipeline,
+// whose format / carve / similarity / crypto-config stages run partly inside
+// parallelRun. Run under `go test -race` it guards against reintroducing the
+// data race that previously fired on every scan (similarity hashing copied
+// and read the ScanResult while format analysis was still writing it). It
+// also asserts the pipeline is deterministic: two scans of the same bytes
+// must yield identical structural similarity hashes — which was not the case
+// while similarity ran concurrently with format analysis.
+func TestScanFileParallelPipelineRaceFree(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "sample.zip")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	zw := zip.NewWriter(file)
+	w, err := zw.Create("payload.exe")
+	if err != nil {
+		t.Fatalf("zip create error = %v", err)
+	}
+	// An embedded PE-like entry exercises carving and archive IOC promotion;
+	// the C2/secret markers exercise crypto/config extraction.
+	body := append([]byte("MZ"), []byte(strings.Repeat("A", 256))...)
+	body = append(body, []byte(" https://evil.example/gate.php api_key=deadbeef bot_token=secret")...)
+	if _, err := w.Write(body); err != nil {
+		t.Fatalf("zip write error = %v", err)
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("zip close error = %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("file close error = %v", err)
+	}
+
+	cfg := Config{
+		Mode:            "deep",
+		FilePath:        path,
+		MinStringLen:    5,
+		MaxArchiveFiles: 100,
+		MaxAnalyzeBytes: 64 * 1024 * 1024,
+		MaxCarves:       80,
+		EnableCarving:   true,
+	}
+	progress := NewProgress(false, io.Discard)
+
+	first, err := ScanFile(cfg, progress)
+	if err != nil {
+		t.Fatalf("ScanFile() first error = %v", err)
+	}
+	second, err := ScanFile(cfg, progress)
+	if err != nil {
+		t.Fatalf("ScanFile() second error = %v", err)
+	}
+
+	if first.Similarity != second.Similarity {
+		t.Fatalf("similarity info not deterministic:\n first=%#v\nsecond=%#v", first.Similarity, second.Similarity)
+	}
+	// The carver and similarity stages both record a plugin result from
+	// inside parallelRun; appendPlugin must preserve every entry.
+	if !hasPlugin(first.Plugins, "safe-carver") || !hasPlugin(first.Plugins, "similarity") {
+		t.Fatalf("expected safe-carver and similarity plugin results, got %#v", first.Plugins)
+	}
+}
+
+// TestResearchArtifactCapsScore verifies that a file carrying headline
+// indicators for many unrelated malware archetypes (a signature set / rule
+// pack / analysis tool) is recognized and has its score capped instead of
+// reading as "Likely malicious" — the false positive seen scanning FlatScan's
+// own binary.
+func TestResearchArtifactCapsScore(t *testing.T) {
+	corpus := strings.ToLower(strings.Join([]string{
+		"your files have been encrypted",
+		"stratum+tcp://pool.example:3333",
+		"vssadmin delete shadows /all /quiet",
+		"sekurlsa::logonpasswords",
+		"https://discord.com/api/webhooks/123/abc",
+		"mitre att&ck yara rule t1055 t1486 t1003",
+	}, "\n"))
+	result := ScanResult{}
+	AddFinding(&result, "Critical", "Ransomware", "ransom strings", "evidence", 90, 0)
+	AddFinding(&result, "High", "Cryptominer", "mining strings", "evidence", 26, 0)
+
+	AssessResearchArtifact(&result, corpus)
+	if result.BenignContext == nil {
+		t.Fatalf("expected BenignContext for a multi-archetype catalog corpus")
+	}
+	if len(result.BenignContext.Archetypes) < 4 {
+		t.Fatalf("expected >=4 archetypes, got %v", result.BenignContext.Archetypes)
+	}
+	FinalizeRisk(&result)
+	if result.RiskScore > researchArtifactScoreCap {
+		t.Fatalf("expected score capped at %d, got %d", researchArtifactScoreCap, result.RiskScore)
+	}
+	if result.BenignContext.OriginalScore <= researchArtifactScoreCap {
+		t.Fatalf("expected original score to exceed cap, got %d", result.BenignContext.OriginalScore)
+	}
+	if !strings.Contains(result.Verdict, "security tool") {
+		t.Fatalf("expected verdict to note artifact context, got %q", result.Verdict)
+	}
+}
+
+// TestFocusedSampleNotFlaggedAsArtifact guards the precision boundary: a real,
+// single-archetype sample must NOT be mistaken for a detection artifact and
+// must keep its full score.
+func TestFocusedSampleNotFlaggedAsArtifact(t *testing.T) {
+	corpus := strings.ToLower(strings.Join([]string{
+		"your files have been encrypted",
+		"createremotethread", "virtualallocex", "writeprocessmemory",
+	}, "\n"))
+	result := ScanResult{}
+	AddFinding(&result, "High", "Ransomware", "ransom strings", "evidence", 90, 0)
+
+	AssessResearchArtifact(&result, corpus)
+	if result.BenignContext != nil {
+		t.Fatalf("a focused single-archetype sample must not be flagged as an artifact: %#v", result.BenignContext)
+	}
+	FinalizeRisk(&result)
+	if result.RiskScore < 80 {
+		t.Fatalf("focused malicious sample should retain a high score, got %d", result.RiskScore)
+	}
+}
+
+// TestDotNetReflectiveLoaderDetected verifies the .NET recall fix: a managed
+// binary that combines reflection with in-memory decryption and decompression
+// (the reflective-loader pattern) is flagged, not just scored as "packed".
+func TestDotNetReflectiveLoaderDetected(t *testing.T) {
+	corpus := strings.ToLower(strings.Join([]string{
+		"system.reflection", "appdomain", "activator", "createinstance", "getmethod",
+		"rijndaelmanaged", "deflatestream",
+	}, "\n"))
+	result := ScanResult{PE: &PEInfo{ManagedRuntime: true}}
+	AnalyzeDotNet(&result, corpus)
+	if !hasFindingTitle(result.Findings, "In-memory .NET assembly loading with encrypted, compressed payload") {
+		t.Fatalf("expected .NET reflective loader finding, got %#v", result.Findings)
+	}
+}
+
+// TestDotNetGuardsNonManagedAndBenign protects the precision boundary: the .NET
+// checks must not fire on a native binary that merely contains the strings, nor
+// on a managed binary that only uses reflection without in-memory decoding
+// (reflection alone is ubiquitous and benign in .NET).
+func TestDotNetGuardsNonManagedAndBenign(t *testing.T) {
+	loaderCorpus := strings.ToLower(strings.Join([]string{
+		"system.reflection", "appdomain", "activator", "createinstance", "getmethod",
+		"rijndaelmanaged", "deflatestream",
+	}, "\n"))
+	native := ScanResult{PE: &PEInfo{ManagedRuntime: false}}
+	AnalyzeDotNet(&native, loaderCorpus)
+	if len(native.Findings) != 0 {
+		t.Fatalf("non-managed binary must not get .NET findings, got %#v", native.Findings)
+	}
+
+	benign := ScanResult{PE: &PEInfo{ManagedRuntime: true}}
+	AnalyzeDotNet(&benign, strings.ToLower("system.reflection\nappdomain\nactivator\ncreateinstance\ngetmethod"))
+	for _, f := range benign.Findings {
+		if f.Category == "Loader" {
+			t.Fatalf("reflection-only managed binary must not get a Loader finding, got %#v", f)
+		}
+	}
+}
+
+// TestArchivePayloadFindingsAggregated verifies that an archive with many
+// embedded executables emits a bounded number of individual findings plus one
+// rollup, instead of one High finding per entry.
+func TestArchivePayloadFindingsAggregated(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "many.zip")
+	file, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+	zw := zip.NewWriter(file)
+	body := append([]byte("MZ"), []byte(strings.Repeat("A", 200))...)
+	for i := 0; i < maxArchivePayloadFindings+2; i++ {
+		w, err := zw.Create(fmt.Sprintf("payload%d.exe", i))
+		if err != nil {
+			t.Fatalf("zip create error = %v", err)
+		}
+		if _, err := w.Write(body); err != nil {
+			t.Fatalf("zip write error = %v", err)
+		}
+	}
+	if err := zw.Close(); err != nil {
+		t.Fatalf("zip close error = %v", err)
+	}
+	if err := file.Close(); err != nil {
+		t.Fatalf("file close error = %v", err)
+	}
+
+	result := ScanResult{Target: path, FileName: "many.zip", FileType: "ZIP container"}
+	cfg := Config{Mode: "deep", MinStringLen: 5, MaxArchiveFiles: 100}
+	if err := AnalyzeFormats(&result, cfg, nil, func(string, ...any) {}); err != nil {
+		t.Fatalf("AnalyzeFormats() error = %v", err)
+	}
+	individual := 0
+	for _, f := range result.Findings {
+		if f.Title == "Executable payload inside archive" {
+			individual++
+		}
+	}
+	if individual != maxArchivePayloadFindings {
+		t.Fatalf("expected %d individual payload findings, got %d", maxArchivePayloadFindings, individual)
+	}
+	if !hasFindingTitle(result.Findings, "Multiple executable payloads inside archive") {
+		t.Fatalf("expected aggregate finding when payloads exceed cap, got %#v", result.Findings)
+	}
+}
+
+func hasPlugin(plugins []PluginResult, name string) bool {
+	for _, p := range plugins {
+		if p.Name == name {
+			return true
+		}
+	}
+	return false
 }
 
 func TestPluginRegistryAndExecution(t *testing.T) {
