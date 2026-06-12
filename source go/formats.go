@@ -27,6 +27,8 @@ func DetectFileType(data []byte, path string) string {
 		return "PE executable"
 	case len(data) >= 4 && string(data[:4]) == "\x7fELF":
 		return "ELF binary"
+	case looksLNK(data):
+		return "Windows shortcut"
 	case looksJavaClass(data):
 		return "Java class"
 	case hasMagic(data, []byte{0xfe, 0xed, 0xfa, 0xce}) || hasMagic(data, []byte{0xfe, 0xed, 0xfa, 0xcf}) ||
@@ -63,7 +65,12 @@ func DetectFileType(data []byte, path string) string {
 	case len(data) >= 8 && string(data[:4]) == "dex\n" && data[7] == 0x00:
 		return "DEX bytecode"
 	case len(data) >= 2 && data[0] == '#' && data[1] == '!':
+		if t := scriptHint(data, path); t != "" {
+			return t
+		}
 		return "script/text"
+	case scriptHint(data, path) != "" && (looksText(data) || looksUTF16Text(data) || len(data) == 0):
+		return scriptHint(data, path)
 	case looksText(data):
 		return "text"
 	default:
@@ -89,7 +96,12 @@ func AnalyzeFormats(result *ScanResult, cfg Config, data []byte, debugf debugLog
 		return analyzeZIP(result, cfg, debugf)
 	case "ZIP container", "JAR package", "Office Open XML document":
 		return analyzeZIP(result, cfg, debugf)
+	case "Windows shortcut":
+		return analyzeLNK(result, cfg, data)
 	default:
+		if isScriptType(result.FileType) {
+			return analyzeScript(result, cfg, data)
+		}
 		if strings.Contains(result.FileType, "compressed") || strings.Contains(result.FileType, "archive") {
 			AddFinding(result, "Info", "Container", "Compressed or archived content", result.FileType+" detected; only ZIP-family containers are recursively inspected", 0, 0)
 		}
@@ -314,26 +326,87 @@ func analyzeELF(result *ScanResult, cfg Config) error {
 		sort.Strings(names)
 		info.Imports = limitStrings(names, importLimitForMode(cfg.Mode))
 	}
+	hasSymbols := false
+	hasDynamic := false
+	hasInterp := false
+	maxExecEntropy := 0.0
 	for _, section := range file.Sections {
+		switch section.Name {
+		case ".symtab":
+			hasSymbols = true
+		case ".dynamic", ".dynsym":
+			hasDynamic = true
+		case ".interp":
+			hasInterp = true
+		}
 		if section.Size == 0 {
 			continue
 		}
 		data, _ := section.Data()
+		entropy := ShannonEntropy(data)
+		executable := section.Flags&elf.SHF_EXECINSTR != 0
 		info.Sections = append(info.Sections, SectionInfo{
 			Name:       section.Name,
 			Virtual:    uint32(section.Addr),
 			RawOffset:  uint32(section.Offset),
 			RawSize:    uint32(section.Size),
-			Entropy:    ShannonEntropy(data),
-			Executable: section.Flags&elf.SHF_EXECINSTR != 0,
+			Entropy:    entropy,
+			Executable: executable,
 			Writable:   section.Flags&elf.SHF_WRITE != 0,
 		})
+		if executable && entropy > maxExecEntropy {
+			maxExecEntropy = entropy
+		}
 		if section.Flags&elf.SHF_EXECINSTR != 0 && section.Flags&elf.SHF_WRITE != 0 {
 			AddFinding(result, "Medium", "ELF", "Writable and executable ELF section", section.Name, 10, int64(section.Offset))
 		}
 	}
 	result.ELF = info
+
+	analyzeELFPosture(result, file, hasSymbols, hasDynamic, hasInterp, maxExecEntropy)
 	return nil
+}
+
+// analyzeELFPosture adds behavioral / evasion-posture findings that work even
+// when an ELF is stripped and statically linked (the common Linux-bot shape
+// where ImportedSymbols and WX-section checks find nothing). Findings are kept
+// individually modest because static Go/busybox binaries share some of these
+// traits; only their co-occurrence raises the aggregate score.
+func analyzeELFPosture(result *ScanResult, file *elf.File, hasSymbols, hasDynamic, hasInterp bool, maxExecEntropy float64) {
+	static := !hasDynamic && !hasInterp
+	stripped := !hasSymbols
+
+	if static && stripped && file.Type == elf.ET_EXEC {
+		AddFindingDetailed(result, "Medium", "ELF Posture",
+			"Statically linked and stripped ELF",
+			"the executable is statically linked and has no symbol table — a portability/anti-analysis posture typical of Linux IoT/bot malware",
+			14, 0,
+			"Defense Evasion", "Obfuscated Files or Information (T1027)",
+			"Stripped static binaries resist quick triage; disassemble the entry point and capture dynamic behavior in an instrumented sandbox.")
+	}
+
+	// Legacy 32-bit / embedded architectures are the dominant IoT-malware
+	// targets (Mirai/Gafgyt cross-compile for these). Informational on its own.
+	switch file.Machine {
+	case elf.EM_386, elf.EM_ARM, elf.EM_MIPS, elf.EM_MIPS_RS3_LE, elf.EM_SPARC, elf.EM_PPC, elf.EM_SH:
+		if file.Type == elf.ET_EXEC && static {
+			AddFindingDetailed(result, "Low", "ELF Posture",
+				"Statically linked binary for a legacy/embedded architecture",
+				"architecture "+file.Machine.String()+" with static linking matches the cross-compiled IoT-malware profile",
+				4, 0,
+				"Execution", "Native API (T1106)",
+				"Correlate the architecture with the targeted device class; IoT bots ship many per-arch builds.")
+		}
+	}
+
+	if maxExecEntropy >= 7.0 {
+		AddFindingDetailed(result, "High", "Packing",
+			"High-entropy ELF code section",
+			fmt.Sprintf("an executable section has entropy %.2f/8.00 — likely packed or encrypted code", maxExecEntropy),
+			18, 0,
+			"Defense Evasion", "Obfuscated Files or Information: Software Packing (T1027.002)",
+			"Unpack the ELF (e.g. UPX -d or a memory dump) before static analysis.")
+	}
 }
 
 func analyzeMachO(result *ScanResult, cfg Config) error {
@@ -800,4 +873,40 @@ func looksText(data []byte) bool {
 		}
 	}
 	return float64(printable)/float64(check) >= 0.90
+}
+
+// looksUTF16Text reports whether data is UTF-16 (LE or BE) text — a BOM, or a
+// strong pattern of ASCII bytes interleaved with NULs. Malicious scripts
+// (PowerShell/JScript droppers) are frequently saved as UTF-16, which defeats
+// the ASCII-only looksText check and the raw-string token matching.
+func looksUTF16Text(data []byte) bool {
+	if len(data) >= 2 {
+		if (data[0] == 0xFF && data[1] == 0xFE) || (data[0] == 0xFE && data[1] == 0xFF) {
+			return true
+		}
+	}
+	check := len(data)
+	if check > 4096 {
+		check = 4096
+	}
+	if check < 16 {
+		return false
+	}
+	// UTF-16LE ASCII text: even bytes printable, odd bytes NUL (and vice-versa
+	// for BE). Sample both phases and require a strong match in one.
+	le, be, pairs := 0, 0, 0
+	for i := 0; i+1 < check; i += 2 {
+		pairs++
+		lo, hi := data[i], data[i+1]
+		if hi == 0x00 && (lo == '\n' || lo == '\r' || lo == '\t' || (lo >= 0x20 && lo <= 0x7e)) {
+			le++
+		}
+		if lo == 0x00 && (hi == '\n' || hi == '\r' || hi == '\t' || (hi >= 0x20 && hi <= 0x7e)) {
+			be++
+		}
+	}
+	if pairs == 0 {
+		return false
+	}
+	return float64(le)/float64(pairs) >= 0.85 || float64(be)/float64(pairs) >= 0.85
 }

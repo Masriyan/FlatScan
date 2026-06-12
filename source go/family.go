@@ -80,6 +80,12 @@ func ClassifyMalwareFamiliesWithCorpus(result *ScanResult, stringsFound []Extrac
 		add("Packed or bundled payload", "dropper", "Medium", 55, fmt.Sprintf("%d carved artifacts", len(result.CarvedArtifacts)))
 	}
 
+	// Named-family fingerprints (multi-signal). Scored above the generic buckets
+	// so a confirmed RedLine/Lumma/AsyncRAT/... becomes the headline hypothesis.
+	for _, named := range matchNamedFamilies(corpus) {
+		add(named.Family, named.Category, named.Confidence, named.Score, named.Evidence...)
+	}
+
 	sort.SliceStable(matches, func(i, j int) bool {
 		if matches[i].Score == matches[j].Score {
 			return matches[i].Family < matches[j].Family

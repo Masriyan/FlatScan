@@ -142,8 +142,13 @@ func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedStrin
 	if hasAny(corpus, "your files have been encrypted", "decrypt your files", "recover your files", "bitcoin", "monero", ".onion") && hasAny(corpus, "encrypt", "decrypt", "ransom", ".locked", ".encrypted") {
 		AddFinding(result, "High", "Ransomware", "Ransomware-style strings", "encryption, payment, recovery, or onion-service terms are present", 24, 0)
 	}
-	if hasAny(corpus, "lsass", "sekurlsa", "logonpasswords", "samlib.dll", "ntds.dit", "dpapi", "browsercookies", "wallet.dat") {
-		AddFindingDetailed(result, "High", "Credential Access", "Credential or wallet theft indicator", "credential store, LSASS, DPAPI, browser, or wallet strings are present", 22, 0, "Credential Access", "OS Credential Dumping (T1003)", "Collect host triage for credential access artifacts and rotate credentials exposed on affected endpoints.")
+	// Cryptocurrency wallet-file targeting is a distinct, specific signal (kept
+	// as a single indicator). General OS-credential-dumping and browser-credential
+	// theft are now handled by the multi-evidence correlation engine
+	// (correlation.go / RunCorrelationClusters) so a lone "lsass"/"sam" string no
+	// longer yields a high-confidence Credential Access finding.
+	if hasAny(corpus, "wallet.dat", "\\wallet\\", "electrum", "exodus\\", "metamask", "ledgerlive", "atomic\\wallet") {
+		AddFinding(result, "Medium", "Credential Access", "Cryptocurrency wallet file targeting", "references to wallet files or wallet applications are present", 14, 0)
 	}
 	if hasAny(corpus, "\"encrypted_key\"", "encrypted_key", "decryptwithkey", "unable to decrypt") && hasAny(corpus, "bcryptdecrypt", "cryptunprotectdata", "dpapi", "decrypt") {
 		AddFindingDetailed(result, "High", "Credential Access", "Chromium credential decryption workflow", "encrypted_key and Windows crypto/decrypt routines are referenced", 26, 0, "Credential Access", "Credentials from Web Browsers (T1555.003)", "Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry.")

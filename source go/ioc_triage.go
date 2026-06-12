@@ -33,6 +33,10 @@ func ApplyIOCTriage(result *ScanResult, cfg Config, debugf debugLogger) {
 	if before != after {
 		debugf("ioc triage retained %d of %d top-level indicators", after, before)
 	}
+	// Categorize the retained indicators (actionable vs build-artifact / source
+	// path / namespace / benign infra) so exports stay trustworthy and analysts
+	// get per-IOC context. Additive — the flat slices are unchanged.
+	ClassifyIOCSet(&result.IOCs)
 }
 
 func TriageIOCSet(iocs IOCSet, allowlist IOCAllowlist, debugf debugLogger) IOCSet {
@@ -134,6 +138,26 @@ func defaultIOCAllowlist() IOCAllowlist {
 			"purl.org",
 			"dublincore.org",
 			"www.iana.org",
+			// .NET/Java namespace fragments the domain regex misreads as
+			// hostnames (e.g. "System.Net", "System.IO") because .net/.io are
+			// TLDs. These are code references, not infrastructure.
+			"system.net",
+			"system.io",
+			"system.web",
+			"system.data",
+			"system.text",
+			"system.xml",
+			"system.core",
+			"system.linq",
+			"system.drawing",
+			"system.runtime",
+			"system.security",
+			"system.threading",
+			"system.reflection",
+			"system.diagnostics",
+			"system.management",
+			"system.collections",
+			"system.componentmodel",
 		},
 		URLPrefixes: []string{
 			"http://schemas.microsoft.com/appx/",

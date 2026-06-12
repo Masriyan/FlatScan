@@ -11,6 +11,13 @@ import (
 var (
 	base64CandidateRe = regexp.MustCompile(`(?:[A-Za-z0-9+/]{16,}={0,2}|[A-Za-z0-9_-]{16,}={0,2})`)
 	hexCandidateRe    = regexp.MustCompile(`(?i)\b(?:0x)?[a-f0-9]{16,}\b`)
+	// delimitedHexRe matches a run of hex byte-pairs each separated by a single
+	// non-hex, non-space punctuation byte — e.g. "70}6f}77h65g72". This custom
+	// separator-delimited hex scheme is a common second-stage PowerShell/script
+	// obfuscation layer (the live .ps1 sample decoded a Defender-tampering
+	// command this way) that plain hexCandidateRe cannot see.
+	delimitedHexRe = regexp.MustCompile(`(?:[0-9a-fA-F]{2}[^0-9a-fA-F\s]){8,}[0-9a-fA-F]{2}`)
+	nonHexRe       = regexp.MustCompile(`[^0-9a-fA-F]`)
 )
 
 type decodeJob struct {
@@ -73,6 +80,41 @@ func DecodeSuspiciousStrings(stringsFound []ExtractedString, cfg Config) []Decod
 	return artifacts
 }
 
+// decodeAllLayers recursively deobfuscates text and returns every distinct,
+// mostly-printable decoded layer (base64/hex/delimited-hex/url) down to maxDepth.
+// Used by the script and LNK analyzers to follow multi-stage encoding chains.
+func decodeAllLayers(text string, maxDepth int) []string {
+	if maxDepth <= 0 {
+		maxDepth = 2
+	}
+	const maxLayers = 64
+	var out []string
+	seen := make(map[string]struct{})
+	queue := []decodeJob{{Text: text, Depth: 0}}
+	for len(queue) > 0 && len(out) < maxLayers {
+		job := queue[0]
+		queue = queue[1:]
+		for _, decoded := range decodeText(job.Text) {
+			if len(decoded.Value) < 4 || !isMostlyPrintable(decoded.Value) {
+				continue
+			}
+			key := decoded.Value
+			if len(key) > 160 {
+				key = key[:160]
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			out = append(out, decoded.Value)
+			if job.Depth+1 < maxDepth && looksEncoded(decoded.Value) {
+				queue = append(queue, decodeJob{Text: decoded.Value, Depth: job.Depth + 1})
+			}
+		}
+	}
+	return out
+}
+
 type decodedValue struct {
 	Encoding string
 	Value    string
@@ -101,7 +143,32 @@ func decodeText(text string) []decodedValue {
 			out = append(out, decodedValue{Encoding: "hex", Value: string(decoded)})
 		}
 	}
+
+	for _, candidate := range delimitedHexRe.FindAllString(text, -1) {
+		stripped := nonHexRe.ReplaceAllString(candidate, "")
+		if len(stripped) < 16 {
+			continue
+		}
+		if len(stripped)%2 != 0 {
+			stripped = stripped[:len(stripped)-1]
+		}
+		if decoded, err := hex.DecodeString(stripped); err == nil {
+			out = append(out, decodedValue{Encoding: "delimited-hex", Value: string(decoded)})
+		}
+	}
 	return out
+}
+
+// reverseString returns the rune-reversed form of s. Malicious scripts and LNK
+// command lines frequently store URLs/commands reversed (e.g. PowerShell's
+// "-join $a[$a.Length..0]") so the literal evades plain string/IOC matching;
+// reversing the whole buffer re-orients any such substring for extraction.
+func reverseString(s string) string {
+	runes := []rune(s)
+	for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {
+		runes[i], runes[j] = runes[j], runes[i]
+	}
+	return string(runes)
 }
 
 func tryBase64(candidate string) ([]byte, bool) {
@@ -136,7 +203,8 @@ func looksEncoded(value string) bool {
 	}
 	return strings.Contains(value, "%") ||
 		base64CandidateRe.MatchString(value) ||
-		hexCandidateRe.MatchString(value)
+		hexCandidateRe.MatchString(value) ||
+		delimitedHexRe.MatchString(value)
 }
 
 func isMostlyPrintable(value string) bool {

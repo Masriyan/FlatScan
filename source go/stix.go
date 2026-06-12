@@ -128,6 +128,11 @@ func buildSTIXBundle(result ScanResult) stixBundle {
 	now := time.Now().UTC().Format(time.RFC3339)
 	bundleID := stixID("bundle", result.Hashes.SHA256)
 
+	// Emit only actionable indicators — drop build-artifact / source-path /
+	// namespace noise so the threat-intel bundle is not polluted with code
+	// references misread as infrastructure. (result is a by-value copy.)
+	result.IOCs = actionableIOCs(result.IOCs)
+
 	var objects []interface{}
 
 	// 1. File SCO (observable)

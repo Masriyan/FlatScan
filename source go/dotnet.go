@@ -93,6 +93,55 @@ func AnalyzeDotNet(result *ScanResult, corpus string) {
 			"Inspect the P/Invoke signatures and any shellcode buffers; managed code calling VirtualAlloc/WriteProcessMemory/CreateRemoteThread is a strong injection signal.")
 	}
 
+	// Managed downloader that runs its payload: HTTP client classes combined
+	// with Process.Start / ProcessStartInfo. A reflective loader stages in
+	// memory (handled above); this catches the simpler download-to-disk-and-run
+	// dropper, which has almost no native imports and previously scored on
+	// packing alone (the 8436… sample: HttpWebRequest + ProcessStartInfo).
+	managedDownload := hasAny(corpus, "httpwebrequest", "webclient", "downloadstring",
+		"downloaddata", "downloadfile", "httpclient", "system.net.http", "webrequest.create")
+	managedExec := hasAny(corpus, "processstartinfo", "process.start", "diagnostics.process",
+		"shellexecute", "useshellexecute")
+	if managedDownload && managedExec {
+		AddFindingDetailed(result, "High", "Loader",
+			"Managed downloader with process execution",
+			"a .NET binary combines HTTP download classes with Process.Start/ProcessStartInfo — a download-and-run dropper pattern",
+			22, 0,
+			"Command and Control", "Ingress Tool Transfer (T1105)",
+			"Recover the download URL and the executed payload; treat this as a first-stage dropper and hunt for the staged second stage.")
+	}
+	if hasAny(corpus, "processwindowstyle") && hasAny(corpus, "hidden") && managedExec {
+		AddFindingDetailed(result, "Medium", "Execution",
+			"Hidden-window child process",
+			"a .NET binary launches a process with a hidden window (ProcessWindowStyle.Hidden) — common for silent payload execution",
+			12, 0,
+			"Defense Evasion", "Hide Artifacts (T1564)",
+			"Inspect the command line of the hidden child process in process-creation telemetry.")
+	}
+
+	// In-memory assembly load from a Base64/byte-array blob: the managed
+	// equivalent of shellcode staging.
+	if hasAny(corpus, "convert.frombase64string", "frombase64string") &&
+		hasAny(corpus, "assembly.load", "appdomain", "activator.createinstance", "invokemember", "getmethod") {
+		AddFindingDetailed(result, "High", "Loader",
+			"Base64-decoded in-memory assembly load",
+			"a .NET binary decodes a Base64 blob and loads/invokes it via reflection — reflective code loading",
+			20, 0,
+			"Defense Evasion", "Reflective Code Loading (T1620)",
+			"Dump and analyze the decoded assembly; the Base64 blob is the packed second stage.")
+	}
+
+	// Managed Run-key persistence.
+	if hasAny(corpus, "registrykey", "microsoft.win32.registry", "registry.setvalue", "registry.currentuser") &&
+		hasAny(corpus, "currentversion\\run", "\\run", "startup") {
+		AddFindingDetailed(result, "Medium", "Persistence",
+			"Managed Registry Run-key persistence",
+			"a .NET binary writes a Run key / startup entry via the Registry classes",
+			14, 0,
+			"Persistence", "Registry Run Keys / Startup Folder (T1547.001)",
+			"Inspect Run keys and startup folders on affected hosts.")
+	}
+
 	// .NET obfuscator / protector fingerprint — the managed equivalent of the
 	// native packer marker.
 	for _, obf := range dotNetObfuscators {

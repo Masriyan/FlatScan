@@ -133,8 +133,11 @@ func RunBatchScan(cfg Config) error {
 				SHA256:   result.Hashes.SHA256,
 				Duration: result.Duration,
 				Findings: len(result.Findings),
-				IOCs:     IOCCount(result.IOCs),
-				Size:     result.Size,
+				// Report the actionable IOC count (build-artifact / source-path /
+				// namespace noise excluded) so the triage column reflects
+				// operational indicators, not registry/PKI/library artifacts.
+				IOCs: IOCCount(actionableIOCs(result.IOCs)),
+				Size: result.Size,
 			}
 			if useColor {
 				fmt.Fprintf(os.Stderr, "  %s %s score=%s findings=%d\n",

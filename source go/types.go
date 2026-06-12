@@ -17,6 +17,13 @@ type Finding struct {
 	Tactic         string `json:"tactic,omitempty"`
 	Technique      string `json:"technique,omitempty"`
 	Recommendation string `json:"recommendation,omitempty"`
+	// Confidence (0–100) and EvidenceCount express how well-corroborated a
+	// finding is. A finding backed by a single generic string carries low
+	// confidence; one backed by a multi-signal evidence cluster (v3 Task 2)
+	// carries high confidence. Defaults derive from severity; correlated
+	// findings set them explicitly. See correlation.go.
+	Confidence    int `json:"confidence,omitempty"`
+	EvidenceCount int `json:"evidence_count,omitempty"`
 }
 
 type IOCSet struct {
@@ -41,6 +48,24 @@ type IOCSet struct {
 	SuppressedCount   int              `json:"suppressed_count,omitempty"`
 	SuppressionReason string           `json:"suppression_reason,omitempty"`
 	SuppressionLog    []IOCSuppression `json:"suppression_log,omitempty"`
+	// Classified is an additive, per-value categorization of the extracted
+	// indicators (actionable IOC vs. build artifact / source path / namespace /
+	// benign infrastructure), with a confidence weight and context note. The
+	// flat slices above are retained unchanged for backward compatibility;
+	// Classified drives export hygiene and analyst context. See ioc_classify.go.
+	Classified []ClassifiedIOC `json:"classified,omitempty"`
+}
+
+// ClassifiedIOC tags one extracted indicator with a category, a 0–100 confidence
+// weight, and a short human context. Categories: ioc, suspicious-infra,
+// benign-infra, build-artifact, compiler-runtime-metadata, source-path,
+// package-namespace.
+type ClassifiedIOC struct {
+	Type       string `json:"type"`
+	Value      string `json:"value"`
+	Category   string `json:"category"`
+	Confidence int    `json:"confidence"`
+	Context    string `json:"context,omitempty"`
 }
 
 type PEHashIOC struct {
@@ -103,7 +128,36 @@ type AnalysisProfile struct {
 	RecommendedActions  []string          `json:"recommended_actions,omitempty"`
 	TTPs                []TTPEntry        `json:"ttps,omitempty"`
 	CryptoIndicators    []CryptoIndicator `json:"crypto_indicators,omitempty"`
+	ExpectedBehavior    []string          `json:"expected_behavior,omitempty"`
 	ExecutiveAssessment string            `json:"executive_assessment,omitempty"`
+}
+
+// MalwareConfig holds structured configuration fields recovered from a sample
+// (v3 Task 6) — the high-value primitives an analyst pivots on. Populated by the
+// config-extractor framework (config_family.go), keyed to the detected family
+// where one is identified.
+type MalwareConfig struct {
+	Family     string   `json:"family,omitempty"`
+	C2         []string `json:"c2,omitempty"`
+	Mutexes    []string `json:"mutexes,omitempty"`
+	BotTokens  []string `json:"bot_tokens,omitempty"`
+	Webhooks   []string `json:"webhooks,omitempty"`
+	Wallets    []string `json:"wallets,omitempty"`
+	CampaignID []string `json:"campaign_id,omitempty"`
+	BuildID    []string `json:"build_id,omitempty"`
+	Version    []string `json:"version,omitempty"`
+}
+
+// EnrichmentMatch records a hit of one of the sample's indicators against the
+// optional offline threat-intel database (v3 Task 6, --intel-db).
+type EnrichmentMatch struct {
+	Indicator string   `json:"indicator"`
+	Type      string   `json:"type"`
+	Family    string   `json:"family,omitempty"`
+	Campaign  string   `json:"campaign,omitempty"`
+	FirstSeen string   `json:"first_seen,omitempty"`
+	Related   []string `json:"related,omitempty"`
+	Note      string   `json:"note,omitempty"`
 }
 
 type EntropyRegion struct {
@@ -159,6 +213,22 @@ type ELFInfo struct {
 	Type     string        `json:"type,omitempty"`
 	Imports  []string      `json:"imports,omitempty"`
 	Sections []SectionInfo `json:"sections,omitempty"`
+}
+
+// CodeInfo records the result of the instruction-level disassembly pass
+// (disasm.go) — the analysis layer beneath the string corpus that sees
+// techniques (API hashing, PEB walks, shellcode stubs, anti-VM) which leave no
+// cleartext string behind.
+type CodeInfo struct {
+	Arch                string   `json:"arch,omitempty"`
+	EntryOffset         int64    `json:"entry_offset,omitempty"`
+	InstructionsDecoded int      `json:"instructions_decoded,omitempty"`
+	DecodeErrors        int      `json:"decode_errors,omitempty"`
+	IndirectCalls       int      `json:"indirect_calls,omitempty"`
+	IndirectJumps       int      `json:"indirect_jumps,omitempty"`
+	Techniques          []string `json:"techniques,omitempty"`
+	EntryDisasm         []string `json:"entry_disasm,omitempty"`
+	ResolvedHashedAPIs  []string `json:"resolved_hashed_apis,omitempty"`
 }
 
 type MachOInfo struct {
@@ -313,14 +383,25 @@ type CryptoConfigSummary struct {
 }
 
 type SimilarityInfo struct {
-	FlatHash           string `json:"flat_hash,omitempty"`
-	ByteHistogramHash  string `json:"byte_histogram_hash,omitempty"`
-	StringSetHash      string `json:"string_set_hash,omitempty"`
-	ImportHash         string `json:"import_hash,omitempty"`
-	SectionHash        string `json:"section_hash,omitempty"`
-	DEXStringHash      string `json:"dex_string_hash,omitempty"`
-	ArchiveContentHash string `json:"archive_content_hash,omitempty"`
-	RichHeaderHash     string `json:"rich_header_hash,omitempty"`
+	FlatHash           string            `json:"flat_hash,omitempty"`
+	ByteHistogramHash  string            `json:"byte_histogram_hash,omitempty"`
+	StringSetHash      string            `json:"string_set_hash,omitempty"`
+	ImportHash         string            `json:"import_hash,omitempty"`
+	SectionHash        string            `json:"section_hash,omitempty"`
+	DEXStringHash      string            `json:"dex_string_hash,omitempty"`
+	ArchiveContentHash string            `json:"archive_content_hash,omitempty"`
+	RichHeaderHash     string            `json:"rich_header_hash,omitempty"`
+	Matches            []SimilarityMatch `json:"matches,omitempty"`
+}
+
+// SimilarityMatch is a ranked match of the current sample against a record in
+// the reference similarity store (v3 Task 4): a percent similarity and the
+// hash dimensions that contributed.
+type SimilarityMatch struct {
+	Label             string   `json:"label"`
+	Similarity        int      `json:"similarity"`
+	MatchedDimensions []string `json:"matched_dimensions,omitempty"`
+	SHA256            string   `json:"sha256,omitempty"`
 }
 
 // DGADomain records a domain that lexical analysis flags as likely
@@ -392,6 +473,9 @@ type ScanResult struct {
 	PE                 *PEInfo              `json:"pe,omitempty"`
 	ELF                *ELFInfo             `json:"elf,omitempty"`
 	MachO              *MachOInfo           `json:"macho,omitempty"`
+	Code               *CodeInfo            `json:"code,omitempty"`
+	MalwareConfig      *MalwareConfig       `json:"malware_config,omitempty"`
+	Enrichment         []EnrichmentMatch    `json:"enrichment,omitempty"`
 	Findings           []Finding            `json:"findings,omitempty"`
 	Profile            AnalysisProfile      `json:"profile"`
 	RiskScore          int                  `json:"risk_score"`

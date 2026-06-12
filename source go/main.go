@@ -23,7 +23,7 @@ func stderrColorEnabled() bool {
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-const defaultVersion = "0.7.0"
+const defaultVersion = "0.9.0"
 
 // version can be overridden at build time via:
 //   go build -ldflags "-X main.version=1.0.0" .
@@ -46,6 +46,8 @@ type Config struct {
 	RulePaths        string
 	PluginPaths      string
 	IOCAllowlistPath string
+	SimilarityDBPath string
+	IntelDBPath      string
 	CaseID           string
 	CaseDBPath       string
 	Debug            bool
@@ -312,6 +314,8 @@ func parseFlags(args []string) (Config, error) {
 	fs.StringVar(&cfg.RulePaths, "rules", "", "")
 	fs.StringVar(&cfg.PluginPaths, "plugins", "", "")
 	fs.StringVar(&cfg.IOCAllowlistPath, "ioc-allowlist", "", "")
+	fs.StringVar(&cfg.SimilarityDBPath, "similarity-db", "", "")
+	fs.StringVar(&cfg.IntelDBPath, "intel-db", "", "")
 	fs.StringVar(&cfg.CaseID, "case", "", "")
 	fs.StringVar(&cfg.CaseDBPath, "case-db", "", "")
 	fs.BoolVar(&cfg.Debug, "debug", false, "")
@@ -507,6 +511,8 @@ func printGroupedHelp() {
 	line(fmt.Sprintf("  %s  comma-separated plugin pack files/dirs", flag_("--plugins <paths>")))
 	line(fmt.Sprintf("  %s  run optional external metadata tools", flag_("--external-tools")))
 	line(fmt.Sprintf("  %s  suppress infrastructure IOCs", flag_("--ioc-allowlist <path>")))
+	line(fmt.Sprintf("  %s  JSONL reference store for similarity matching", flag_("--similarity-db <path>")))
+	line(fmt.Sprintf("  %s  JSONL offline threat-intel enrichment database", flag_("--intel-db <path>")))
 	line("")
 	line(head("CI/CD"))
 	line(fmt.Sprintf("  %s  CI mode: suppress UI, exit 10 if score >= threshold", flag_("--ci")))

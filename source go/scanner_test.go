@@ -598,7 +598,13 @@ func TestScanFileParallelPipelineRaceFree(t *testing.T) {
 		t.Fatalf("ScanFile() second error = %v", err)
 	}
 
-	if first.Similarity != second.Similarity {
+	// SimilarityInfo now carries a Matches slice, so it is no longer directly
+	// comparable with !=; compare the deterministic hash dimensions instead.
+	if first.Similarity.FlatHash != second.Similarity.FlatHash ||
+		first.Similarity.ByteHistogramHash != second.Similarity.ByteHistogramHash ||
+		first.Similarity.StringSetHash != second.Similarity.StringSetHash ||
+		first.Similarity.ImportHash != second.Similarity.ImportHash ||
+		first.Similarity.SectionHash != second.Similarity.SectionHash {
 		t.Fatalf("similarity info not deterministic:\n first=%#v\nsecond=%#v", first.Similarity, second.Similarity)
 	}
 	// The carver and similarity stages both record a plugin result from

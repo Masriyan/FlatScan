@@ -162,6 +162,12 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		debugf("format parser error: %v", err)
 	}
 
+	// Instruction-level disassembly pass — the code-level analysis layer beneath
+	// the string corpus (API hashing, PEB walks, shellcode stubs, anti-VM, and
+	// hash-database import resolution). Runs after format analysis so the entry
+	// point/sections are known; self-gated to standard/deep modes.
+	AnalyzeCode(&result, cfg, data)
+
 	// Carving and similarity hashing are independent of each other: each
 	// only reads the now-complete format output plus the immutable data and
 	// strings inputs, and each writes a disjoint set of result fields. Their
@@ -177,6 +183,15 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		},
 	)
 
+	// Rank the sample against the optional reference similarity store
+	// (--similarity-db). Runs after BuildSimilarityInfo, which produces the
+	// hashes it compares.
+	if refs, err := LoadSimilarityRefs(cfg.SimilarityDBPath); err != nil {
+		debugf("similarity store load failed: %v", err)
+	} else {
+		MatchSimilarity(&result, refs, debugf)
+	}
+
 	// Crypto/config extraction reads result.IOCs, including the PE-hash IOCs
 	// added by PromoteCarvedPayloadIOCs above, so it runs after the parallel
 	// group rather than concurrently with it.
@@ -187,6 +202,15 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	// hypotheses can react to the findings it adds.
 	AnalyzeDotNet(&result, corpus)
 
+	// Multi-evidence correlation: serious capability findings (credential
+	// dumping, browser theft, keylogging) require corroborating evidence groups
+	// and carry an evidence count + confidence, instead of firing on one string.
+	RunCorrelationClusters(&result, corpus)
+
+	// CAPA-style capability rules over the full feature set (strings, imports
+	// incl. hashdb-resolved, disasm techniques, IOC categories) -> ATT&CK.
+	RunCapabilityRules(&result, corpus)
+
 	progress.Set(88, "running rules and classification")
 
 	// Sequential group: stages that depend on format analysis results
@@ -196,6 +220,16 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	ApplyIOCTriage(&result, cfg, debugf)
 	ClassifyMalwareFamiliesWithCorpus(&result, extracted, corpus)
 	AnalyzeDGADomains(&result)
+
+	// Recover structured operator config (C2/mutex/token/webhook/campaign), then
+	// enrich against the optional offline threat-intel database. Both run after
+	// family classification + IOC triage so they reuse the final IOC set.
+	ExtractMalwareConfig(&result, corpus)
+	if records, err := LoadIntelDB(cfg.IntelDBPath); err != nil {
+		debugf("intel db load failed: %v", err)
+	} else {
+		EnrichFromIntel(&result, records, debugf)
+	}
 
 	progress.Set(90, "running analysis plugins")
 	RunRegisteredPlugins(&result, data, extracted, corpus, cfg, debugf)
@@ -215,6 +249,11 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	AssessResearchArtifact(&result, corpus)
 	FinalizeRisk(&result)
 	EnrichAnalysisProfileWithCorpus(&result, extracted, corpus)
+
+	// Predict expected runtime behavior from the finalized static evidence so
+	// analysts have a sandbox/EDR validation checklist. Runs last — after all
+	// findings exist.
+	PredictExpectedBehavior(&result)
 
 	// Promote captured log entries to the result's debug log.
 	if cfg.Debug {
@@ -308,17 +347,7 @@ func AddFindingDetailed(result *ScanResult, severity, category, title, evidence 
 	if score == 0 && severity != "Info" {
 		score = DefaultSeverityScore(severity)
 	}
-
-	// Package-level mutex protects concurrent finding append from parallelRun.
-	findingsMu.Lock()
-	defer findingsMu.Unlock()
-
-	for _, existing := range result.Findings {
-		if existing.Title == title && existing.Evidence == evidence {
-			return
-		}
-	}
-	result.Findings = append(result.Findings, Finding{
+	addFindingStruct(result, Finding{
 		Severity:       severity,
 		Category:       category,
 		Title:          title,
@@ -328,7 +357,48 @@ func AddFindingDetailed(result *ScanResult, severity, category, title, evidence 
 		Tactic:         tactic,
 		Technique:      technique,
 		Recommendation: recommendation,
+		Confidence:     DefaultSeverityConfidence(severity),
+		EvidenceCount:  1,
 	})
+}
+
+// AddCorrelatedFinding records a finding whose confidence and evidence count
+// come from an evidence cluster (v3 Task 2) rather than from severity alone.
+func AddCorrelatedFinding(result *ScanResult, severity, category, title, evidence string, score int, offset int64, tactic, technique, recommendation string, evidenceCount, confidence int) {
+	if result == nil {
+		return
+	}
+	if score < 0 {
+		score = 0
+	}
+	if score == 0 && severity != "Info" {
+		score = DefaultSeverityScore(severity)
+	}
+	addFindingStruct(result, Finding{
+		Severity:       severity,
+		Category:       category,
+		Title:          title,
+		Evidence:       evidence,
+		Score:          score,
+		Offset:         offset,
+		Tactic:         tactic,
+		Technique:      technique,
+		Recommendation: recommendation,
+		Confidence:     confidence,
+		EvidenceCount:  evidenceCount,
+	})
+}
+
+// addFindingStruct appends a finding with title+evidence dedup, under the mutex.
+func addFindingStruct(result *ScanResult, f Finding) {
+	findingsMu.Lock()
+	defer findingsMu.Unlock()
+	for _, existing := range result.Findings {
+		if existing.Title == f.Title && existing.Evidence == f.Evidence {
+			return
+		}
+	}
+	result.Findings = append(result.Findings, f)
 }
 
 func FinalizeRisk(result *ScanResult) {
@@ -393,6 +463,26 @@ func DefaultSeverityScore(severity string) int {
 		return 3
 	default:
 		return 0
+	}
+}
+
+// DefaultSeverityConfidence is the baseline per-finding confidence when no
+// evidence-cluster count is supplied. Single-evidence findings sit mid-range;
+// correlated findings (AddCorrelatedFinding) override this with a computed value.
+func DefaultSeverityConfidence(severity string) int {
+	switch severity {
+	case "Critical":
+		return 85
+	case "High":
+		return 70
+	case "Medium":
+		return 55
+	case "Low":
+		return 40
+	case "Info":
+		return 30
+	default:
+		return 50
 	}
 }
 

@@ -45,6 +45,9 @@ func RenderYARARule(result ScanResult) string {
 	}
 
 	stringEntries := yaraStringEntries(result)
+	quality, fpRisk := yaraRuleQuality(result, stringEntries)
+	fmt.Fprintf(&b, "    rule_quality_score = %d\n", quality)
+	fmt.Fprintf(&b, "    expected_fp_risk = %s\n", yaraQuote(fpRisk))
 	if len(stringEntries) > 0 {
 		fmt.Fprintln(&b, "  strings:")
 		for _, entry := range stringEntries {
@@ -109,10 +112,10 @@ func yaraStringEntries(result ScanResult) []yaraStringEntry {
 		}
 	}
 
-	addGroup("url", filterYARAValues(result.IOCs.URLs, result), "ascii wide", 12)
-	addGroup("dom", filterYARAValues(result.IOCs.Domains, result), "ascii wide nocase", 12)
+	addGroup("url", filterYARAValues(yaraActionable("url", result.IOCs.URLs), result), "ascii wide", 12)
+	addGroup("dom", filterYARAValues(yaraActionable("domain", result.IOCs.Domains), result), "ascii wide nocase", 12)
 	addGroup("reg", result.IOCs.RegistryKeys, "ascii wide nocase", 8)
-	addGroup("path", append(append([]string{}, result.IOCs.WindowsPaths...), result.IOCs.UnixPaths...), "ascii wide nocase", 8)
+	addGroup("path", append(yaraActionable("windows_path", result.IOCs.WindowsPaths), yaraActionable("unix_path", result.IOCs.UnixPaths)...), "ascii wide nocase", 8)
 	addGroup("str", filterYARAValues(result.SuspiciousStrings, result), "ascii wide nocase", 24)
 	addGroup("entry", suspiciousArchiveEntryNames(result), "ascii", 16)
 	if result.MSIX != nil {
@@ -204,7 +207,47 @@ func filterYARAValues(values []string, result ScanResult) []string {
 		if isGenericFormatString(value) {
 			continue
 		}
+		if isCompilerOrLibraryString(value) {
+			continue // toolchain/runtime noise → high-FP YARA atoms
+		}
 		out = appendUnique(out, value)
+	}
+	return out
+}
+
+// isCompilerOrLibraryString flags toolchain/runtime/library strings that make
+// poor (high false-positive) YARA atoms — they appear in countless benign
+// binaries built with the same compiler/runtime.
+func isCompilerOrLibraryString(value string) bool {
+	lower := strings.ToLower(value)
+	markers := []string{
+		"gcc: (", "go build id", "go1.", "rustc", "clang version", "mingw",
+		"__cxa_", "_zn", "std::", "msvcrt", "vcruntime", "libstdc++", "libgcc",
+		"glibc_", "libc.so", "ld-linux", "operator new", "bad_alloc",
+		".cpp", ".rs\x00", "/rustc/", "cargo/registry", "go/pkg/mod",
+		"visual c++ runtime", "this program cannot be run", "ucrtbase",
+		"api-ms-win-", "kernelbase.dll", "mscoree.dll", ".pdb",
+	}
+	for _, m := range markers {
+		if strings.Contains(lower, m) {
+			return true
+		}
+	}
+	// Drop build-artifact / source-path / namespace values via the IOC classifier.
+	if !actionableIOCCategory(classifyIOCValue("unix_path", value).Category) {
+		return true
+	}
+	return false
+}
+
+// yaraActionable drops values the IOC classifier marks non-actionable (build
+// artifact / source path / namespace), so generated rules key on real IOCs.
+func yaraActionable(iocType string, values []string) []string {
+	out := make([]string, 0, len(values))
+	for _, v := range values {
+		if actionableIOCCategory(classifyIOCValue(iocType, v).Category) {
+			out = append(out, v)
+		}
 	}
 	return out
 }
@@ -295,6 +338,52 @@ func yaraEscape(value string) string {
 
 func yaraQuote(value string) string {
 	return `"` + yaraEscape(value) + `"`
+}
+
+// yaraRuleQuality scores the generated rule (0–100) and assigns an expected
+// false-positive risk. Quality rises with the number of unique, high-specificity
+// atoms (URLs, registry keys, mutex/path strings) and a strong file guard; it
+// falls when the rule rests on few or generic atoms.
+func yaraRuleQuality(result ScanResult, entries []yaraStringEntry) (int, string) {
+	groups := map[string]int{}
+	for _, e := range entries {
+		groups[e.Group]++
+	}
+	score := 0
+	score += minInt(groups["url"], 4) * 12  // URLs are high-specificity
+	score += minInt(groups["reg"], 3) * 8
+	score += minInt(groups["entry"], 4) * 8  // embedded payload names
+	score += minInt(groups["path"], 3) * 6
+	score += minInt(groups["dom"], 4) * 5
+	score += minInt(groups["str"], 6) * 3
+	if result.PE != nil && result.PE.ImportHash != "" {
+		score += 10 // imphash pin in meta
+	}
+	if result.FileType == "PE executable" || strings.Contains(result.FileType, "package") {
+		score += 8 // a real magic-byte file guard
+	}
+	if score > 100 {
+		score = 100
+	}
+	risk := "high"
+	switch {
+	case score >= 70:
+		risk = "low"
+	case score >= 40:
+		risk = "medium"
+	}
+	// A rule with only a couple of generic string atoms and no anchor is risky.
+	if len(entries) <= 2 && groups["url"] == 0 && groups["reg"] == 0 {
+		risk = "high"
+	}
+	return score, risk
+}
+
+func minInt(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 func minFloat(a, b float64) float64 {

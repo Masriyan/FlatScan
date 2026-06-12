@@ -59,6 +59,7 @@ func renderFullReport(result ScanResult) string {
 	writeIOCsFull(&b, result.IOCs)
 	writeDecodedFull(&b, result.DecodedArtifacts)
 	writeAdvancedDetails(&b, result)
+	writeConfigAndEnrichment(&b, result)
 	writeFormatDetails(&b, result)
 	writeArchiveEntries(&b, result.ArchiveEntries)
 	if len(result.SuspiciousStrings) > 0 {
@@ -70,6 +71,42 @@ func renderFullReport(result ScanResult) string {
 		writeList(&b, result.DebugLog, 0)
 	}
 	return b.String()
+}
+
+func writeConfigAndEnrichment(b *strings.Builder, result ScanResult) {
+	if cfg := result.MalwareConfig; cfg != nil {
+		fmt.Fprintln(b, "\nMalware configuration:")
+		if cfg.Family != "" {
+			fmt.Fprintf(b, "- Family: %s\n", cfg.Family)
+		}
+		writeCategorySummary(b, "C2", cfg.C2)
+		writeCategorySummary(b, "Webhooks", cfg.Webhooks)
+		writeCategorySummary(b, "Bot tokens", cfg.BotTokens)
+		writeCategorySummary(b, "Mutexes", cfg.Mutexes)
+		writeCategorySummary(b, "Wallets", cfg.Wallets)
+		writeCategorySummary(b, "Campaign IDs", cfg.CampaignID)
+		writeCategorySummary(b, "Build IDs", cfg.BuildID)
+		writeCategorySummary(b, "Versions", cfg.Version)
+	}
+	if len(result.Enrichment) > 0 {
+		fmt.Fprintln(b, "\nThreat-intel enrichment:")
+		for _, e := range result.Enrichment {
+			line := fmt.Sprintf("- [%s] %s", e.Type, e.Indicator)
+			if e.Family != "" {
+				line += " → " + e.Family
+			}
+			if e.Campaign != "" {
+				line += " / " + e.Campaign
+			}
+			if e.FirstSeen != "" {
+				line += " (first seen " + e.FirstSeen + ")"
+			}
+			fmt.Fprintln(b, line)
+			if e.Note != "" {
+				fmt.Fprintf(b, "    note: %s\n", e.Note)
+			}
+		}
+	}
 }
 
 func writeProfile(b *strings.Builder, result ScanResult) {
@@ -97,6 +134,12 @@ func writeProfile(b *strings.Builder, result ScanResult) {
 	}
 	if result.Profile.ExecutiveAssessment != "" {
 		fmt.Fprintf(b, "- Assessment: %s\n", result.Profile.ExecutiveAssessment)
+	}
+	if len(result.Profile.ExpectedBehavior) > 0 {
+		fmt.Fprintln(b, "- Expected behavior (validate in sandbox/EDR):")
+		for _, behavior := range result.Profile.ExpectedBehavior {
+			fmt.Fprintf(b, "    • %s\n", behavior)
+		}
 	}
 }
 
@@ -158,6 +201,12 @@ func writeFindings(b *strings.Builder, findings []Finding, limit int) {
 		if finding.Score > 0 {
 			fmt.Fprintf(b, " score=%d", finding.Score)
 		}
+		if finding.Confidence > 0 {
+			fmt.Fprintf(b, " confidence=%d", finding.Confidence)
+		}
+		if finding.EvidenceCount > 1 {
+			fmt.Fprintf(b, " evidence=%d", finding.EvidenceCount)
+		}
 		if finding.Offset > 0 {
 			fmt.Fprintf(b, " offset=0x%x", finding.Offset)
 		}
@@ -217,6 +266,32 @@ func writeIOCSummary(b *strings.Builder, iocs IOCSet) {
 	if iocs.SuppressedCount > 0 {
 		fmt.Fprintf(b, "- Suppressed as known-benign/contextual: %d\n", iocs.SuppressedCount)
 	}
+	if counts := nonActionableCategoryCounts(iocs.Classified); len(counts) > 0 {
+		fmt.Fprintf(b, "- Categorized as non-actionable (excluded from IOC/STIX export): %s\n", counts)
+	}
+}
+
+// nonActionableCategoryCounts summarizes how many classified indicators fell
+// into each non-actionable category (build artifact / source path / namespace /
+// compiler metadata), for analyst transparency in the report.
+func nonActionableCategoryCounts(classified []ClassifiedIOC) string {
+	counts := map[string]int{}
+	for _, c := range classified {
+		if !actionableIOCCategory(c.Category) {
+			counts[c.Category]++
+		}
+	}
+	if len(counts) == 0 {
+		return ""
+	}
+	order := []string{iocCatBuildArtifact, iocCatCompilerMeta, iocCatSourcePath, iocCatNamespace}
+	var parts []string
+	for _, cat := range order {
+		if n := counts[cat]; n > 0 {
+			parts = append(parts, fmt.Sprintf("%s=%d", cat, n))
+		}
+	}
+	return strings.Join(parts, " ")
 }
 
 func writeCategorySummary(b *strings.Builder, name string, values []string) {
@@ -587,6 +662,26 @@ func writeFormatDetails(b *strings.Builder, result ScanResult) {
 			writeList(b, result.MachO.Imports, 80)
 		}
 	}
+	if result.Code != nil {
+		c := result.Code
+		fmt.Fprintln(b, "\nCode analysis (disassembly):")
+		fmt.Fprintf(b, "- Arch: %s\n", c.Arch)
+		fmt.Fprintf(b, "- Entry offset: 0x%x\n", c.EntryOffset)
+		fmt.Fprintf(b, "- Instructions decoded: %d (decode errors: %d)\n", c.InstructionsDecoded, c.DecodeErrors)
+		fmt.Fprintf(b, "- Indirect calls/jumps: %d / %d\n", c.IndirectCalls, c.IndirectJumps)
+		if len(c.Techniques) > 0 {
+			fmt.Fprintf(b, "- Techniques: %s\n", strings.Join(c.Techniques, ", "))
+		}
+		if len(c.ResolvedHashedAPIs) > 0 {
+			fmt.Fprintf(b, "- Resolved hashed APIs: %s\n", strings.Join(c.ResolvedHashedAPIs, ", "))
+		}
+		if len(c.EntryDisasm) > 0 {
+			fmt.Fprintln(b, "- Entry-point disassembly:")
+			for _, line := range c.EntryDisasm {
+				fmt.Fprintf(b, "    %s\n", line)
+			}
+		}
+	}
 }
 
 func writeSections(b *strings.Builder, sections []SectionInfo) {
@@ -657,23 +752,30 @@ func WriteIOCFile(path string, result ScanResult) error {
 		fmt.Fprintln(&b, "\n# No IOCs extracted")
 		return os.WriteFile(path, []byte(b.String()), 0o644)
 	}
-	writePEHashExportSection(&b, result.IOCs.PEHashes)
-	writeIOCExportSection(&b, "urls", result.IOCs.URLs)
-	writeIOCExportSection(&b, "domains", result.IOCs.Domains)
-	writeIOCExportSection(&b, "ipv4", result.IOCs.IPv4)
-	writeIOCExportSection(&b, "ipv6", result.IOCs.IPv6)
-	writeIOCExportSection(&b, "emails", result.IOCs.Emails)
-	writeIOCExportSection(&b, "md5", result.IOCs.MD5)
-	writeIOCExportSection(&b, "sha1", result.IOCs.SHA1)
-	writeIOCExportSection(&b, "sha256", result.IOCs.SHA256)
-	writeIOCExportSection(&b, "sha512", result.IOCs.SHA512)
-	writeIOCExportSection(&b, "cves", result.IOCs.CVEs)
-	writeIOCExportSection(&b, "registry_keys", result.IOCs.RegistryKeys)
-	writeIOCExportSection(&b, "windows_paths", result.IOCs.WindowsPaths)
-	writeIOCExportSection(&b, "unix_paths", result.IOCs.UnixPaths)
-	writeIOCExportSection(&b, "mutexes", result.IOCs.Mutexes)
-	writeIOCExportSection(&b, "named_pipes", result.IOCs.NamedPipes)
-	writeIOCExportSection(&b, "crypto_wallets", result.IOCs.CryptoWallets)
+	// Export only actionable indicators: drop build-artifact / source-path /
+	// compiler-metadata / package-namespace noise so the IOC list stays
+	// trustworthy. The full, categorized set remains in the JSON report.
+	export := actionableIOCs(result.IOCs)
+	if dropped := IOCCount(result.IOCs) - IOCCount(export); dropped > 0 {
+		fmt.Fprintf(&b, "non_actionable_excluded=%d\n", dropped)
+	}
+	writePEHashExportSection(&b, export.PEHashes)
+	writeIOCExportSection(&b, "urls", export.URLs)
+	writeIOCExportSection(&b, "domains", export.Domains)
+	writeIOCExportSection(&b, "ipv4", export.IPv4)
+	writeIOCExportSection(&b, "ipv6", export.IPv6)
+	writeIOCExportSection(&b, "emails", export.Emails)
+	writeIOCExportSection(&b, "md5", export.MD5)
+	writeIOCExportSection(&b, "sha1", export.SHA1)
+	writeIOCExportSection(&b, "sha256", export.SHA256)
+	writeIOCExportSection(&b, "sha512", export.SHA512)
+	writeIOCExportSection(&b, "cves", export.CVEs)
+	writeIOCExportSection(&b, "registry_keys", export.RegistryKeys)
+	writeIOCExportSection(&b, "windows_paths", export.WindowsPaths)
+	writeIOCExportSection(&b, "unix_paths", export.UnixPaths)
+	writeIOCExportSection(&b, "mutexes", export.Mutexes)
+	writeIOCExportSection(&b, "named_pipes", export.NamedPipes)
+	writeIOCExportSection(&b, "crypto_wallets", export.CryptoWallets)
 	return os.WriteFile(path, []byte(b.String()), 0o644)
 }
 
