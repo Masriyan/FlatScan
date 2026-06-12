@@ -16,7 +16,7 @@ default path.
 
 | Principle | What it means for the roadmap |
 |-----------|-------------------------------|
-| **Zero dependencies** | The core stays Go standard library only. Network/ML/heavy parsers arrive via the plugin interface, not `go.mod`. |
+| **Minimal, cgo-free dependencies** | The core stays on the Go standard library plus a single pinned, pure-Go module (`golang.org/x/arch`, for disassembly). Network/ML/heavy parsers arrive via the plugin interface, not new `go.mod` deps; cgo stays out of the default build. |
 | **Static only** | The engine never executes a sample. Dynamic insight is *imported* (sandbox reports), never produced by running malware. |
 | **Offline-first** | A full scan must always work air-gapped. Any enrichment (TI lookups, model downloads) is explicit, documented, and disable-able. |
 | **Analyst + management in one pass** | Every capability must serve both machine output (JSON/STIX/YARA) and human reporting (HTML/PDF). |
@@ -24,7 +24,7 @@ default path.
 
 ---
 
-## What We've Built (0.1.0 → 0.7.0)
+## What We've Built (0.1.0 → 0.9.0)
 
 ```mermaid
 graph LR
@@ -34,6 +34,9 @@ graph LR
     D --> E["v0.5.0<br/>Power Analyst"]
     E --> F["v0.6.0<br/>Browser Analyst"]
     F --> G["v0.7.0<br/>Deep Static Analyst"]
+    G --> H["v0.7.1<br/>Initial-Access Vectors"]
+    H --> I["v0.8.0<br/>Code-Level Analysis"]
+    I --> J["v0.9.0<br/>Detection Precision"]
     style A fill:#16213e,color:#fff
     style B fill:#0f3460,color:#fff
     style C fill:#533483,color:#fff
@@ -41,10 +44,16 @@ graph LR
     style E fill:#c62a47,color:#fff
     style F fill:#2dd4bf,color:#000
     style G fill:#58a6ff,color:#000
+    style H fill:#f59e0b,color:#000
+    style I fill:#84cc16,color:#000
+    style J fill:#a78bfa,color:#000
 ```
 
 | Version | Theme | Highlights |
 |---------|-------|-----------|
+| **0.9.0** | Detection Precision | **IOC confidence & categorization** (actionable vs build-artifact/source-path/namespace) + export hygiene, **multi-evidence correlation** + per-finding confidence/evidence-count, **named-family fingerprints** (RedLine/Lumma/StealC/AsyncRAT/…), **similarity matching** vs a reference store (`--similarity-db`), **CAPA-style capability rules** + **YARA-quality scoring**, **malware-config extraction**, **offline threat-intel enrichment** (`--intel-db`), **expected-behavior prediction** |
+| **0.8.0** | Code-Level Analysis | **Instruction-level disassembly pass** (x86/x64 PE+ELF via `golang.org/x/arch`) — API-hashing (ROR13) loops, PEB walks, GetPC/shellcode stubs, instruction-level anti-VM (VMware backdoor, hypervisor CPUID, Red Pill); **hash-database resolution of hash-obfuscated imports** (ROR13/DJB2/SDBM) feeding the import/behavior layer |
+| **0.7.1** | Initial-Access Vectors | **Windows shortcut (.lnk) parser** (LOLBin target + embedded command-line extraction), **PowerShell/script behavioral engine** (Defender/AMSI tampering, download cradles), **multi-layer deobfuscation** (base64 → delimited-hex → reversed-string, recovers hidden C2), deeper **ELF posture/packing** heuristics, **.NET downloader-dropper** detection |
 | **0.7.0** | Deep Static Analyst | **PE Header Intelligence** (DllCharacteristics/exploit-mitigation posture, Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity), **DGA domain scorer** (T1568.002), in-memory **.NET reflective-loader detection**, **detection-artifact FP guard**, PDF Unicode rendering fix, HTML/PDF downloads in web mode |
 | **0.6.0** | Browser Analyst | Self-contained `--web` GUI (zero new deps), drag-and-drop upload, async scan jobs, 9 result tabs, on-the-fly downloads incl. zipped report pack |
 | **0.5.0** | Power Analyst | API behavioral-chain detection, packer/protector fingerprinting, CI/CD gate mode + semantic exit codes, parallel batch, per-category score breakdown, wallet/mutex/pipe IOC types, cryptominer & wiper families |
@@ -53,20 +62,34 @@ graph LR
 | **0.2.0** | IOC & Format | IOC triage/suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Core Engine | Full static engine, multi-format output, PE/ELF/Mach-O/APK/DEX parsers |
 
-### Current capability snapshot (v0.7.0)
+### Current capability snapshot (v0.9.0)
 
-- **Formats:** PE (incl. header intelligence), ELF, Mach-O, ZIP/JAR/APK/MSIX/AppX/Office-XML, DEX, PDF.
-- **Detection:** behavioral signatures, API attack chains, packer fingerprints, family classifier
-  (ransomware / stealer / loader / RAT / cryptominer / wiper / riskware), .NET reflective loading,
-  detection-artifact recognition.
-- **Intelligence:** IOC extraction + triage, DGA scoring, entropy/high-entropy regions, similarity
-  hashes (FlatHash, imphash, section, Rich-header, string-set, byte-histogram), MITRE ATT&CK mapping.
-- **Output:** Text, JSON, PDF, HTML, IOC list, YARA, Sigma, STIX 2.1, report pack.
+- **Formats:** PE (incl. header intelligence), ELF (incl. static/stripped posture), Mach-O,
+  **Windows shortcut (.lnk)**, **scripts (.ps1/.bat/.vbs/.js/.wsf/.hta/.sh)**,
+  ZIP/JAR/APK/MSIX/AppX/Office-XML, DEX, PDF.
+- **Code-level:** x86/x64 entry-point disassembly — API-hashing (ROR13) loops, PEB walks,
+  GetPC/shellcode stubs, instruction-level anti-VM; hash-database resolution of hash-obfuscated imports.
+- **Detection:** behavioral signatures, **multi-evidence correlation engine** (per-finding
+  confidence + evidence count), **CAPA-style capability rules** (over strings + hashdb-resolved
+  imports + disasm techniques + IOC categories), API attack chains, packer fingerprints,
+  generic family classifier + **named-family fingerprints** (RedLine/Lumma/StealC/AsyncRAT/Quasar/
+  Remcos/XWorm/njRAT/Vidar/Raccoon/FormBook), .NET reflective loading + downloader-dropper,
+  script defense-evasion/download-cradle, multi-layer deobfuscation, detection-artifact recognition.
+- **Intelligence:** IOC extraction + **categorization/confidence** + triage + export hygiene,
+  **malware-config extraction**, **similarity matching** vs a reference store, **offline TI
+  enrichment** (`--intel-db`), **expected-behavior prediction**, DGA scoring, similarity hashes
+  (FlatHash, imphash, section, Rich-header, string-set, byte-histogram), MITRE ATT&CK mapping.
+- **Output:** Text, JSON, CSV, PDF, HTML, IOC list, YARA (with quality/FP-risk score), Sigma,
+  STIX 2.1, report pack.
 - **Modes:** CLI, interactive, shell, batch, watch, CI/CD gate, local web GUI.
 
-> Validated on a real-sample set: caught the WannaCry killswitch domain via DGA scoring and lifted a
-> reflective .NET loader from "High suspicion" to "Likely malicious" with zero benign-side regression.
-> Forward-looking candidates are catalogued in [`Docs/research-gap-analysis-2026-06-07.md`](Docs/research-gap-analysis-2026-06-07.md).
+> Validated on real-sample sets: caught the WannaCry killswitch domain via DGA scoring; lifted a
+> reflective .NET loader from "High suspicion" to "Likely malicious"; and in the 0.7.1/0.8.0 sweep
+> turned a malicious LNK (22→78, with recovered C2), an obfuscated Defender-disabling PowerShell
+> dropper (4→100), and a packed anti-VM DLL (68→84) into correct verdicts — all with zero benign-side
+> regression. The next focus is **detection precision** (IOC categorization, evidence-weighted
+> correlation, named-family fingerprinting); forward-looking candidates are catalogued in
+> [`Docs/research-gap-analysis-2026-06-07.md`](Docs/research-gap-analysis-2026-06-07.md).
 
 ---
 

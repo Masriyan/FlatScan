@@ -153,7 +153,7 @@ graph LR
 
 | Rule | Rationale |
 |------|-----------|
-| Use Go standard library only | Zero dependencies is a core design principle |
+| Prefer the Go standard library; keep the build cgo-free | Minimal dependencies is a core design principle — the only third-party module is the pure-Go `golang.org/x/arch` (disassembly). New third-party or cgo deps need maintainer sign-off |
 | Run `gofmt` on modified files | Consistent formatting |
 | Prefer clear data structures | Over ad hoc string-only logic |
 | Add comments only where non-obvious | Don't over-comment |

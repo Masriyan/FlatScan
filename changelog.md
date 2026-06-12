@@ -28,6 +28,9 @@ graph LR
 
 | Version | Focus | Key Features |
 |---------|-------|-------------|
+| **0.9.0** | Detection Precision | IOC confidence & categorization (build-artifact/source-path/namespace vs actionable) with export hygiene, multi-evidence correlation engine + per-finding confidence/evidence-count, named-family fingerprints (RedLine/Lumma/StealC/AsyncRAT/…), similarity matching vs a reference store (`--similarity-db`), CAPA-style capability rules + YARA-quality scoring, malware-config extraction, offline threat-intel enrichment (`--intel-db`), expected-behavior prediction |
+| **0.8.0** | Code-Level Analysis | Instruction-level disassembly pass (x86/x64 PE+ELF via `golang.org/x/arch`) — API-hashing loops, PEB walks, GetPC/shellcode stubs, VMware-backdoor/CPUID/Red-Pill anti-VM; hash-database resolution of hash-obfuscated imports (ROR13/DJB2/SDBM) feeding the import/behavior layer |
+| **0.7.1** | Initial-Access Vectors | Windows shortcut (.lnk) parser, PowerShell/script behavioral analyzer, multi-layer (base64 → delimited-hex → reversed-string) deobfuscation, deeper ELF posture/packing heuristics, .NET downloader-dropper detection |
 | **0.7.0** | PE Intelligence & Network Heuristics | PE Header Intelligence (DllCharacteristics/exploit-mitigation posture, Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity), DGA domain scorer, .NET detection, detection-artifact false-positive guard, PDF Unicode rendering fix, HTML/PDF downloads in web mode |
 | **0.6.0** | Local Web GUI | Self-contained `--web` browser interface (zero new dependencies), drag-and-drop upload, async scan jobs, 9 result tabs, on-the-fly download of every output format incl. zipped report pack |
 | **0.5.0** | Detection Depth & CI/CD | API chain detection, packer fingerprinting, CI/CD mode, semantic exit codes, parallel batch, score breakdown, new IOC types, cryptominer/wiper families |
@@ -35,6 +38,201 @@ graph LR
 | **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
 | **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
+
+---
+
+## 0.9.0 - Detection Precision Release
+
+_Released 2026-06-12._
+
+A sample-driven precision pass: the engine had strong reporting and IOC output,
+but its weakest dimension was detection *accuracy* — IOC noise, single-string
+findings inflating confidence, and generic family labels. This release closes
+those gaps. **No score regression** on the validation set, with one deliberate
+correction (a false credential-dumping attribution removed from `8bba…`,
+100→98, same verdict). All additions are backward-compatible JSON.
+
+### Added
+
+- **IOC confidence & categorization** (`ioc_classify.go`) — every extracted
+  indicator is tagged `ioc` / `suspicious-infra` / `benign-infra` /
+  `build-artifact` / `compiler-runtime-metadata` / `source-path` /
+  `package-namespace`, with a confidence weight and context note (`classified`
+  field). **Export hygiene:** `--extract-ioc` and STIX now drop build-artifact /
+  source-path / namespace noise (Rust `…/.cargo/registry/…`, PDB paths,
+  `System.*`/`androidx.*` fragments) so the IOC list stays trustworthy. Context
+  is value-aware (a Discord *webhook URL* is suspicious-infra; bare `discord.com`
+  is benign-infra; `android.googlesource.com` is a real domain, not a namespace).
+- **Correlation engine + per-finding confidence** (`correlation.go`) — `Finding`
+  gains `confidence` (0–100) and `evidence_count`. Serious capabilities
+  (OS credential dumping, browser theft, keylogging) now require multiple
+  corroborating evidence groups, so a lone generic string (e.g. `"lsass"`) no
+  longer yields a high-confidence Credential Access finding. The weak
+  single-OR credential signature was replaced.
+- **Named-family fingerprints** (`family_fingerprints.go`) — multi-signal
+  fingerprints for RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla,
+  FormBook/XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT. Scored above the
+  generic buckets so a confirmed family becomes the headline hypothesis; a lone
+  family-name string never attributes on its own.
+- **Similarity matching** (`similarity_match.go`, `--similarity-db`) — ranks the
+  sample against a local JSONL reference store: exact-match on the digest
+  dimensions (imphash, section, string-set, byte-histogram, rich header) plus
+  chunk-overlap on the FlatHash → **"N% similar to <label>"** with the matched
+  dimensions, surfaced in `similarity.matches` and a finding.
+- **CAPA-style capability rules** (`capability.go`) — declarative rules match
+  over the full feature set — strings, imports **including hashdb-resolved API
+  names**, disassembly techniques, and IOC categories — and map to ATT&CK. The
+  headline win: capabilities like process injection are detected even when the
+  binary resolves its APIs by hash. Starter pack: injection, browser theft,
+  disable-security, scheduled-task, self-deletion, clipboard hijacking.
+- **YARA-quality scoring** (`yara.go`) — generated rules now exclude
+  compiler/runtime/library/source strings and non-actionable IOC categories, and
+  carry a `rule_quality_score` and `expected_fp_risk` in the rule meta.
+- **Malware config extraction** (`config_family.go`) — consolidates the operator
+  primitives (C2, mutex, bot token, webhook, wallet, campaign/build IDs, version)
+  into a `malware_config` view keyed to the detected family. Informational (no
+  score inflation — the underlying values are already counted as IOCs).
+- **Offline threat-intel enrichment** (`intel.go`, `--intel-db`) — a local JSONL
+  database maps known indicators (sha256/imphash/flat-hash/url/domain/ipv4) to
+  family / campaign / first-seen / related; matches attach to `enrichment` and a
+  high-confidence finding. Fully offline.
+- **Expected-behavior prediction** (`behavior.go`) — derives a runtime-behavior
+  checklist from the static evidence (`profile.expected_behavior`) for analysts
+  validating in a sandbox/EDR.
+
+### Fixed
+
+- A lone generic credential string (e.g. `OpenProcess` + `"lsass"`) no longer
+  produces a high-severity OS Credential Dumping finding (`8bba…` 100→98).
+- **UTF-16 scripts** (`.ps1`/`.js`/etc. saved as UTF-16LE/BE, a common dropper
+  encoding) were classified as `"unknown binary"` and skipped the script
+  behavioral engine, because the ASCII `looksText` check failed on the
+  interleaved NUL bytes. Added `looksUTF16Text` detection and UTF-16→UTF-8
+  decoding in `analyzeScript`; a UTF-16 JScript dropper in the sample set went
+  from `"unknown binary"` (17) to `"JScript"` (31, Suspicious) with proper
+  script analysis.
+- **IOC overmatching on Rust/Go binaries** — dependency-registry domains
+  (`index.crates.io`, Go module proxy, npm/PyPI/Maven) and certificate-authority
+  / PKI domains (`openssl.org`, `*.digicert.com`, `entrust.net`, …) were
+  extracted as actionable IOCs, drowning the real indicators (one Rust sample
+  reported **570 IOCs**, of which only `api.telegram.org` was operational). Added
+  `isPackageRegistryDomain` (→ build-artifact) and `isPKIDomain` (→ benign-infra)
+  to the categorizer, and the batch triage IOC count now reports **actionable**
+  indicators only — that sample's column dropped **570 → 15**.
+
+---
+
+## 0.8.0 - Code-Level Analysis Release
+
+_Released 2026-06-12._
+
+FlatScan's behavioral detection was substring matching over an extracted-string
+corpus — a structural ceiling that can only see what malware leaves in cleartext.
+This release adds a **code-level analysis layer beneath the string layer**: it
+disassembles the entry point and detects techniques that leave no string behind.
+First new third-party dependency: `golang.org/x/arch` (pure Go, no cgo).
+
+### Added
+
+- **Disassembly pass** (`disasm.go`) — decodes x86/x64 instructions from the entry
+  point of PE and ELF binaries (`golang.org/x/arch/x86/x86asm`), gated to
+  `standard`/`deep` modes, bounded and panic-safe on adversarial bytes. Detects:
+  - **API-hashing routine** — the canonical `ROR …, 13` import-hashing idiom (High).
+    APIs resolved by hash leave no `"VirtualAlloc"` string for the corpus to match.
+  - **Direct PEB access / manual resolution** — `fs:[0x30]` (x86) / `gs:[0x60]`
+    (x64) reads; escalates to High when combined with ROR13 hashing (manual module
+    mapping). TEB self-reference offsets are excluded to avoid CRT false positives.
+  - **GetPC / position-independent stub** — `call $+5 ; pop` shellcode idiom.
+  - **Anti-VM at the instruction level** — VMware backdoor magic `0x564D5868`
+    ("VMXh"), hypervisor `CPUID` leaf `0x4000_0000`, Red-Pill `SIDT/SGDT/SLDT/STR`,
+    and repeated `RDTSC` timing checks — none of which require a VM-name string.
+  - New `result.Code` field (arch, instructions decoded, indirect call/jump counts,
+    techniques, entry-point disassembly) rendered in JSON and the text report.
+- **Hash-database import resolution** (`hashdb.go`) — the emulator-free form of
+  "resolve hashed imports." Precomputes ROR13/ROR13+NUL/DJB2/SDBM hashes over a
+  dictionary of ~120 commonly-abused Win32/NT APIs and matches the disassembled
+  immediates against them (the HashDB approach). Recovered names are fed into the
+  `Functions` list (tagged by behavior family) and raise a High **"Resolved
+  hash-obfuscated API imports"** finding (T1140) — so a hash-resolving loader gets a
+  real import list instead of an opaque "packed" verdict. Conservative: requires ≥2
+  matches, or ≥1 when a ROR13 loop was also seen (a 32-bit collision against a fixed
+  dictionary is implausible).
+- *Measured on the sample set*: the packed DLL gained Red-Pill/RDTSC anti-VM findings
+  (**68 → 84**) and the x64 banker gained a PEB-access finding (**34 → 46**) — both
+  within their existing malicious/suspicious tier, with **no previously-detected
+  PE/APK sample dropping** in score.
+
+### Notes
+
+- Adds `golang.org/x/arch` to `go.mod` and raises the module's Go directive
+  (toolchain `go get` set it to 1.25). The default build remains **cgo-free**.
+- Emulated unpacking / inline-decryptor emulation (improvementprompt-v2 Task 2.2/2.3)
+  is intentionally deferred: a correct general-purpose x86 emulator is a large,
+  fragile component best done behind a Unicorn build tag. The hash-database approach
+  delivers the headline "resolve hashed imports" outcome reliably and without cgo.
+
+---
+
+## 0.7.1 - Initial-Access Vectors Release
+
+_Released 2026-06-11._
+
+A live-sample sweep (12 real specimens) showed PE/APK detection was excellent but
+non-PE initial-access/dropper formats were badly under-scored. This release closes
+those false-negative gaps. **No regression**: every previously-detected PE/APK
+sample keeps its score.
+
+### Added
+
+- **Windows shortcut (.lnk) parser** (`lnk.go`) — LNK files were classified as
+  "unknown binary" and never structurally parsed, so the embedded command line —
+  the entire payload of a malicious shortcut — was invisible. New `looksLNK`
+  detection (`ShellLinkHeader` size `0x4C` + LinkCLSID) returns the `Windows
+  shortcut` type, and `analyzeLNK` parses the header flags and StringData blocks
+  to recover the target (LOLBin detection: powershell/cmd/mshta/rundll32/regsvr32/…)
+  and the `CommandLineArguments`, which are fed through the shared script engine.
+  Findings: interpreter/LOLBin target (T1204.002), download-and-execute cradle
+  (T1105), string obfuscation (T1027), oversized-shortcut payload tell.
+  - *Result*: the live PowerShell-downloader LNK went **22 "Low suspicion" → 78
+    "High suspicion"**, and its reversed-string C2 URL is now recovered as an IOC.
+- **PowerShell / script behavioral analyzer** (`script.go`) — `.ps1/.psm1`,
+  `.bat/.cmd`, `.vbs`, `.js`, `.wsf`, `.hta`, `.sh` are now typed and routed to a
+  behavioral engine (also reused for LNK command lines) instead of being scored as
+  generic "text". Detects Microsoft Defender tampering (`Set/Add-MpPreference`,
+  T1562.001), AMSI/ETW bypass, download-and-execute cradles (T1105), stealthy
+  interpreter flags, character-code / reversed-string / heavy-base64 obfuscation
+  (T1027), and scheduled-task / Run-key persistence (T1053.005 / T1547.001).
+  - *Result*: the obfuscated Defender-disabling `.ps1` went **4 "No strong
+    indicators" → 100 "Likely malicious"**.
+- **Multi-layer deobfuscation** (`decode.go`) — the recursive decoder now follows
+  separator-delimited hex (e.g. `70}6f}77`, a common second-stage script layer),
+  recovers whole-buffer **reversed-string** IOCs, and no longer stops early
+  (`looksEncoded` recognizes the new layer types so recursion continues). Shared
+  `decodeAllLayers` / `reverseString` helpers are reused by the script and LNK
+  analyzers and surface every decoded layer as a `script-layer` artifact.
+- **Deeper ELF analysis** (`formats.go`) — `analyzeELFPosture` adds heuristics that
+  work even when an ELF is stripped and statically linked (the common Linux-bot
+  shape where imports and WX-section checks find nothing): static+stripped posture
+  (T1027), legacy/embedded-architecture IoT-malware profile, and high-entropy
+  executable-section packing (T1027.002). Findings are individually modest so
+  static Go/busybox binaries aren't over-scored.
+  - *Result*: the stripped static i386 ELF went **4 → 22** with concrete posture
+    findings (static analysis cannot reach a malicious verdict on a fully opaque
+    stripped binary without dynamic execution).
+- **.NET downloader-dropper detection** (`dotnet.go`) — adds the managed
+  download-to-disk-and-run pattern (HTTP client + `Process.Start`/`ProcessStartInfo`,
+  T1105) that the existing reflective-loader rule missed, plus hidden-window child
+  process (T1564), Base64 in-memory assembly load (T1620), and managed Run-key
+  persistence (T1547.001).
+  - *Result*: the small .NET HTTP-downloader went **13 "Low suspicion" → 35
+    "Suspicious"**.
+
+### Fixed
+
+- **IOC false positives from code** (`ioc_triage.go`) — `.NET`/Java namespace
+  fragments such as `System.Net` and `System.IO` were extracted as domains because
+  `.net`/`.io` are TLDs. Added the common `System.*` namespaces to the default
+  domain allowlist.
 
 ---
 

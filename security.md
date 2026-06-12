@@ -271,7 +271,7 @@ The `--web` mode (0.6.0+) runs a small local HTTP server. It is designed as a **
 
 | Version | Network Activity |
 |---------|-----------------|
-| **Current (0.7.0)** | **No external network activity.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. |
+| **Current (0.8.0)** | **No external network activity at runtime.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. The `golang.org/x/arch` dependency (disassembly) is **build-time only** and pure Go — it adds no runtime network or native-library behavior. |
 | **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---
@@ -280,14 +280,16 @@ The `--web` mode (0.6.0+) runs a small local HTTP server. It is designed as a **
 
 ```mermaid
 graph LR
-    A["Current: Zero Dependencies"] --> B{Adding New?}
+    A["Current: stdlib + 1 pure-Go dep"] --> B{Adding New?}
     B -->|Must| C[Well-maintained library]
     B -->|Must| D[Pinned versions]
     B -->|Must| E[Documented rationale]
     B -->|Must| F[Parser/archive libraries reviewed carefully]
 ```
 
-The project currently uses **the Go standard library only**. No third-party Go modules. If dependencies are added:
+The project uses **the Go standard library plus a single pinned, pure-Go dependency** —
+`golang.org/x/arch` (the Go team's own architecture package, used by the 0.8.0 disassembly
+engine). The build stays **cgo-free**. If further dependencies are added:
 
 | Requirement | Reason |
 |-------------|--------|

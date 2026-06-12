@@ -6,8 +6,8 @@
 
 **Zero-Dependency Static Malware Analysis Engine**
 
-[![Go](https://img.shields.io/badge/Go-1.22+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Version](https://img.shields.io/badge/Version-0.7.0-e94560?style=flat)]()
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
+[![Version](https://img.shields.io/badge/Version-0.9.0-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-23%2F23-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
@@ -137,7 +137,7 @@ graph TB
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Zero Dependencies** | Go standard library only — no `go.mod` deps |
+| **Minimal, cgo-free deps** | Go standard library plus one pure-Go module — `golang.org/x/arch` (disassembly engine, 0.8.0). No cgo, no native libraries |
 | **Static Only** | Never executes the sample — reads bytes and metadata |
 | **Thread-Safe** | `parallelRun()` with mutex-protected findings, race-detector verified |
 | **Platform Portable** | Builds for Linux, macOS, Windows; mmap on Linux with transparent fallback |
@@ -231,19 +231,29 @@ sequenceDiagram
 - ASCII and UTF-16LE string extraction with zero-allocation performance
 - IOC extraction: URLs, domains, IPv4, IPv6, emails, hashes, CVEs, registry keys, paths, **mutex names, named pipes, Ethereum/Monero/Bitcoin wallet addresses** (0.5.0)
 - IOC triage with built-in PKI, schema, OID, and loopback allowlists
+- **IOC confidence & categorization** — every indicator tagged `ioc` / `suspicious-infra` / `benign-infra` / `build-artifact` / `compiler-metadata` / `source-path` / `package-namespace` with a confidence weight; non-actionable noise (Rust/Cargo/PDB/namespace) is excluded from `--extract-ioc` and STIX (0.9.0)
+- **Multi-evidence correlation engine** — serious capabilities require corroborating evidence groups; every finding carries a numeric `confidence` and `evidence_count` so a lone generic string never reads as high-confidence (0.9.0)
+- **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook/XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT (multi-signal) (0.9.0)
+- **Similarity matching** against a JSONL reference store (`--similarity-db`) — "N% similar to <known sample>" (0.9.0)
+- **CAPA-style capability rules** over strings + imports (incl. hashdb-resolved) + disasm techniques + IOC categories → ATT&CK; **YARA-quality scoring** (compiler-string exclusion + FP-risk) (0.9.0)
+- **Malware config extraction** (C2/mutex/token/webhook/wallet/campaign), **offline threat-intel enrichment** (`--intel-db`), and **expected-behavior prediction** for sandbox/EDR validation (0.9.0)
 - **DGA (algorithmically-generated domain) scoring** on extracted domains — dictionary-free lexical model (entropy + FANCI features + n-gram normality) flagging likely C2 domains as MITRE T1568.002 (0.7.0)
-- Suspicious base64, hex, and URL-percent decoding with nesting depth control
+- Suspicious base64, hex, and URL-percent decoding with nesting depth control, plus **separator-delimited hex and whole-buffer reversed-string recovery** that follows multi-stage script/LNK obfuscation and recovers hidden C2 IOCs (0.7.1)
+- **Code-level disassembly (x86/x64 PE+ELF)** — instruction-level detection of API-hashing (ROR13) loops, PEB walks, GetPC/shellcode stubs, and anti-VM (VMware backdoor, hypervisor CPUID, Red Pill), with **hash-database resolution of hash-obfuscated imports** (ROR13/DJB2/SDBM) feeding the import/behavior layer (0.8.0)
 - Shannon entropy scoring and high-entropy region detection
 - **Per-category score breakdown** shown in every report and JSON output (0.5.0)
 
 ### Format Parsers
 
 - **PE**: imports, sections, timestamp, subsystem, certificate table, overlay, import hash, .NET detection, **exploit-mitigation posture (ASLR/DEP/CFG/HEVA), Rich-header hash, TLS callbacks, Authenticode signer, entry-point sanity** (0.7.0)
-- **ELF**: class, machine, type, imports, sections
+- **ELF**: class, machine, type, imports, sections, **static+stripped posture, legacy/IoT architecture profile, high-entropy code packing** (0.7.1)
 - **Mach-O**: CPU, type, imports, sections
+- **Windows shortcut (.lnk)**: ShellLinkHeader + StringData parsing, LOLBin target detection, embedded command-line extraction & deobfuscation, reversed-URL C2 recovery (0.7.1)
+- **Scripts (.ps1/.psm1/.bat/.cmd/.vbs/.js/.wsf/.hta/.sh)**: PowerShell/script behavioral engine — Defender/AMSI tampering, download-and-execute cradles, multi-layer deobfuscation, persistence (0.7.1)
 - **ZIP/APK/JAR/MSIX/AppX/Office XML**: entry inspection without disk extraction
 - **MSIX/AppX**: manifest parsing, publisher, capabilities, undeclared payloads, Magniber detection
 - **Android APK/DEX**: manifest, permissions, exported components, DEX string/API scanning
+- **Code-level disassembly (x86/x64 PE+ELF)**: entry-point instruction analysis — API-hashing loops (ROR13), PEB walks, GetPC/shellcode stubs, instruction-level anti-VM (VMware backdoor, hypervisor CPUID, Red Pill), and hash-database resolution of hash-obfuscated imports (0.8.0)
 
 ### Behavioral Detection
 
@@ -352,8 +362,13 @@ cd "source go"
 go build -o ../flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.7.0" -o ../flatscan .
+go build -ldflags "-X main.version=0.9.0" -o ../flatscan .
 ```
+
+> Since 0.8.0, the build pulls one pure-Go module — `golang.org/x/arch` (the
+> disassembly engine). `go build` fetches it automatically; for offline/air-gapped
+> builds run `go mod vendor` once on a connected host and commit the `vendor/`
+> directory. The build remains **cgo-free** — no native libraries required.
 
 ### Scan Commands
 
@@ -659,7 +674,7 @@ Suspicious strings:
 
 </details>
 
-> The sample report above was generated with FlatScan 0.5.0. The engine and output format are unchanged in later versions (0.6.0, 0.7.0); v0.7.0 adds PE Header Intelligence fields (mitigations, Rich hash, TLS callbacks, Authenticode, entry-point) to the PE details section. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
+> The sample report above was generated with FlatScan 0.5.0. The engine and output format are backward-compatible in later versions; v0.7.0 adds PE Header Intelligence (mitigations, Rich hash, TLS callbacks, Authenticode, entry-point), v0.7.1 adds the LNK/script/ELF-posture detections, and v0.8.0 adds the instruction-level **Code analysis (disassembly)** section. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
 
 ---
 
@@ -984,7 +999,7 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 - Generated YARA and Sigma rules are starting points for hunting — review before deployment
 - Safe carving reports offsets and hashes; it does not extract payloads to disk
 - PKCS#7/CMS signature parsing is dependency-free and best-effort
-- The local case database is JSONL, not SQLite, to keep FlatScan dependency-free
+- The local case database is JSONL, not SQLite, to keep FlatScan lightweight and cgo-free (the only third-party module is the pure-Go `golang.org/x/arch` disassembler)
 - MITRE mapping is static-evidence mapping, not proof that the behavior executed
 - PDF reports are generated by FlatScan's internal PDF writer (no external dependencies)
 
@@ -996,10 +1011,11 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 |----------|---------|
 | [install.md](install.md) | Build, verify, cross-compile, lab setup |
 | [usage.md](usage.md) | Comprehensive flag reference, mode details, output interpretation |
+| [USECASE.md](USECASE.md) | Use cases, deployment scenarios, and recommended workflows |
 | [contributing.md](contributing.md) | Code style, testing, adding detections, PR guidelines |
 | [security.md](security.md) | Security policy, safe handling, output safety, dependency policy |
 | [changelog.md](changelog.md) | Version history with all changes |
-| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.7.0) and the 5-year direction |
+| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.9.0) and the 5-year direction |
 | [QC_REPORT.md](QC_REPORT.md) | Cumulative quality-assurance audit log per release |
 
 ---

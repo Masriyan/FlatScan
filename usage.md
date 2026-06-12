@@ -86,6 +86,26 @@ graph LR
 ./flatscan --dir ./samples -m quick --output-format csv --no-splash > results.csv
 ```
 
+### Initial-Access Artifacts — LNK & Scripts (0.7.1+)
+
+```bash
+# Malicious shortcut: parses the embedded command line, recovers reversed/encoded C2 URLs
+./flatscan -f invoice.lnk -m deep --extract-ioc iocs.txt
+
+# Obfuscated PowerShell dropper: follow more nested decode layers (base64 -> delimited-hex -> reversed)
+./flatscan -f stage1.ps1 -m deep --decode-depth 4 --html report.html
+```
+
+### Code-Level Disassembly (0.8.0+)
+
+```bash
+# Standard/deep modes disassemble the entry point of x86/x64 PE & ELF binaries:
+# API-hashing (ROR13) loops, PEB walks, GetPC/shellcode stubs, anti-VM, and
+# hash-database resolution of hash-obfuscated imports. See the JSON "code" object
+# (techniques, resolved_hashed_apis) or the report's "Code analysis (disassembly)" section.
+./flatscan -f loader.exe -m deep --json - --no-splash | jq '.code'
+```
+
 ---
 
 ## Complete Flag Reference

@@ -22,7 +22,7 @@ This guide covers building, verifying, cross-compiling, and setting up a safe an
 
 | Requirement | Version | Required? |
 |------------|---------|-----------|
-| **Go** | 1.22+ | ✅ Yes |
+| **Go** | 1.25+ | ✅ Yes (the `golang.org/x/arch` disassembly dep, added in 0.8.0, raised the module's Go directive to 1.25) |
 | **OS** | Linux, macOS, or Windows | ✅ Yes |
 | **Terminal** | Any shell | ✅ Yes |
 | `file` | any | Optional — `--external-tools` |
@@ -33,7 +33,7 @@ This guide covers building, verifying, cross-compiling, and setting up a safe an
 | `yara` | any | Optional — validate generated `.yar` |
 | `sigmac` | any | Optional — validate generated `.sigma.yml` |
 
-> **FlatScan uses the Go standard library only.** No third-party Go modules required. No `go.mod` dependencies.
+> **FlatScan is built almost entirely on the Go standard library and stays cgo-free.** As of v0.8.0 it has a single third-party module — `golang.org/x/arch` (the pure-Go disassembly engine used by the code-level analysis pass). `go build` fetches it automatically on a connected host; for **offline / air-gapped** builds, run `go mod vendor` once on a connected machine and commit the `vendor/` directory. No cgo and no native libraries are required.
 
 ---
 
@@ -52,7 +52,7 @@ go build -o ../flatscan .
 ### Build With Version Tag
 
 ```bash
-go build -ldflags "-X main.version=0.7.0" -o ../flatscan .
+go build -ldflags "-X main.version=0.9.0" -o ../flatscan .
 ```
 
 ### Restricted Build Cache
@@ -127,7 +127,7 @@ go vet ./...
 Expected version:
 
 ```text
-FlatScan 0.7.0
+FlatScan 0.9.0
 ```
 
 ### Launch the Web GUI (optional smoke test)
@@ -147,11 +147,11 @@ All commands below run from inside `source go/` (the binary lands at the repo ro
 | Build | `go build -o ../flatscan .` | No errors |
 | Tests | `go test ./...` | Pass (see note below) |
 | Vet | `go vet ./...` | No warnings |
-| Version | `../flatscan --version` | `FlatScan 0.7.0` |
+| Version | `../flatscan --version` | `FlatScan 0.9.0` |
 | Help | `./flatscan --help` | Usage text incl. `WEB` section |
 | Web GUI | `./flatscan --web` | Prints listening URL; serves UI on `127.0.0.1:5000` |
 
-> **Note:** As of v0.7.0, all **23 tests** pass and the race detector is clean. The pre-existing data race in `parallelRun` (tracked in 0.6.0) and the `TestRenderHTMLReport` drift have both been fixed. See [QC_REPORT.md](QC_REPORT.md) for the full audit history.
+> **Note:** As of v0.9.0, the full suite (**77 test functions** across the `*_test.go` files, including the 0.9.0 precision modules — IOC categorization, correlation, family fingerprints, similarity matching, capability rules, and config/intel/behavior) passes and the race detector is clean. The pre-existing data race in `parallelRun` (tracked in 0.6.0) and the `TestRenderHTMLReport` drift were both fixed in 0.7.0. See [QC_REPORT.md](QC_REPORT.md) for the full audit history.
 
 ---
 
