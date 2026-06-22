@@ -192,6 +192,13 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		MatchSimilarity(&result, refs, debugf)
 	}
 
+	// Recursive static payload resolution (roadmap Flagship Epic, Tier 1):
+	// peel every encoding/compression/single-byte-XOR/carve layer and re-scan
+	// whatever structured payload emerges, building a provenance-tagged payload
+	// tree. Pure data transformation — the sample is never executed. Gated to
+	// standard/deep; runs after carving so it can reuse the carved bytes.
+	ResolvePayloads(&result, data, extracted, cfg, debugf)
+
 	// Crypto/config extraction reads result.IOCs, including the PE-hash IOCs
 	// added by PromoteCarvedPayloadIOCs above, so it runs after the parallel
 	// group rather than concurrently with it.

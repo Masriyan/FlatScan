@@ -23,7 +23,7 @@ func stderrColorEnabled() bool {
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-const defaultVersion = "0.9.0"
+const defaultVersion = "0.10.0"
 
 // version can be overridden at build time via:
 //   go build -ldflags "-X main.version=1.0.0" .
@@ -73,6 +73,7 @@ type Config struct {
 	MaxAnalyzeBytes  int64
 	MaxArchiveFiles  int
 	MaxCarves        int
+	MaxPayloadDepth  int
 }
 
 func main() {
@@ -292,6 +293,7 @@ func parseFlags(args []string) (Config, error) {
 		MaxAnalyzeBytes: 256 * 1024 * 1024,
 		MaxArchiveFiles: 500,
 		MaxCarves:       80,
+		MaxPayloadDepth: 3,
 		CIThreshold:     55,
 	}
 
@@ -343,6 +345,7 @@ func parseFlags(args []string) (Config, error) {
 	fs.Int64Var(&cfg.MaxAnalyzeBytes, "max-analyze-bytes", cfg.MaxAnalyzeBytes, "")
 	fs.IntVar(&cfg.MaxArchiveFiles, "max-archive-files", cfg.MaxArchiveFiles, "")
 	fs.IntVar(&cfg.MaxCarves, "max-carves", cfg.MaxCarves, "")
+	fs.IntVar(&cfg.MaxPayloadDepth, "resolve-depth", cfg.MaxPayloadDepth, "")
 	showVersion := fs.Bool("version", false, "")
 	completionShell := fs.String("completion", "", "")
 
@@ -417,6 +420,9 @@ func parseFlags(args []string) (Config, error) {
 	}
 	if cfg.MaxDecodeDepth < 0 || cfg.MaxDecodeDepth > 5 {
 		return cfg, errors.New("--decode-depth must be between 0 and 5")
+	}
+	if cfg.MaxPayloadDepth < 0 || cfg.MaxPayloadDepth > 6 {
+		return cfg, errors.New("--resolve-depth must be between 0 and 6")
 	}
 	if cfg.MaxAnalyzeBytes < 1024 {
 		return cfg, errors.New("--max-analyze-bytes must be at least 1024")
@@ -507,6 +513,7 @@ func printGroupedHelp() {
 	line(head("ADVANCED"))
 	line(fmt.Sprintf("  %s  recursive safe file carving", flag_("--carve")))
 	line(fmt.Sprintf("  %s  max nested decode depth 0–5  %s", flag_("--decode-depth <n>"), note("(default: 2)")))
+	line(fmt.Sprintf("  %s  recursive payload-resolution depth 0–6 (0=off)  %s", flag_("--resolve-depth <n>"), note("(default: 3)")))
 	line(fmt.Sprintf("  %s  comma-separated rule pack files/dirs", flag_("--rules <paths>")))
 	line(fmt.Sprintf("  %s  comma-separated plugin pack files/dirs", flag_("--plugins <paths>")))
 	line(fmt.Sprintf("  %s  run optional external metadata tools", flag_("--external-tools")))

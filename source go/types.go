@@ -357,6 +357,31 @@ type CarvedArtifact struct {
 	Contained bool    `json:"contained,omitempty"`
 }
 
+// PayloadNode is one node in the recursive static payload-resolution tree
+// (roadmap Flagship Epic, Tier 1). FlatScan peels every encoding/compression/
+// single-byte-XOR/carve layer off the sample and re-scans whatever structured
+// payload emerges, surfacing buried stages a flat string/IOC pass cannot see.
+// The tree is built by pure data transformation — the sample is never executed
+// (no detonation). Each node records its provenance (Method/Detail) plus a
+// bounded re-scan (FileType/Score/Verdict/Family/top IOCs+findings) of the
+// recovered bytes. See payload_resolve.go.
+type PayloadNode struct {
+	ID       int      `json:"id"`
+	ParentID int      `json:"parent_id"`
+	Depth    int      `json:"depth"`
+	Method   string   `json:"method"`           // carve | base64 | hex | gzip | zlib | xor:0xNN
+	Detail   string   `json:"detail,omitempty"` // source string / offset / key
+	FileType string   `json:"file_type"`
+	Size     int      `json:"size"`
+	SHA256   string   `json:"sha256"`
+	Entropy  float64  `json:"entropy"`
+	Score    int      `json:"score,omitempty"`
+	Verdict  string   `json:"verdict,omitempty"`
+	Family   string   `json:"family,omitempty"`
+	IOCs     []string `json:"iocs,omitempty"`     // top actionable indicators from the stage
+	Findings []string `json:"findings,omitempty"` // top finding titles from the stage
+}
+
 type FamilyMatch struct {
 	Family     string   `json:"family"`
 	Category   string   `json:"category"`
@@ -463,6 +488,7 @@ type ScanResult struct {
 	RulePacks          []RulePackSummary    `json:"rule_packs,omitempty"`
 	RuleMatches        []RuleMatch          `json:"rule_matches,omitempty"`
 	CarvedArtifacts    []CarvedArtifact     `json:"carved_artifacts,omitempty"`
+	PayloadTree        []PayloadNode        `json:"payload_tree,omitempty"`
 	FamilyMatches      []FamilyMatch        `json:"family_matches,omitempty"`
 	ConfigArtifacts    []ConfigArtifact     `json:"config_artifacts,omitempty"`
 	CryptoConfig       CryptoConfigSummary  `json:"crypto_config,omitempty"`

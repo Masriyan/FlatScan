@@ -47,6 +47,10 @@ func PrintBashCompletion(w io.Writer) {
             COMPREPLY=( $(compgen -W "0 1 2 3 4 5" -- "$cur") )
             return 0
             ;;
+        --resolve-depth)
+            COMPREPLY=( $(compgen -W "0 1 2 3 4 5 6" -- "$cur") )
+            return 0
+            ;;
         --case|--min-string|--max-analyze-bytes|--max-archive-files|--max-carves|--watch-interval|--splash-seconds)
             return 0
             ;;
@@ -57,7 +61,7 @@ func PrintBashCompletion(w io.Writer) {
             --report --json --pdf --html --yara --sigma --stix
             --extract-ioc --report-pack --rules --plugins
             --ioc-allowlist --case --case-db
-            --carve --decode-depth --min-string
+            --carve --decode-depth --resolve-depth --min-string
             --max-analyze-bytes --max-archive-files --max-carves
             --external-tools --no-color --no-progress --no-splash --debug
             --watch --watch-interval --splash-seconds
@@ -99,6 +103,7 @@ _flatscan() {
         '--case[case identifier]:case id: '
         '--case-db[case JSONL database path]:file:_files'
         '--decode-depth[max nested decode depth (0-5)]:depth:(0 1 2 3 4 5)'
+        '--resolve-depth[recursive payload-resolution depth (0-6, 0=off)]:depth:(0 1 2 3 4 5 6)'
         '--min-string[minimum string length]:length: '
         '--max-analyze-bytes[max bytes for in-memory analysis]:bytes: '
         '--max-archive-files[max archive entries to inspect]:count: '

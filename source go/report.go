@@ -431,6 +431,36 @@ func writeAdvancedDetails(b *strings.Builder, result ScanResult) {
 			fmt.Fprintln(b)
 		}
 	}
+	if len(result.PayloadTree) > 0 {
+		fmt.Fprintf(b, "\nResolved payload tree: %d buried stage(s)\n", len(result.PayloadTree))
+		for _, node := range result.PayloadTree {
+			indent := strings.Repeat("  ", node.Depth)
+			hash := node.SHA256
+			if len(hash) > 16 {
+				hash = hash[:16]
+			}
+			fmt.Fprintf(b, "%s- [%s] %s (%d bytes, entropy %.2f, sha256 %s)", indent, node.Method, node.FileType, node.Size, node.Entropy, hash)
+			if node.Score > 0 {
+				fmt.Fprintf(b, " score=%d", node.Score)
+			}
+			if node.Verdict != "" {
+				fmt.Fprintf(b, " verdict=%q", node.Verdict)
+			}
+			if node.Family != "" {
+				fmt.Fprintf(b, " family=%s", node.Family)
+			}
+			fmt.Fprintln(b)
+			if node.Detail != "" {
+				fmt.Fprintf(b, "%s    via %s\n", indent, node.Detail)
+			}
+			for _, f := range node.Findings {
+				fmt.Fprintf(b, "%s    finding: %s\n", indent, f)
+			}
+			for _, ioc := range node.IOCs {
+				fmt.Fprintf(b, "%s    ioc: %s\n", indent, ioc)
+			}
+		}
+	}
 	if result.Similarity.FlatHash != "" {
 		fmt.Fprintln(b, "\nSimilarity hashes:")
 		if formatted := strings.TrimSpace(formatSimilarity(result.Similarity)); formatted != "" {
