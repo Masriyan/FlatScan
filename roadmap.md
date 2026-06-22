@@ -51,6 +51,7 @@ graph LR
 
 | Version | Theme | Highlights |
 |---------|-------|-----------|
+| **0.10.0** | Recursive Payload Resolution | **Flagship Epic, Tier 1 shipped:** static layer-peeling (base64/hex, gzip/zlib, single-byte-XOR, recursive carving) that re-scans every recovered stage with the full engine and surfaces a provenance-tagged **payload tree** (`--resolve-depth`). Pure data transformation — the sample is never executed. |
 | **0.9.0** | Detection Precision | **IOC confidence & categorization** (actionable vs build-artifact/source-path/namespace) + export hygiene, **multi-evidence correlation** + per-finding confidence/evidence-count, **named-family fingerprints** (RedLine/Lumma/StealC/AsyncRAT/…), **similarity matching** vs a reference store (`--similarity-db`), **CAPA-style capability rules** + **YARA-quality scoring**, **malware-config extraction**, **offline threat-intel enrichment** (`--intel-db`), **expected-behavior prediction** |
 | **0.8.0** | Code-Level Analysis | **Instruction-level disassembly pass** (x86/x64 PE+ELF via `golang.org/x/arch`) — API-hashing (ROR13) loops, PEB walks, GetPC/shellcode stubs, instruction-level anti-VM (VMware backdoor, hypervisor CPUID, Red Pill); **hash-database resolution of hash-obfuscated imports** (ROR13/DJB2/SDBM) feeding the import/behavior layer |
 | **0.7.1** | Initial-Access Vectors | **Windows shortcut (.lnk) parser** (LOLBin target + embedded command-line extraction), **PowerShell/script behavioral engine** (Defender/AMSI tampering, download cradles), **multi-layer deobfuscation** (base64 → delimited-hex → reversed-string, recovers hidden C2), deeper **ELF posture/packing** heuristics, **.NET downloader-dropper** detection |
@@ -69,6 +70,9 @@ graph LR
   ZIP/JAR/APK/MSIX/AppX/Office-XML, DEX, PDF.
 - **Code-level:** x86/x64 entry-point disassembly — API-hashing (ROR13) loops, PEB walks,
   GetPC/shellcode stubs, instruction-level anti-VM; hash-database resolution of hash-obfuscated imports.
+- **Payload resolution:** recursive static layer-peeling (base64/hex, gzip/zlib, single-byte-XOR,
+  carving) that re-scans each recovered stage and surfaces a provenance-tagged payload tree — the
+  sample is never executed.
 - **Detection:** behavioral signatures, **multi-evidence correlation engine** (per-finding
   confidence + evidence count), **CAPA-style capability rules** (over strings + hashdb-resolved
   imports + disasm techniques + IOC categories), API attack chains, packer fingerprints,
@@ -197,8 +201,12 @@ analyst's machine. This epic spans Years 1–2 and rests on one precise distinct
 It is delivered as four tiers along a safety gradient. Every dynamic datum is **labeled by provenance**
 (`static` | `emulated` | `sandbox:<name>`) so an analyst always knows what was inferred vs. observed.
 
-### Tier 1 — Recursive Static Payload Resolution  *(safe · pure stdlib · Year 1)*
+### Tier 1 — Recursive Static Payload Resolution  *(safe · pure stdlib · ✅ shipped in 0.10.0)*
 Peel every layer of a package until the real code is reached, producing a **payload tree**.
+*Shipped in 0.10.0 (`payload_resolve.go`, `--resolve-depth`): base64/hex decoding to binary,
+gzip/zlib inflation, single-byte-XOR unwrapping, and recursive carving, each recovered stage
+re-scored by the engine. Remaining for a later pass: multi-byte XOR / RC4 / AES decryption with
+FlatScan-extracted keys.*
 - **How:** per artifact, detect container/encoding/compression/encryption → decompress (`compress/*`)
   → decode base64/hex/url (`decode.go`) → **decrypt with keys FlatScan already extracts**
   (single/multi-byte XOR, RC4, AES from embedded key candidates in `config_extract.go`) →

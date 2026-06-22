@@ -28,6 +28,7 @@ graph LR
 
 | Version | Focus | Key Features |
 |---------|-------|-------------|
+| **0.10.0** | Recursive Payload Resolution | Static layer-peeling (Flagship Epic Tier 1): recovers buried payloads through base64/hex decoding, gzip/zlib decompression, single-byte-XOR unwrapping, and recursive carving, then re-scans each recovered stage with the full detection engine — surfacing a provenance-tagged **payload tree** (`payload_tree`) with per-stage score/verdict/family/IOCs. Pure data transformation, sample never executed (no detonation). Bounded work budgets; gated to standard/deep via `--resolve-depth` |
 | **0.9.0** | Detection Precision | IOC confidence & categorization (build-artifact/source-path/namespace vs actionable) with export hygiene, multi-evidence correlation engine + per-finding confidence/evidence-count, named-family fingerprints (RedLine/Lumma/StealC/AsyncRAT/…), similarity matching vs a reference store (`--similarity-db`), CAPA-style capability rules + YARA-quality scoring, malware-config extraction, offline threat-intel enrichment (`--intel-db`), expected-behavior prediction |
 | **0.8.0** | Code-Level Analysis | Instruction-level disassembly pass (x86/x64 PE+ELF via `golang.org/x/arch`) — API-hashing loops, PEB walks, GetPC/shellcode stubs, VMware-backdoor/CPUID/Red-Pill anti-VM; hash-database resolution of hash-obfuscated imports (ROR13/DJB2/SDBM) feeding the import/behavior layer |
 | **0.7.1** | Initial-Access Vectors | Windows shortcut (.lnk) parser, PowerShell/script behavioral analyzer, multi-layer (base64 → delimited-hex → reversed-string) deobfuscation, deeper ELF posture/packing heuristics, .NET downloader-dropper detection |
@@ -38,6 +39,57 @@ graph LR
 | **0.3.0** | Performance & Architecture | Parallel pipeline, plugins, STIX 2.1, watch mode, mmap, structured logging |
 | **0.2.0** | IOC Triage & MSIX | IOC suppression, MSIX/AppX analysis, Magniber detection, interactive mode |
 | **0.1.0** | Initial Build | Full analysis engine, 12 output formats, PE/ELF/Mach-O/APK/DEX parsers |
+
+---
+
+## 0.10.0 - Recursive Payload Resolution Release
+
+_Released 2026-06-14._
+
+The first tier of the roadmap's **Dynamic Context (without detonation)** flagship
+epic. A flat string/IOC pass can only see what malware leaves in cleartext; real
+samples bury their next stage under encoding, compression, single-byte XOR, or
+plain appension. This release peels those layers off by **pure data
+transformation** — the sample is never executed — and re-scans whatever
+structured payload emerges, so a buried PE/ELF/DEX/archive is surfaced and scored
+instead of hiding behind its wrapper. **No score regression** on the validation
+set; every previously-detected PE/APK keeps its score.
+
+### Added
+
+- **Recursive static payload resolution** (`payload_resolve.go`, `--resolve-depth`)
+  — a bounded BFS that derives candidate payloads from the sample via:
+  - **base64 / hex** decoding that recovers *binary* payloads (the existing decode
+    path keeps only printable decodes; a base64-encoded PE was previously dropped),
+  - **gzip / zlib** stream inflation found anywhere in the buffer,
+  - **single-byte-XOR** unwrapping of executables (the classic second layer after
+    base64), brute-forced against the recovered header,
+  - **recursive carving** of embedded executables/archives.
+
+  Each recovered stage is re-scanned through a non-recursive subset of the real
+  engine (strings → IOCs → pattern/family/capability scoring → finalized score)
+  and emitted as a node in a new **`payload_tree`** with full provenance
+  (`method`, `detail`, `depth`, `parent_id`) plus per-stage `file_type`, `sha256`,
+  `entropy`, `score`, `verdict`, `family`, and top actionable IOCs/findings.
+- **Obfuscated-payload findings** — an executable recovered by peeling an
+  encoding/compression/XOR layer raises a High **"Obfuscated executable payload
+  resolved"** finding (Defense Evasion / **T1027.009 Embedded Payloads**); a stage
+  that itself scores Suspicious+ raises a Medium. Conservative by design: a plainly
+  embedded payload with no malicious content stays informational so benign
+  installers that legitimately embed executables are not over-scored.
+- **`--resolve-depth <n>`** (0–6, default 3; `0` disables) — caps recursion depth.
+  Resolution is gated to standard/deep modes and protected by global work budgets
+  (decode/inflate attempt caps, a 24-node cap, and per-buffer size caps) so a large
+  binary riddled with incidental `0x78`/`0x1f8b` bytes cannot turn layer-peeling
+  into a hot loop. A 12-file deep batch stays within a few seconds.
+
+### Fixed
+
+- The resolver routes gzip/zlib streams through actual inflation (validating them)
+  rather than recording raw compression-magic byte-pairs as carve nodes, and skips
+  ZIP member-entry headers when the host is itself a ZIP-family archive — so the
+  payload tree shows real recovered stages (e.g. an APK's embedded native ELF and
+  PDFs) instead of incidental-magic noise.
 
 ---
 

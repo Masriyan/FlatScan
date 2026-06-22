@@ -118,14 +118,18 @@ PowerShell/JS/VBS, script-based downloaders — need fast triage and IOC recover
 **Why FlatScan fits:** it parses `.lnk` shortcuts (target/LOLBin + embedded command line),
 runs a script behavioral engine (Defender/AMSI tampering, download-and-execute cradles), and
 performs multi-layer deobfuscation (base64 → delimited-hex → reversed-string), recovering
-hidden/reversed C2 URLs as IOCs.
+hidden/reversed C2 URLs as IOCs. For staged droppers, **recursive payload resolution**
+(0.10.0) goes one step further: it peels base64/hex, gzip/zlib, and single-byte-XOR layers
+off the file and **re-scans the buried executable that emerges**, surfacing a `payload_tree`
+where the recovered stage carries its own score, family, and C2 — all by pure data
+transformation, without ever executing the sample.
 
 ```bash
 # Analyze a malicious shortcut — recovers the embedded PowerShell + reversed C2 URL
 flatscan -f invoice.lnk -m deep --extract-ioc iocs.txt
 
-# Deobfuscate a staged PowerShell dropper (follow more nested encoding layers)
-flatscan -f stage1.ps1 -m deep --decode-depth 4 --html report.html
+# Deobfuscate a staged PowerShell dropper and resolve the buried PE it carries
+flatscan -f stage1.ps1 -m deep --decode-depth 4 --resolve-depth 4 --html report.html
 ```
 
 ---

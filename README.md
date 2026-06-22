@@ -7,7 +7,7 @@
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Version](https://img.shields.io/badge/Version-0.9.0-e94560?style=flat)]()
+[![Version](https://img.shields.io/badge/Version-0.10.0-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-23%2F23-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
@@ -237,6 +237,7 @@ sequenceDiagram
 - **Similarity matching** against a JSONL reference store (`--similarity-db`) — "N% similar to <known sample>" (0.9.0)
 - **CAPA-style capability rules** over strings + imports (incl. hashdb-resolved) + disasm techniques + IOC categories → ATT&CK; **YARA-quality scoring** (compiler-string exclusion + FP-risk) (0.9.0)
 - **Malware config extraction** (C2/mutex/token/webhook/wallet/campaign), **offline threat-intel enrichment** (`--intel-db`), and **expected-behavior prediction** for sandbox/EDR validation (0.9.0)
+- **Recursive static payload resolution** (`--resolve-depth`) — peels base64/hex, gzip/zlib, single-byte-XOR, and carving layers and re-scans each recovered stage, surfacing a provenance-tagged `payload_tree` so a buried PE/ELF/DEX/archive is scored instead of hiding behind its wrapper; pure data transformation, sample never executed (0.10.0)
 - **DGA (algorithmically-generated domain) scoring** on extracted domains — dictionary-free lexical model (entropy + FANCI features + n-gram normality) flagging likely C2 domains as MITRE T1568.002 (0.7.0)
 - Suspicious base64, hex, and URL-percent decoding with nesting depth control, plus **separator-delimited hex and whole-buffer reversed-string recovery** that follows multi-stage script/LNK obfuscation and recovers hidden C2 IOCs (0.7.1)
 - **Code-level disassembly (x86/x64 PE+ELF)** — instruction-level detection of API-hashing (ROR13) loops, PEB walks, GetPC/shellcode stubs, and anti-VM (VMware backdoor, hypervisor CPUID, Red Pill), with **hash-database resolution of hash-obfuscated imports** (ROR13/DJB2/SDBM) feeding the import/behavior layer (0.8.0)
@@ -362,7 +363,7 @@ cd "source go"
 go build -o ../flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.9.0" -o ../flatscan .
+go build -ldflags "-X main.version=0.10.0" -o ../flatscan .
 ```
 
 > Since 0.8.0, the build pulls one pure-Go module — `golang.org/x/arch` (the
