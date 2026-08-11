@@ -350,9 +350,9 @@ func yaraRuleQuality(result ScanResult, entries []yaraStringEntry) (int, string)
 		groups[e.Group]++
 	}
 	score := 0
-	score += minInt(groups["url"], 4) * 12  // URLs are high-specificity
+	score += minInt(groups["url"], 4) * 12 // URLs are high-specificity
 	score += minInt(groups["reg"], 3) * 8
-	score += minInt(groups["entry"], 4) * 8  // embedded payload names
+	score += minInt(groups["entry"], 4) * 8 // embedded payload names
 	score += minInt(groups["path"], 3) * 6
 	score += minInt(groups["dom"], 4) * 5
 	score += minInt(groups["str"], 6) * 3

@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    # Weekly, so newly-disclosed vulnerabilities surface without a push.
+    - cron: "17 6 * * 1"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    # The Go module lives in a directory with a space in its name.
+    working-directory: "source go"
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "source go/go.mod"
+          cache-dependency-path: "source go/go.sum"
+
+      - name: Verify formatting
+        run: |
+          unformatted=$(gofmt -l .)
+          if [ -n "$unformatted" ]; then
+            echo "These files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./...
+
+      - name: Test with race detector
+        run: go test -race ./...
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "source go/go.mod"
+          cache-dependency-path: "source go/go.sum"
+      - uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: "source go"
+
+  vulncheck:
+    name: Vulnerability scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "source go/go.mod"
+          cache-dependency-path: "source go/go.sum"
+      - name: govulncheck
+        run: |
+          go install golang.org/x/vuln/cmd/govulncheck@latest
+          govulncheck ./...
+
+  fuzz:
+    name: Fuzz smoke
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: "source go/go.mod"
+          cache-dependency-path: "source go/go.sum"
+      # A short run per target on every PR catches regressions against the
+      # committed seed corpus. Long campaigns belong in a scheduled job.
+      - name: Run each fuzz target briefly
+        run: |
+          targets=$(go test -list '^Fuzz' ./... | grep '^Fuzz' || true)
+          if [ -z "$targets" ]; then
+            echo "No fuzz targets yet — skipping."
+            exit 0
+          fi
+          for t in $targets; do
+            echo "::group::$t"
+            go test -run "^$" -fuzz "^$t$" -fuzztime 45s ./...
+            echo "::endgroup::"
+          done

@@ -483,7 +483,7 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 			AddFindingDetailed(result, "High", "Container", "Archive bomb heuristic", fmt.Sprintf("%s expands from %d to %d bytes", file.Name, file.CompressedSize64, file.UncompressedSize64), 20, 0, "Defense Evasion", "Obfuscated Files or Information (T1027)", "Handle the archive in a constrained lab and avoid automatic extraction on production systems.")
 		}
 
-		if cfg.Mode == "quick" || file.FileInfo().IsDir() || file.UncompressedSize64 == 0 || file.UncompressedSize64 > 2*1024*1024 {
+		if cfg.Mode == "quick" || file.FileInfo().IsDir() || file.UncompressedSize64 == 0 || file.UncompressedSize64 > defaultMaxArchiveReadSize {
 			continue
 		}
 		handle, err := file.Open()
@@ -491,7 +491,7 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 			debugf("archive entry open failed for %s: %v", file.Name, err)
 			continue
 		}
-		content, err := io.ReadAll(io.LimitReader(handle, 2*1024*1024))
+		content, err := io.ReadAll(io.LimitReader(handle, defaultMaxArchiveReadSize))
 		handle.Close()
 		if err != nil {
 			debugf("archive entry read failed for %s: %v", file.Name, err)

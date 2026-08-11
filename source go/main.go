@@ -1,33 +1,59 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"os/signal"
 	"path/filepath"
+	"runtime/debug"
 	"strings"
+	"syscall"
 	"time"
 )
 
 // stderrColorEnabled returns true when stderr is a terminal and NO_COLOR is unset.
 func stderrColorEnabled() bool {
+	return fileColorEnabled(os.Stderr)
+}
+
+// stdoutColorEnabled returns true when stdout is a terminal and NO_COLOR is unset.
+func stdoutColorEnabled() bool {
+	return fileColorEnabled(os.Stdout)
+}
+
+// fileColorEnabled reports whether the given file is a character device (a
+// terminal) with NO_COLOR unset — the shared basis for color decisions.
+func fileColorEnabled(f *os.File) bool {
 	if os.Getenv("NO_COLOR") != "" {
 		return false
 	}
-	stat, err := os.Stderr.Stat()
+	stat, err := f.Stat()
 	if err != nil {
 		return false
 	}
 	return stat.Mode()&os.ModeCharDevice != 0
 }
 
-const defaultVersion = "0.10.0"
+const defaultVersion = "0.10.2"
 
 // version can be overridden at build time via:
-//   go build -ldflags "-X main.version=1.0.0" .
+//
+//	go build -ldflags "-X main.version=1.0.0" .
 var version = defaultVersion
+
+// errVersionRequested and errCompletionRequested are sentinels returned by
+// parseFlags instead of calling os.Exit directly. main() turns them into a
+// clean exit(0); the interactive command shell catches them and keeps running
+// (typing "--version" inside the shell used to kill the whole process).
+var (
+	errVersionRequested    = errors.New("version requested")
+	errCompletionRequested = errors.New("completion requested")
+)
 
 type Config struct {
 	Mode             string
@@ -74,13 +100,34 @@ type Config struct {
 	MaxArchiveFiles  int
 	MaxCarves        int
 	MaxPayloadDepth  int
+	Quiet            bool
 }
 
 func main() {
+	// Ctrl-C and SIGTERM cancel this context. The long-running modes (web,
+	// watch) select on it so they can shut down cleanly and remove the temp
+	// directories holding uploaded samples. A single scan is not itself
+	// cancellable mid-pipeline — that would mean threading a context through
+	// every analysis stage — so interrupting one still abandons it.
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	cfg, err := parseFlags(os.Args[1:])
 	if err != nil {
-		if errors.Is(err, flag.ErrHelp) {
+		if errors.Is(err, flag.ErrHelp) || errors.Is(err, errVersionRequested) || errors.Is(err, errCompletionRequested) {
 			os.Exit(0)
+		}
+		// Turn the flag package's terse "flag provided but not defined: -foo"
+		// into a clean, actionable message with a did-you-mean suggestion.
+		msg := err.Error()
+		if strings.Contains(msg, "flag provided but not defined") {
+			bad := strings.TrimSpace(msg[strings.LastIndex(msg, ":")+1:])
+			fmt.Fprintf(os.Stderr, "error: unknown flag %s\n", bad)
+			if sug := suggestFlag(strings.TrimLeft(bad, "-")); sug != "" {
+				fmt.Fprintf(os.Stderr, "  did you mean --%s ?\n", sug)
+			}
+			fmt.Fprintln(os.Stderr, "  run 'flatscan --help' to see all flags")
+			os.Exit(2)
 		}
 		fmt.Fprintln(os.Stderr, "error:", err)
 		os.Exit(2)
@@ -102,7 +149,7 @@ func main() {
 	}
 
 	if cfg.WebMode {
-		if err := RunWebServer(cfg); err != nil {
+		if err := RunWebServer(ctx, cfg); err != nil {
 			fmt.Fprintln(os.Stderr, "web server failed:", err)
 			os.Exit(1)
 		}
@@ -110,8 +157,8 @@ func main() {
 	}
 
 	if cfg.DirPath != "" && cfg.WatchMode {
-		if err := RunWatchMode(cfg); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+		if err := RunWatchMode(ctx, cfg); err != nil {
+			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
 		return
@@ -119,10 +166,10 @@ func main() {
 
 	if cfg.DirPath != "" {
 		if err := RunBatchScan(cfg); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			fmt.Fprintln(os.Stderr, "error:", err)
 			os.Exit(1)
 		}
-		return
+		os.Exit(batchExitCode)
 	}
 
 	result, err := RunConfiguredScan(cfg)
@@ -135,20 +182,25 @@ func main() {
 		label := "CLEAN"
 		if result.RiskScore >= 80 {
 			label = "MALICIOUS"
-		} else if result.RiskScore >= 55 {
-			label = "SUSPICIOUS"
 		} else if result.RiskScore >= 30 {
 			label = "SUSPICIOUS"
 		}
 		fmt.Fprintf(os.Stderr, "FLATSCAN: %s score=%d file=%s findings=%d sha256=%s\n",
 			label, result.RiskScore, result.FileName, len(result.Findings), result.Hashes.SHA256)
-		if result.RiskScore >= cfg.CIThreshold {
+		// Exit codes mirror the single-file matrix so CI pipelines can tell
+		// malicious (20) from merely suspicious/over-threshold (10).
+		switch {
+		case result.RiskScore >= 80:
+			os.Exit(20)
+		case result.RiskScore >= cfg.CIThreshold:
 			os.Exit(10)
 		}
 		os.Exit(0)
 	}
 
-	PrintPostScanHints(result, cfg, os.Stdout)
+	if !cfg.Quiet {
+		PrintPostScanHints(result, cfg, os.Stdout)
+	}
 
 	switch {
 	case result.RiskScore >= 80:
@@ -163,6 +215,15 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
 			progress.Done()
+			// Recovering keeps one malformed sample from taking down a batch of
+			// 500, which is the right trade for a tool that parses hostile
+			// input. But a panic here is always a parser bug, and returning it
+			// only as an error string on one file means it never gets
+			// investigated. Print the stack to stderr unconditionally so it is
+			// visible without needing --debug to reproduce.
+			fmt.Fprintf(os.Stderr, "\n[flatscan] BUG: recovered panic while scanning %q: %v\n%s\n"+
+				"[flatscan] this is a parser defect — please report it with the sample if possible\n",
+				cfg.FilePath, recovered, debug.Stack())
 			err = fmt.Errorf("fatal scanner error: %v", recovered)
 			if cfg.Debug {
 				err = fmt.Errorf("%w; debug: recovered panic while scanning %q", err, cfg.FilePath)
@@ -199,9 +260,10 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 		if err := os.WriteFile(cfg.ReportPath, []byte(plainReport), 0o644); err != nil {
 			return result, fmt.Errorf("report write failed: %w", err)
 		}
-	} else if cfg.JSONPath != "-" && cfg.OutputFormat == "text" && !cfg.CI {
+	} else if cfg.JSONPath != "-" && cfg.OutputFormat == "text" && !cfg.CI && !cfg.Quiet {
 		// Print text report to stdout, but not when JSON stdout is active,
-		// output-format is non-text, or CI mode is active.
+		// output-format is non-text, CI mode is active, or quiet is set
+		// (batch/watch suppress per-file reports so only the summary shows).
 		fmt.Print(report)
 	}
 
@@ -216,15 +278,19 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 			fmt.Println(string(data))
 		}
 	case "csv":
-		fmt.Printf("%s,%d,%s,%d,%d,%s\n",
-			result.FileName, result.RiskScore, result.Verdict,
-			len(result.Findings), IOCCount(result.IOCs), result.Hashes.SHA256)
-	case "jsonl":
-		data, err := json.Marshal(result)
-		if err != nil {
-			return result, fmt.Errorf("jsonl render failed: %w", err)
+		if cfg.JSONPath != "-" { // avoid mixing CSV with JSON on stdout
+			fmt.Printf("%s,%d,%s,%d,%d,%s\n",
+				result.FileName, result.RiskScore, result.Verdict,
+				len(result.Findings), IOCCount(result.IOCs), result.Hashes.SHA256)
 		}
-		fmt.Println(string(data))
+	case "jsonl":
+		if cfg.JSONPath != "-" { // avoid mixing JSONL with pretty JSON on stdout
+			data, err := json.Marshal(result)
+			if err != nil {
+				return result, fmt.Errorf("jsonl render failed: %w", err)
+			}
+			fmt.Println(string(data))
+		}
 	}
 
 	if cfg.JSONPath == "-" {
@@ -298,7 +364,9 @@ func parseFlags(args []string) (Config, error) {
 	}
 
 	fs := flag.NewFlagSet("flatscan", flag.ContinueOnError)
-	fs.SetOutput(os.Stderr)
+	// Silence the flag package's own error line and usage dump; main() renders a
+	// single actionable message (with a did-you-mean) on parse failure instead.
+	fs.SetOutput(io.Discard)
 	fs.StringVar(&cfg.Mode, "m", cfg.Mode, "")
 	fs.StringVar(&cfg.Mode, "mode", cfg.Mode, "")
 	fs.StringVar(&cfg.FilePath, "f", "", "")
@@ -329,6 +397,8 @@ func parseFlags(args []string) (Config, error) {
 	fs.BoolVar(&cfg.NoProgress, "no-progress", false, "")
 	fs.BoolVar(&cfg.NoSplash, "no-splash", false, "")
 	fs.BoolVar(&cfg.NoColor, "no-color", false, "")
+	fs.BoolVar(&cfg.Quiet, "quiet", false, "")
+	fs.BoolVar(&cfg.Quiet, "q", false, "")
 	fs.StringVar(&cfg.DirPath, "dir", "", "")
 	fs.BoolVar(&cfg.WatchMode, "watch", false, "")
 	fs.BoolVar(&cfg.WatchAlertOnly, "watch-alert-only", false, "")
@@ -348,11 +418,23 @@ func parseFlags(args []string) (Config, error) {
 	fs.IntVar(&cfg.MaxPayloadDepth, "resolve-depth", cfg.MaxPayloadDepth, "")
 	showVersion := fs.Bool("version", false, "")
 	completionShell := fs.String("completion", "", "")
+	helpLong := fs.Bool("help", false, "")
+	helpShort := fs.Bool("h", false, "")
 
-	fs.Usage = func() { printGroupedHelp() }
+	// The flag package calls fs.Usage on a parse error; suppress it so main()
+	// can render a single actionable did-you-mean message instead of the full
+	// help dump. Explicit --help/-h below still prints the grouped help.
+	fs.Usage = func() {}
 
 	if err := fs.Parse(args); err != nil {
 		return cfg, err
+	}
+
+	if *helpLong || *helpShort {
+		// Explicit --help/-h: help is the requested output, so it goes to
+		// stdout (pipeable to less/grep) and exits 0.
+		printGroupedHelp(os.Stdout)
+		return cfg, flag.ErrHelp
 	}
 
 	if *completionShell != "" {
@@ -366,17 +448,40 @@ func parseFlags(args []string) (Config, error) {
 		default:
 			return cfg, fmt.Errorf("unknown shell %q — valid values: bash, zsh, fish", *completionShell)
 		}
-		os.Exit(0)
+		return cfg, errCompletionRequested
 	}
 
 	if *showVersion {
 		fmt.Println("FlatScan", version)
-		os.Exit(0)
+		return cfg, errVersionRequested
 	}
 	if cfg.Interactive && cfg.CommandShell {
 		return cfg, errors.New("use either --interactive or --shell, not both")
 	}
+	// Reject mode combinations where one flag would be silently discarded.
+	if cfg.WebMode {
+		switch {
+		case cfg.FilePath != "":
+			return cfg, errors.New("--web cannot be combined with -f (the web UI takes uploads); run one or the other")
+		case cfg.DirPath != "":
+			return cfg, errors.New("--web cannot be combined with --dir; run one or the other")
+		case cfg.Interactive || cfg.CommandShell:
+			return cfg, errors.New("--web cannot be combined with --interactive or --shell")
+		}
+	}
+	if cfg.CI && (cfg.Interactive || cfg.CommandShell) {
+		return cfg, errors.New("--ci cannot be combined with --interactive or --shell")
+	}
+	if cfg.WatchMode && cfg.FilePath != "" {
+		return cfg, errors.New("--watch monitors a directory: use --dir <path>, not -f")
+	}
 	if cfg.CI {
+		cfg.NoSplash = true
+		cfg.NoProgress = true
+	}
+	// --quiet implies no splash and no progress: it promises to suppress
+	// everything except the verdict, and progress/splash write to stderr.
+	if cfg.Quiet {
 		cfg.NoSplash = true
 		cfg.NoProgress = true
 	}
@@ -391,6 +496,13 @@ func parseFlags(args []string) (Config, error) {
 	cfg.ReportMode = normalizeReportMode(cfg.ReportMode)
 	if cfg.ReportMode == "" {
 		return cfg, errors.New("invalid --report-mode — valid values: Full, Summary, minimal")
+	}
+
+	if cfg.WatchIntervalSec < 1 {
+		return cfg, errors.New("--watch-interval must be at least 1 (seconds)")
+	}
+	if cfg.WebPort < 1 || cfg.WebPort > 65535 {
+		return cfg, errors.New("--web-port must be between 1 and 65535")
 	}
 
 	if cfg.FilePath == "" && cfg.DirPath == "" {
@@ -454,8 +566,18 @@ func parseFlags(args []string) (Config, error) {
 	return cfg, nil
 }
 
-func printGroupedHelp() {
-	useColor := stderrColorEnabled()
+func printGroupedHelp(w io.Writer) {
+	// Colorize only when writing to a terminal (stdout for explicit --help,
+	// stderr when help accompanies an error). NO_COLOR is respected via the
+	// stderr/std color helpers below.
+	useColor := false
+	if f, ok := w.(*os.File); ok {
+		if f == os.Stdout {
+			useColor = stdoutColorEnabled()
+		} else {
+			useColor = stderrColorEnabled()
+		}
+	}
 
 	head := func(s string) string {
 		if useColor {
@@ -482,7 +604,7 @@ func printGroupedHelp() {
 		return s
 	}
 
-	line := func(s string) { fmt.Fprintln(os.Stderr, s) }
+	line := func(s string) { fmt.Fprintln(w, s) }
 	line(fmt.Sprintf("FlatScan %s — static malicious file scanner", version))
 	line("")
 	line(head("USAGE"))
@@ -521,6 +643,13 @@ func printGroupedHelp() {
 	line(fmt.Sprintf("  %s  JSONL reference store for similarity matching", flag_("--similarity-db <path>")))
 	line(fmt.Sprintf("  %s  JSONL offline threat-intel enrichment database", flag_("--intel-db <path>")))
 	line("")
+	line(head("LIMITS"))
+	line(fmt.Sprintf("  %s  minimum extracted string length  %s", flag_("--min-string <n>"), note("(default: 5, min 3)")))
+	line(fmt.Sprintf("  %s  max bytes read into memory for analysis  %s", flag_("--max-analyze-bytes <n>"), note("(default: 256MiB)")))
+	line(fmt.Sprintf("  %s  max archive entries inspected  %s", flag_("--max-archive-files <n>"), note("(default: 500)")))
+	line(fmt.Sprintf("  %s  max carved artifacts reported  %s", flag_("--max-carves <n>"), note("(default: 80, 1–1000)")))
+	line(fmt.Sprintf("  %s  splash screen duration cap  %s", flag_("--splash-seconds <n>"), note("(default: 20, 0–120)")))
+	line("")
 	line(head("CI/CD"))
 	line(fmt.Sprintf("  %s  CI mode: suppress UI, exit 10 if score >= threshold", flag_("--ci")))
 	line(fmt.Sprintf("  %s  score threshold for --ci  %s", flag_("--ci-threshold <n>"), note("(default: 55)")))
@@ -539,8 +668,10 @@ func printGroupedHelp() {
 	line(fmt.Sprintf("  %s  case JSONL database path", flag_("--case-db <path>")))
 	line("")
 	line(head("FLAGS"))
+	line(fmt.Sprintf("  %s  suppress report, tips & progress; keep the verdict line", flag_("-q, --quiet")))
 	line(fmt.Sprintf("  %s", flag_("--no-color  --no-progress  --no-splash  --debug")))
 	line(fmt.Sprintf("  %s  print completion script %s", flag_("--completion <shell>"), note("(bash | zsh | fish)")))
+	line(fmt.Sprintf("  %s  %s", flag_("-h, --help"), note("show this help")))
 	line(fmt.Sprintf("  %s", flag_("--version")))
 	line("")
 	line(note("Examples:"))
@@ -569,4 +700,70 @@ func renderReportForTerminal(result ScanResult, cfg Config) string {
 		return RenderColorReport(result, cfg.ReportMode)
 	}
 	return RenderReport(result, cfg.ReportMode)
+}
+
+// knownFlags is the canonical list of long flag names, used for did-you-mean
+// suggestions on an unknown flag. Keep in sync with the flags registered in
+// parseFlags.
+var knownFlags = []string{
+	"mode", "file", "dir", "report-mode", "report", "pdf", "json", "html",
+	"yara", "sigma", "stix", "report-pack", "rules", "plugins", "extract-ioc",
+	"ioc-allowlist", "similarity-db", "intel-db", "case", "case-db", "debug",
+	"interactive", "shell", "carve", "external-tools", "no-progress",
+	"no-splash", "no-color", "quiet", "watch", "watch-alert-only", "ci",
+	"ci-threshold", "output-format", "batch-json", "watch-interval", "web",
+	"web-port", "splash-seconds", "min-string", "decode-depth",
+	"max-analyze-bytes", "max-archive-files", "max-carves", "resolve-depth",
+	"version", "completion", "help",
+}
+
+// suggestFlag returns the closest known flag name to bad (Levenshtein distance),
+// or "" when nothing is close enough to be a helpful suggestion.
+func suggestFlag(bad string) string {
+	bad = strings.ToLower(strings.TrimSpace(bad))
+	if bad == "" {
+		return ""
+	}
+	best, bestDist := "", 1<<30
+	for _, f := range knownFlags {
+		if d := levenshtein(bad, f); d < bestDist {
+			best, bestDist = f, d
+		}
+	}
+	// Only suggest when the edit distance is small relative to the input; a
+	// wild typo shouldn't map to an unrelated flag.
+	limit := len(bad)/2 + 1
+	if bestDist <= limit {
+		return best
+	}
+	return ""
+}
+
+func levenshtein(a, b string) int {
+	ra, rb := []rune(a), []rune(b)
+	prev := make([]int, len(rb)+1)
+	cur := make([]int, len(rb)+1)
+	for j := range prev {
+		prev[j] = j
+	}
+	for i := 1; i <= len(ra); i++ {
+		cur[0] = i
+		for j := 1; j <= len(rb); j++ {
+			cost := 1
+			if ra[i-1] == rb[j-1] {
+				cost = 0
+			}
+			del, ins, sub := prev[j]+1, cur[j-1]+1, prev[j-1]+cost
+			m := del
+			if ins < m {
+				m = ins
+			}
+			if sub < m {
+				m = sub
+			}
+			cur[j] = m
+		}
+		prev, cur = cur, prev
+	}
+	return prev[len(rb)]
 }

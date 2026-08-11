@@ -69,7 +69,7 @@ func scanCode(result *ScanResult, mode int, arch string, code []byte, baseOffset
 		rdtscCount   int
 		lastEAXImm   int64 = -1
 		prevCallRel0 bool
-		immediates         = make(map[uint32]struct{})
+		immediates   = make(map[uint32]struct{})
 	)
 
 	off := 0

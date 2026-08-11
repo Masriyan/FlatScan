@@ -137,14 +137,14 @@ type JSONPluginManifest struct {
 	Modes         []string `json:"modes,omitempty"`
 	FileTypes     []string `json:"file_types,omitempty"`
 	StringChecks  []struct {
-		Contains   string `json:"contains"`
-		Severity   string `json:"severity"`
-		Category   string `json:"category"`
-		Title      string `json:"title"`
-		Evidence   string `json:"evidence,omitempty"`
-		Score      int    `json:"score"`
-		Tactic     string `json:"tactic,omitempty"`
-		Technique  string `json:"technique,omitempty"`
+		Contains  string `json:"contains"`
+		Severity  string `json:"severity"`
+		Category  string `json:"category"`
+		Title     string `json:"title"`
+		Evidence  string `json:"evidence,omitempty"`
+		Score     int    `json:"score"`
+		Tactic    string `json:"tactic,omitempty"`
+		Technique string `json:"technique,omitempty"`
 	} `json:"string_checks,omitempty"`
 }
 

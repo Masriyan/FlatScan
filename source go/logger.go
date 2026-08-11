@@ -32,9 +32,9 @@ type Logger struct {
 
 // LogEntry represents a single log message for post-scan analysis.
 type LogEntry struct {
-	Timestamp string   `json:"timestamp"`
-	Level     string   `json:"level"`
-	Message   string   `json:"message"`
+	Timestamp string `json:"timestamp"`
+	Level     string `json:"level"`
+	Message   string `json:"message"`
 }
 
 // NewLogger creates a logger that writes to the given writer at the
@@ -147,10 +147,17 @@ func levelName(level LogLevel) string {
 }
 
 // NewScanLogger creates a logger configured for scan pipeline use.
-// In debug mode, writes to stderr; otherwise captures entries silently.
+// In debug mode, writes to stderr and captures every entry for result.DebugLog.
+//
+// Outside debug mode the minimum level is raised above LogDebug so the guard in
+// log() short-circuits before formatting. ScanFile only promotes entries to
+// result.DebugLog when cfg.Debug is set, so previously every one of the debugf
+// call sites — several inside per-archive-entry and per-plugin loops — paid for
+// a Sprintf, an RFC3339Nano timestamp, a mutex acquisition, and a slice append
+// whose result was then discarded.
 func NewScanLogger(debug bool) *Logger {
 	if debug {
 		return NewLogger(os.Stderr, LogDebug)
 	}
-	return NewLogger(nil, LogDebug)
+	return NewLogger(nil, LogError)
 }

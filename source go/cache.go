@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -66,6 +67,12 @@ func (c *ScanCache) Get(sha256 string, currentSize int64) *ScanResult {
 }
 
 // Put stores a scan result in the cache.
+//
+// The entry is written to a temporary file and renamed into place. Rename is
+// atomic within a filesystem, so a concurrent Get either sees the previous
+// entry or the complete new one — never the truncated intermediate state that
+// a direct os.WriteFile leaves visible while it writes. This also makes the
+// cache safe across processes, which the in-process mutex cannot do.
 func (c *ScanCache) Put(sha256 string, result ScanResult) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -83,7 +90,27 @@ func (c *ScanCache) Put(sha256 string, result ScanResult) {
 	}
 
 	path := c.entryPath(sha256)
-	_ = os.WriteFile(path, data, 0o644)
+	tmp, err := os.CreateTemp(c.dir, ".tmp-*")
+	if err != nil {
+		return
+	}
+	tmpName := tmp.Name()
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		_ = os.Remove(tmpName)
+		return
+	}
+	if err := tmp.Close(); err != nil {
+		_ = os.Remove(tmpName)
+		return
+	}
+	if err := os.Chmod(tmpName, 0o644); err != nil {
+		_ = os.Remove(tmpName)
+		return
+	}
+	if err := os.Rename(tmpName, path); err != nil {
+		_ = os.Remove(tmpName)
+	}
 }
 
 // Invalidate removes a cached entry.
@@ -104,7 +131,19 @@ func (c *ScanCache) Clean() (removed int) {
 	}
 
 	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+		if entry.IsDir() {
+			continue
+		}
+		// Reap temp files orphaned by a Put that was interrupted between
+		// CreateTemp and Rename.
+		if strings.HasPrefix(entry.Name(), ".tmp-") {
+			if info, err := entry.Info(); err == nil && time.Since(info.ModTime()) > time.Hour {
+				_ = os.Remove(filepath.Join(c.dir, entry.Name()))
+				removed++
+			}
+			continue
+		}
+		if filepath.Ext(entry.Name()) != ".json" {
 			continue
 		}
 		path := filepath.Join(c.dir, entry.Name())

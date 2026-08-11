@@ -284,15 +284,20 @@ func htmlRiskGauge(b *strings.Builder, score int) {
 	const (
 		cx, cy, r = 120.0, 110.0, 90.0
 	)
-	// Background arc: semicircle from left (180°) to right (0°) going through top
-	// Fill arc: from left to the score angle
+	// Background arc: semicircle from left (180°) to right (0°) going through top.
+	// Fill arc: from left to the score angle, along the same top semicircle.
+	//
+	// large-arc-flag is always 0. Both arcs run from the left endpoint to a point
+	// on the top semicircle, so the sweep is never more than 180° and the minor
+	// arc is always the one we want. Setting the flag to 1 above score 50 — the
+	// rule for a full-circle progress ring, not a semicircular gauge — made SVG
+	// draw the major arc the long way round through the bottom instead. The
+	// viewBox is only 130 tall, so that detour was clipped and the gauge rendered
+	// as two disconnected stubs on every report scoring over 50.
+	const largeArc = 0
 	angle := math.Pi * (1.0 - float64(score)/100.0)
 	ex := cx + r*math.Cos(angle)
 	ey := cy - r*math.Sin(angle)
-	largeArc := 0
-	if score > 50 {
-		largeArc = 1
-	}
 
 	fillColor := "#3fb950"
 	switch {

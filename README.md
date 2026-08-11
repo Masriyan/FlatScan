@@ -7,9 +7,9 @@
 **Zero-Dependency Static Malware Analysis Engine**
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
-[![Version](https://img.shields.io/badge/Version-0.10.0-e94560?style=flat)]()
+[![Version](https://img.shields.io/badge/Version-0.10.2-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-23%2F23-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-91%20passing-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
@@ -363,7 +363,7 @@ cd "source go"
 go build -o ../flatscan .
 
 # With version tag
-go build -ldflags "-X main.version=0.10.0" -o ../flatscan .
+go build -ldflags "-X main.version=0.10.2" -o ../flatscan .
 ```
 
 > Since 0.8.0, the build pulls one pure-Go module — `golang.org/x/arch` (the
@@ -1010,13 +1010,15 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 
 | Document | Purpose |
 |----------|---------|
+| **[wiki/](wiki/Home.md)** | **Full documentation set** — installation, quick start, exhaustive CLI reference, output formats, detection engine, web UI, CI/CD, rules & plugins, architecture, troubleshooting, FAQ |
 | [install.md](install.md) | Build, verify, cross-compile, lab setup |
 | [usage.md](usage.md) | Comprehensive flag reference, mode details, output interpretation |
 | [USECASE.md](USECASE.md) | Use cases, deployment scenarios, and recommended workflows |
 | [contributing.md](contributing.md) | Code style, testing, adding detections, PR guidelines |
 | [security.md](security.md) | Security policy, safe handling, output safety, dependency policy |
 | [changelog.md](changelog.md) | Version history with all changes |
-| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.9.0) and the 5-year direction |
+| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.10.1) and the 5-year direction |
+| [flatscan_qa_report.md](flatscan_qa_report.md) | Latest full QA / hardening audit (0.10.1) |
 | [QC_REPORT.md](QC_REPORT.md) | Cumulative quality-assurance audit log per release |
 
 ---

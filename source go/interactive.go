@@ -28,6 +28,11 @@ func RunInteractive(in io.Reader, out, errOut io.Writer, base Config) error {
 		fmt.Fprintln(out, "4) Quit")
 		choice, err := promptLine(reader, out, "Select option [1]: ")
 		if err != nil {
+			if errors.Is(err, io.EOF) {
+				// Ctrl-D at the menu is a quit, not an error (matches option 4).
+				fmt.Fprintln(out, "\nBye.")
+				return nil
+			}
 			return err
 		}
 		switch strings.TrimSpace(choice) {
@@ -100,7 +105,9 @@ func runCommandShell(reader *bufio.Reader, out, errOut io.Writer, returnToMenu b
 		args = stripFlatScanCommand(args)
 		cfg, err := parseFlags(args)
 		if err != nil {
-			if errors.Is(err, flag.ErrHelp) {
+			if errors.Is(err, flag.ErrHelp) || errors.Is(err, errVersionRequested) || errors.Is(err, errCompletionRequested) {
+				// --help / --version / --completion already printed their output;
+				// stay in the shell instead of exiting the whole process.
 				continue
 			}
 			fmt.Fprintf(errOut, "command error: %v\n", err)
@@ -403,19 +410,23 @@ func promptRequiredFile(reader *bufio.Reader, out io.Writer) (string, error) {
 
 func promptChoice(reader *bufio.Reader, out io.Writer, label string, values []string, fallback string) (string, error) {
 	fmt.Fprintf(out, "%s options: %s\n", label, strings.Join(values, ", "))
-	value, err := promptDefault(reader, out, label, fallback)
-	if err != nil {
-		return "", err
-	}
-	if value == "" {
-		return fallback, nil
-	}
-	for _, option := range values {
-		if strings.EqualFold(value, option) {
-			return option, nil
+	for {
+		value, err := promptDefault(reader, out, label, fallback)
+		if err != nil {
+			return "", err
 		}
+		if value == "" {
+			return fallback, nil
+		}
+		for _, option := range values {
+			if strings.EqualFold(value, option) {
+				return option, nil
+			}
+		}
+		// Re-prompt on an unrecognized value instead of unwinding the whole
+		// wizard and discarding every answer already entered.
+		fmt.Fprintf(out, "  invalid %s %q — choose one of: %s\n", strings.ToLower(label), value, strings.Join(values, ", "))
 	}
-	return "", fmt.Errorf("invalid %s %q", strings.ToLower(label), value)
 }
 
 func promptCustomOutputPaths(reader *bufio.Reader, out io.Writer, cfg *Config) error {
@@ -457,19 +468,21 @@ func promptYesNo(reader *bufio.Reader, out io.Writer, label string, fallback boo
 	if fallback {
 		defaultText = "y"
 	}
-	value, err := promptDefault(reader, out, label+" (y/n)", defaultText)
-	if err != nil {
-		return false, err
-	}
-	switch strings.ToLower(strings.TrimSpace(value)) {
-	case "":
-		return fallback, nil
-	case "y", "yes", "true", "1":
-		return true, nil
-	case "n", "no", "false", "0":
-		return false, nil
-	default:
-		return false, fmt.Errorf("invalid yes/no value %q", value)
+	for {
+		value, err := promptDefault(reader, out, label+" (y/n)", defaultText)
+		if err != nil {
+			return false, err
+		}
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case "":
+			return fallback, nil
+		case "y", "yes", "true", "1":
+			return true, nil
+		case "n", "no", "false", "0":
+			return false, nil
+		default:
+			fmt.Fprintf(out, "  please answer y or n (got %q)\n", value)
+		}
 	}
 }
 

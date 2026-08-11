@@ -72,7 +72,7 @@ func TestResolveHashedAPIsROR13(t *testing.T) {
 	// Two real ROR13 hashes (LoadLibraryA, GetProcAddress) presented as the
 	// immediates the disassembler would have collected.
 	imm := map[uint32]struct{}{
-		ror13Hash("LoadLibraryA"):  {},
+		ror13Hash("LoadLibraryA"):   {},
 		ror13Hash("GetProcAddress"): {},
 		0x12345:                     {}, // noise
 	}

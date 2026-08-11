@@ -83,8 +83,8 @@ func verdictColor(verdict string) string {
 
 // Colored text helpers.
 func colorize(color, text string) string { return color + text + colorReset }
-func bold(text string) string             { return colorBold + text + colorReset }
-func dim(text string) string              { return colorDim + text + colorReset }
+func bold(text string) string            { return colorBold + text + colorReset }
+func dim(text string) string             { return colorDim + text + colorReset }
 
 // RenderColorReport produces a colorized terminal report.
 func RenderColorReport(result ScanResult, mode string) string {

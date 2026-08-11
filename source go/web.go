@@ -2,14 +2,17 @@ package main
 
 import (
 	"archive/zip"
+	"context"
 	"crypto/rand"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -54,29 +57,49 @@ type scanJob struct {
 	Done       bool              //
 	Err        string            //
 	Result     *ScanResult       //
-	OutDir     string            // temp dir for output files, reaped after 30m
+	OutDir     string            // temp dir for output files, reaped by the background reaper
 	Outputs    map[string]string // format -> absolute path of generated file
 }
+
+// jobRetention bounds how long a job's temp directory survives. Finished jobs
+// are reaped after this long so results stay downloadable for a reasonable
+// window; unfinished ones are reaped at hardJobRetention regardless, so a scan
+// wedged on an adversarial sample cannot pin its uploaded sample on disk for
+// the lifetime of the process.
+const (
+	jobRetention     = 30 * time.Minute
+	hardJobRetention = 4 * time.Hour
+)
 
 // webServer holds all mutable server state.
 type webServer struct {
 	cfg  Config
 	mu   sync.RWMutex
 	jobs map[string]*scanJob // keyed by job.ID
+	// scanSlots bounds concurrent scans. Each upload previously started an
+	// unbounded goroutine, so N parallel uploads meant N full scans and
+	// N x MaxAnalyzeBytes resident at once.
+	scanSlots chan struct{}
 }
 
 // RunWebServer launches the local web GUI. It blocks until the HTTP server
-// exits. The server is intentionally unauthenticated and binds to loopback
-// only — it is a single-user local analysis tool.
-func RunWebServer(cfg Config) error {
+// exits or ctx is cancelled. The server is intentionally unauthenticated and
+// binds to loopback only — it is a single-user local analysis tool — with
+// requireLocalOrigin enforcing that the request really came from this machine.
+//
+// On cancellation it drains in-flight requests, then removes every job's temp
+// directory: those hold uploaded malware samples, and leaving them under /tmp
+// after Ctrl-C is both a disk leak and a hazard.
+func RunWebServer(ctx context.Context, cfg Config) error {
 	// Force flags appropriate for server context.
 	cfg.NoSplash = true
 	cfg.NoProgress = true
 	cfg.NoColor = true
 
 	srv := &webServer{
-		cfg:  cfg,
-		jobs: make(map[string]*scanJob),
+		cfg:       cfg,
+		jobs:      make(map[string]*scanJob),
+		scanSlots: make(chan struct{}, runtime.NumCPU()),
 	}
 
 	mux := http.NewServeMux()
@@ -84,13 +107,24 @@ func RunWebServer(cfg Config) error {
 	mux.HandleFunc("/api/scan", srv.handleScan)          // POST multipart/form-data
 	mux.HandleFunc("/api/result/", srv.handleResult)     // GET /api/result/{id}
 	mux.HandleFunc("/api/download/", srv.handleDownload) // GET /api/download/{id}/{format}
+	handler := requireLocalOrigin(mux, cfg.WebPort)
 
-	// Background reaper: drop finished jobs (and their temp dirs) after 30m.
+	// Background reaper: drop finished jobs after jobRetention, and any job at
+	// all — including one whose scan goroutine never returned — after
+	// hardJobRetention, so an uploaded sample is never held indefinitely.
+	reap := time.NewTicker(5 * time.Minute)
+	defer reap.Stop()
 	go func() {
-		for range time.Tick(5 * time.Minute) {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-reap.C:
+			}
 			srv.mu.Lock()
 			for id, job := range srv.jobs {
-				if job.Done && time.Since(job.StartedAt) > 30*time.Minute {
+				age := time.Since(job.StartedAt)
+				if (job.Done && age > jobRetention) || age > hardJobRetention {
 					os.RemoveAll(job.OutDir)
 					delete(srv.jobs, id)
 				}
@@ -100,15 +134,98 @@ func RunWebServer(cfg Config) error {
 	}()
 
 	addr := fmt.Sprintf("127.0.0.1:%d", cfg.WebPort)
-	fmt.Println("[flatscan-web] WARNING: no authentication — bind to localhost only")
+	server := &http.Server{
+		Addr:    addr,
+		Handler: handler,
+		// Slowloris / resource-exhaustion protection. Uploads can be large, so
+		// ReadTimeout is generous; WriteTimeout covers report/pack streaming.
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       5 * time.Minute,
+		WriteTimeout:      10 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+		MaxHeaderBytes:    1 << 20,
+	}
+	fmt.Println("[flatscan-web] WARNING: no authentication — loopback requests only")
 	fmt.Printf("[flatscan-web] listening on http://localhost:%d\n", cfg.WebPort)
 	fmt.Printf("[flatscan-web] open your browser at http://localhost:%d\n", cfg.WebPort)
-	return http.ListenAndServe(addr, mux)
+
+	go func() {
+		<-ctx.Done()
+		fmt.Fprintln(os.Stderr, "\n[flatscan-web] shutting down…")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		_ = server.Shutdown(shutdownCtx)
+	}()
+
+	err := server.ListenAndServe()
+	if errors.Is(err, http.ErrServerClosed) {
+		err = nil
+	}
+
+	// Remove every job's temp directory, including jobs still scanning: the
+	// process is going away, so nothing will come back for them.
+	srv.mu.Lock()
+	for id, job := range srv.jobs {
+		os.RemoveAll(job.OutDir)
+		delete(srv.jobs, id)
+	}
+	srv.mu.Unlock()
+
+	return err
+}
+
+// requireLocalOrigin rejects requests that reach the server under a name other
+// than loopback, and requests carrying a cross-origin Origin header.
+//
+// Binding to 127.0.0.1 keeps remote hosts from connecting directly, but it is
+// not a trust boundary on its own: a page the analyst visits can point a
+// hostname it controls at 127.0.0.1 (DNS rebinding), after which the browser
+// treats that page as same-origin with FlatScan and can read every scan result
+// — sample paths, hashes, extracted IOCs, recovered C2 config. Pinning the Host
+// header to the loopback names the analyst's own browser would send closes
+// that, because the attacker's page cannot send a Host it does not control.
+//
+// The Origin check is the CSRF half: a cross-site form post to /api/scan is a
+// "simple request" that needs no preflight, so the browser would otherwise
+// submit it happily.
+func requireLocalOrigin(next http.Handler, port int) http.Handler {
+	allowedHost := map[string]bool{
+		fmt.Sprintf("localhost:%d", port): true,
+		fmt.Sprintf("127.0.0.1:%d", port): true,
+		fmt.Sprintf("[::1]:%d", port):     true,
+	}
+	allowedOrigin := map[string]bool{
+		fmt.Sprintf("http://localhost:%d", port): true,
+		fmt.Sprintf("http://127.0.0.1:%d", port): true,
+		fmt.Sprintf("http://[::1]:%d", port):     true,
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if !allowedHost[r.Host] {
+			jsonError(w, "forbidden: this server only accepts requests addressed to localhost", http.StatusForbidden)
+			return
+		}
+		// An absent Origin is normal for same-origin navigations and GETs.
+		// A present one must match; anything else is another site calling us.
+		if origin := r.Header.Get("Origin"); origin != "" && !allowedOrigin[origin] {
+			jsonError(w, "forbidden: cross-origin request rejected", http.StatusForbidden)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // setCommonHeaders applies headers shared by every response.
 func setCommonHeaders(w http.ResponseWriter) {
-	w.Header().Set("X-Content-Type-Options", "nosniff")
+	h := w.Header()
+	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set("X-Frame-Options", "DENY")
+	h.Set("Referrer-Policy", "no-referrer")
+	// The UI is fully self-contained (inline CSS/JS, no external assets), so a
+	// strict CSP is safe and blocks any injected external script/frame. Inline
+	// style/script are required by the single-file design.
+	h.Set("Content-Security-Policy",
+		"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; "+
+			"img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
 }
 
 // jsonError writes a JSON error body with the given status code.
@@ -127,7 +244,10 @@ func (s *webServer) handleIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	fmt.Fprint(w, webUIHTML)
+	// io.WriteString rather than fmt.Fprint: the page is a fixed string that
+	// contains JavaScript operators such as "h%palette.length", which a
+	// formatting function would treat as a verb. Nothing here needs formatting.
+	_, _ = io.WriteString(w, webUIHTML)
 }
 
 // handleScan accepts a multipart upload, registers a job, and kicks off the
@@ -211,6 +331,11 @@ func (s *webServer) handleScan(w http.ResponseWriter, r *http.Request) {
 // runScan executes one scan in a background goroutine, writing all artifacts
 // inside the job's temp directory and recording the result on the job.
 func (s *webServer) runScan(job *scanJob) {
+	// Queue behind the concurrency cap. Uploads still return 202 immediately;
+	// the job simply reports "scanning" until a slot frees up.
+	s.scanSlots <- struct{}{}
+	defer func() { <-s.scanSlots }()
+
 	defer func() {
 		if r := recover(); r != nil {
 			s.mu.Lock()

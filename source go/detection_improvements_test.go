@@ -82,10 +82,10 @@ func TestScanScriptContentDefenderTampering(t *testing.T) {
 	result := &ScanResult{FileType: "PowerShell script"}
 	scanScriptContent(result, Config{Mode: "deep", MaxDecodeDepth: 3}, content, "script body")
 
-	if !hasFindingTitle(result.Findings,"Microsoft Defender tampering") {
+	if !hasFindingTitle(result.Findings, "Microsoft Defender tampering") {
 		t.Fatalf("expected Defender tampering finding, got: %s", findingTitles(result))
 	}
-	if !hasFindingTitle(result.Findings,"Heavily obfuscated script content") {
+	if !hasFindingTitle(result.Findings, "Heavily obfuscated script content") {
 		t.Fatalf("expected obfuscation finding, got: %s", findingTitles(result))
 	}
 }
@@ -96,7 +96,7 @@ func TestScanScriptContentDownloadCradleAndReversedURL(t *testing.T) {
 	result := &ScanResult{FileType: "PowerShell script"}
 	scanScriptContent(result, Config{Mode: "deep", MaxDecodeDepth: 3}, content, "script body")
 
-	if !hasFindingTitle(result.Findings,"Remote download-and-execute cradle") {
+	if !hasFindingTitle(result.Findings, "Remote download-and-execute cradle") {
 		t.Fatalf("expected download cradle finding, got: %s", findingTitles(result))
 	}
 	if !containsStringFold(result.IOCs.URLs, "http://evil.example.com/p.exe") {
@@ -119,10 +119,10 @@ func TestDetectAndAnalyzeMaliciousLNK(t *testing.T) {
 	if err := analyzeLNK(result, Config{Mode: "deep", MaxDecodeDepth: 3}, data); err != nil {
 		t.Fatalf("analyzeLNK error: %v", err)
 	}
-	if !hasFindingTitle(result.Findings,"Shortcut launches a command interpreter") {
+	if !hasFindingTitle(result.Findings, "Shortcut launches a command interpreter") {
 		t.Fatalf("expected LOLBin finding, got: %s", findingTitles(result))
 	}
-	if !hasFindingTitle(result.Findings,"Remote download-and-execute cradle") {
+	if !hasFindingTitle(result.Findings, "Remote download-and-execute cradle") {
 		t.Fatalf("expected cradle finding, got: %s", findingTitles(result))
 	}
 	if !containsStringFold(result.IOCs.URLs, "http://evil.example.com/p.exe") {

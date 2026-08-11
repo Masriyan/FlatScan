@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -8,12 +9,89 @@ import (
 	"time"
 )
 
+// watchOutputPath turns a configured output path into a per-sample one by
+// keeping the template's directory and suffix and substituting the sample name.
+//
+//	--json reports/out.json   + evil.exe -> reports/evil.exe.json
+//	--stix reports/a.stix.json + evil.exe -> reports/evil.exe.stix.json
+//
+// The suffix runs from the first dot of the template's base name, so
+// multi-part extensions like .stix.json survive intact. This matches how web
+// mode names its per-job artifacts (<sample><suffix>), so the two modes agree.
+//
+// "" and "-" pass through untouched: the first means "not requested", the
+// second means stdout.
+func watchOutputPath(template, sampleName string) string {
+	if template == "" || template == "-" {
+		return template
+	}
+	base := filepath.Base(template)
+	suffix := ""
+	if i := strings.Index(base, "."); i >= 0 {
+		suffix = base[i:]
+	}
+	return filepath.Join(filepath.Dir(template), sampleName+suffix)
+}
+
+// applyWatchOutputPaths rewrites every per-scan output path in dst so this
+// sample's artifacts do not overwrite the previous sample's.
+//
+// Watch mode used to carry the single configured --json/--report/--html/--pdf
+// path into every scan, so each new file silently clobbered the last and an
+// inbox that received ten samples left exactly one set of artifacts behind.
+//
+// Deliberately untouched:
+//   - ReportPackPath already collides safely. WriteReportPack names every file
+//     "<sample>_<hash8>.<kind>", so two samples never overwrite each other
+//     inside one pack directory. Rewriting it here would change working
+//     behaviour and break existing scripts for no benefit.
+//   - CaseDBPath is an append-only case ledger; appending every scan to one
+//     file is the intended behaviour, not a collision.
+//   - RulePaths, PluginPaths, IntelDBPath, SimilarityDBPath and
+//     IOCAllowlistPath are inputs, not outputs.
+func applyWatchOutputPaths(dst *Config, template Config, sampleName string) {
+	dst.ReportPath = watchOutputPath(template.ReportPath, sampleName)
+	dst.JSONPath = watchOutputPath(template.JSONPath, sampleName)
+	dst.HTMLPath = watchOutputPath(template.HTMLPath, sampleName)
+	dst.PDFPath = watchOutputPath(template.PDFPath, sampleName)
+	dst.YARAPath = watchOutputPath(template.YARAPath, sampleName)
+	dst.SigmaPath = watchOutputPath(template.SigmaPath, sampleName)
+	dst.STIXPath = watchOutputPath(template.STIXPath, sampleName)
+	dst.IOCPath = watchOutputPath(template.IOCPath, sampleName)
+}
+
+// watchWritesPerFile reports whether any per-scan artifact is configured, so
+// watch can tell the operator where output is going.
+func watchWritesPerFile(cfg Config) bool {
+	return cfg.ReportPath != "" || cfg.JSONPath != "" || cfg.HTMLPath != "" ||
+		cfg.PDFPath != "" || cfg.YARAPath != "" || cfg.SigmaPath != "" ||
+		cfg.STIXPath != "" || cfg.IOCPath != "" || cfg.ReportPackPath != ""
+}
+
+// firstConfiguredOutput returns one configured output path, for use as an
+// example in the startup notice. Order matches the flag list in --help.
+func firstConfiguredOutput(cfg Config) string {
+	for _, p := range []string{
+		cfg.ReportPath, cfg.JSONPath, cfg.HTMLPath, cfg.PDFPath,
+		cfg.YARAPath, cfg.SigmaPath, cfg.STIXPath, cfg.IOCPath, cfg.ReportPackPath,
+	} {
+		if p != "" && p != "-" {
+			return p
+		}
+	}
+	return ""
+}
+
 // RunWatchMode monitors a directory for new files and auto-scans them.
 // It uses a polling approach with configurable interval to stay within
 // the zero-dependency constraint (no fsnotify/inotify required).
 //
 // Usage: ./flatscan --watch ./inbox -m deep
-func RunWatchMode(cfg Config) error {
+//
+// It returns when ctx is cancelled (Ctrl-C or SIGTERM), printing a final
+// tally. Previously the ticker loop had no exit path at all, so the trailing
+// return was unreachable and the process could only be killed mid-scan.
+func RunWatchMode(ctx context.Context, cfg Config) error {
 	dir := cfg.DirPath
 	stat, err := os.Stat(dir)
 	if err != nil {
@@ -28,7 +106,7 @@ func RunWatchMode(cfg Config) error {
 		interval = 3 * time.Second
 	}
 
-	useColor := !cfg.NoColor && colorEnabled()
+	useColor := !cfg.NoColor && stderrColorEnabled()
 	seen := make(map[string]time.Time)
 
 	// Initial population — mark existing files as seen
@@ -60,11 +138,31 @@ func RunWatchMode(cfg Config) error {
 		fmt.Fprintf(os.Stderr, "Existing files: %d (skipped). Waiting for new files...\n\n", len(seen))
 	}
 
+	// Each scan writes its own artifacts, named after the sample. Say so at
+	// startup so nobody expects the single path they typed on the command line.
+	if watchWritesPerFile(cfg) {
+		example := firstConfiguredOutput(cfg)
+		if useColor {
+			fmt.Fprintf(os.Stderr, "%s  Outputs are written per file, e.g. %s\n\n",
+				dim("        "), dim(watchOutputPath(example, "<sample>")))
+		} else {
+			fmt.Fprintf(os.Stderr, "Outputs are written per file, e.g. %s\n\n",
+				watchOutputPath(example, "<sample>"))
+		}
+	}
+
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
 	scanned := 0
-	for range ticker.C {
+	for {
+		select {
+		case <-ctx.Done():
+			fmt.Fprintf(os.Stderr, "\nWatch stopped. Scanned %d file(s).\n", scanned)
+			return nil
+		case <-ticker.C:
+		}
+
 		entries, err := os.ReadDir(dir)
 		if err != nil {
 			if useColor {
@@ -74,6 +172,12 @@ func RunWatchMode(cfg Config) error {
 		}
 
 		for _, entry := range entries {
+			// A directory drop of many files can keep this loop busy for a
+			// while; check for cancellation between files so Ctrl-C is
+			// responsive rather than waiting for the batch to drain.
+			if ctx.Err() != nil {
+				break
+			}
 			if entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 				continue
 			}
@@ -119,6 +223,8 @@ func RunWatchMode(cfg Config) error {
 			fileCfg.FilePath = filePath
 			fileCfg.NoSplash = true
 			fileCfg.DirPath = ""
+			fileCfg.Quiet = true // suppress the full per-file report; watch prints its own one-line summary
+			applyWatchOutputPaths(&fileCfg, cfg, name)
 
 			// In alert-only mode, suppress file-detected message until result known
 			alertThreshold := 55
@@ -139,8 +245,10 @@ func RunWatchMode(cfg Config) error {
 			}
 
 			// In alert-only mode, skip clean/low files silently
+			// scanned was already incremented when the file was accepted above;
+			// incrementing again here double-counted every below-threshold file,
+			// which is the common case in alert-only mode.
 			if cfg.WatchAlertOnly && result.RiskScore < alertThreshold {
-				scanned++
 				if useColor {
 					fmt.Fprintf(os.Stderr, "\r%s Monitored: %d  Alerts: skip clean files  Last: %s (%s)  %s    ",
 						dim("👁"), scanned, name, dim(fmt.Sprintf("score=%d", result.RiskScore)),
@@ -182,5 +290,4 @@ func RunWatchMode(cfg Config) error {
 			}
 		}
 	}
-	return nil
 }

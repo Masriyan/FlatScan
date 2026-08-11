@@ -1,0 +1,47 @@
+version: "2"
+
+linters:
+  enable:
+    # Correctness
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    # Would have caught the dead indexedResult type and the unused
+    # default* constants in scanner.go.
+    - bodyclose
+    - nilerr
+    - errorlint
+    # Security
+    - gosec
+    # Hygiene
+    - misspell
+    - unconvert
+    - wastedassign
+
+  settings:
+    gosec:
+      excludes:
+        # This tool writes analyst reports and rule packs to paths the operator
+        # supplies on the command line; that is the feature, not a flaw.
+        - G304 # file path provided as taint input
+        # Report and cache files are intended to be readable by the analyst's
+        # other tooling.
+        - G306 # WriteFile permissions
+        # MD5 and SHA-1 are emitted as sample identifiers for IOC pivoting and
+        # threat-intel lookups, never used for security decisions.
+        - G401
+        - G505
+
+  exclusions:
+    rules:
+      # Test fixtures deliberately construct malformed input.
+      - path: _test\.go
+        linters:
+          - errcheck
+          - gosec
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0

@@ -39,6 +39,14 @@ func PrintBashCompletion(w io.Writer) {
             COMPREPLY=( $(compgen -W "Full Summary minimal" -- "$cur") )
             return 0
             ;;
+        --output-format)
+            COMPREPLY=( $(compgen -W "text json csv jsonl" -- "$cur") )
+            return 0
+            ;;
+        --similarity-db|--intel-db|--batch-json)
+            COMPREPLY=( $(compgen -f -- "$cur") )
+            return 0
+            ;;
         --completion)
             COMPREPLY=( $(compgen -W "bash zsh fish" -- "$cur") )
             return 0
@@ -51,7 +59,11 @@ func PrintBashCompletion(w io.Writer) {
             COMPREPLY=( $(compgen -W "0 1 2 3 4 5 6" -- "$cur") )
             return 0
             ;;
-        --case|--min-string|--max-analyze-bytes|--max-archive-files|--max-carves|--watch-interval|--splash-seconds)
+        --ci-threshold)
+            COMPREPLY=( $(compgen -W "30 50 55 70 80 90" -- "$cur") )
+            return 0
+            ;;
+        --case|--min-string|--max-analyze-bytes|--max-archive-files|--max-carves|--watch-interval|--splash-seconds|--web-port)
             return 0
             ;;
     esac
@@ -60,11 +72,14 @@ func PrintBashCompletion(w io.Writer) {
         local all_flags="-f --file --dir -m --mode --report-mode
             --report --json --pdf --html --yara --sigma --stix
             --extract-ioc --report-pack --rules --plugins
-            --ioc-allowlist --case --case-db
+            --ioc-allowlist --similarity-db --intel-db --case --case-db
             --carve --decode-depth --resolve-depth --min-string
             --max-analyze-bytes --max-archive-files --max-carves
             --external-tools --no-color --no-progress --no-splash --debug
-            --watch --watch-interval --splash-seconds
+            --quiet -q --output-format --batch-json
+            --ci --ci-threshold
+            --watch --watch-alert-only --watch-interval --splash-seconds
+            --web --web-port
             --interactive -i --shell --completion --version"
         COMPREPLY=( $(compgen -W "$all_flags" -- "$cur") )
         return 0
@@ -100,8 +115,14 @@ _flatscan() {
         '--rules[rule pack files or directories]:file:_files'
         '--plugins[plugin pack files or directories]:file:_files'
         '--ioc-allowlist[IOC allowlist path]:file:_files'
+        '--similarity-db[similarity fingerprint database path]:file:_files'
+        '--intel-db[threat-intel database path]:file:_files'
         '--case[case identifier]:case id: '
         '--case-db[case JSONL database path]:file:_files'
+        '--output-format[stdout format]:format:(text json csv jsonl)'
+        '--batch-json[batch summary JSON output path]:file:_files'
+        '--ci[CI mode: machine-readable line + risk exit codes]'
+        '--ci-threshold[CI suspicious exit threshold (1-100)]:score: '
         '--decode-depth[max nested decode depth (0-5)]:depth:(0 1 2 3 4 5)'
         '--resolve-depth[recursive payload-resolution depth (0-6, 0=off)]:depth:(0 1 2 3 4 5 6)'
         '--min-string[minimum string length]:length: '
@@ -117,7 +138,11 @@ _flatscan() {
         '--no-progress[disable progress percentage]'
         '--no-splash[disable startup splash screen]'
         '--debug[enable scanner debug logs]'
+        '(-q --quiet)'{-q,--quiet}'[suppress report/tips/progress; keep the verdict line]'
         '--watch[monitor --dir for new files]'
+        '--watch-alert-only[watch: only report suspicious/malicious files]'
+        '--web[launch the local web GUI]'
+        '--web-port[web GUI port (default 5000)]:port: '
         '(-i --interactive)'{-i,--interactive}'[launch guided interactive mode]'
         '--shell[launch manual command shell]'
         '--version[print FlatScan version]'
@@ -154,25 +179,36 @@ complete -c flatscan -l report-pack -d 'Directory for full report pack'        -
 complete -c flatscan -l rules       -d 'Rule pack files or directories'        -r -F
 complete -c flatscan -l plugins     -d 'Plugin pack files or directories'      -r -F
 complete -c flatscan -l ioc-allowlist -d 'IOC allowlist file'                  -r -F
+complete -c flatscan -l similarity-db -d 'Similarity fingerprint database'    -r -F
+complete -c flatscan -l intel-db    -d 'Threat-intel database path'           -r -F
 complete -c flatscan -l case        -d 'Case identifier'                       -r
 complete -c flatscan -l case-db     -d 'Case JSONL database path'              -r -F
+complete -c flatscan -l output-format -d 'Stdout format' -r -a 'text json csv jsonl'
+complete -c flatscan -l batch-json  -d 'Batch summary JSON output path'        -r -F
 
 complete -c flatscan -l decode-depth      -d 'Max nested decode depth (0-5)'   -r -a '0 1 2 3 4 5'
+complete -c flatscan -l resolve-depth     -d 'Recursive payload depth (0-6)'   -r -a '0 1 2 3 4 5 6'
 complete -c flatscan -l min-string        -d 'Minimum string length'            -r
 complete -c flatscan -l max-analyze-bytes -d 'Max bytes for analysis'           -r
 complete -c flatscan -l max-archive-files -d 'Max archive entries to inspect'   -r
 complete -c flatscan -l max-carves        -d 'Max carved artifacts'             -r
+complete -c flatscan -l ci-threshold      -d 'CI suspicious exit threshold'     -r
 complete -c flatscan -l watch-interval    -d 'Watch mode poll interval (sec)'   -r
+complete -c flatscan -l web-port          -d 'Web GUI port (default 5000)'      -r
 complete -c flatscan -l splash-seconds    -d 'Splash duration in seconds'       -r
 complete -c flatscan -l completion        -d 'Print shell completion script'    -r -a "$shells"
 
 complete -c flatscan -l carve          -d 'Enable recursive safe file carving'
 complete -c flatscan -l external-tools -d 'Run optional external metadata tools'
+complete -c flatscan -l ci             -d 'CI mode: machine-readable line + risk exit codes'
 complete -c flatscan -l no-color       -d 'Disable colorized output'
 complete -c flatscan -l no-progress    -d 'Disable progress percentage'
 complete -c flatscan -l no-splash      -d 'Disable startup splash screen'
 complete -c flatscan -l debug          -d 'Enable scanner debug logs'
+complete -c flatscan -s q -l quiet     -d 'Suppress report/tips/progress; keep verdict'
 complete -c flatscan -l watch          -d 'Monitor --dir for new files'
+complete -c flatscan -l watch-alert-only -d 'Watch: only report suspicious/malicious'
+complete -c flatscan -l web            -d 'Launch the local web GUI'
 complete -c flatscan -s i -l interactive -d 'Launch guided interactive mode'
 complete -c flatscan -l shell          -d 'Launch manual command shell'
 complete -c flatscan -l version        -d 'Print FlatScan version'

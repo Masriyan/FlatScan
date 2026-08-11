@@ -110,7 +110,7 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	debugf("retained %d bytes for analysis; truncated=%v", len(data), truncated)
 
 	progress.Set(18, "identifying file type")
-	result.MIMEHint = http.DetectContentType(firstN(data, 512))
+	result.MIMEHint = http.DetectContentType(firstN(data, defaultMIMESniffBytes))
 	result.FileType = DetectFileType(data, cfg.FilePath)
 	debugf("detected file type: %s; mime hint: %s", result.FileType, result.MIMEHint)
 
@@ -289,7 +289,7 @@ func readSampleAndHashes(path string, size int64, maxAnalyzeBytes int64, progres
 		sample.Grow(int(initialCap))
 	}
 
-	buf := make([]byte, 1024*1024)
+	buf := make([]byte, defaultReadBufSize)
 	var readTotal int64
 	for {
 		n, readErr := f.Read(buf)

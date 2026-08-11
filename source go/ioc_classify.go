@@ -14,13 +14,13 @@ import "strings"
 // keeping the flat slices unchanged for backward compatibility.
 
 const (
-	iocCatActionable   = "ioc"
-	iocCatSuspInfra    = "suspicious-infra"
-	iocCatBenignInfra  = "benign-infra"
+	iocCatActionable    = "ioc"
+	iocCatSuspInfra     = "suspicious-infra"
+	iocCatBenignInfra   = "benign-infra"
 	iocCatBuildArtifact = "build-artifact"
-	iocCatCompilerMeta = "compiler-runtime-metadata"
-	iocCatSourcePath   = "source-path"
-	iocCatNamespace    = "package-namespace"
+	iocCatCompilerMeta  = "compiler-runtime-metadata"
+	iocCatSourcePath    = "source-path"
+	iocCatNamespace     = "package-namespace"
 )
 
 // actionableIOCCategory reports whether a category should appear in actionable

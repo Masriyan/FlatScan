@@ -375,8 +375,8 @@ func TestSTIXBundleStructure(t *testing.T) {
 
 func TestSTIXVerdictMapping(t *testing.T) {
 	tests := []struct {
-		score  int
-		want   string
+		score int
+		want  string
 	}{
 		{0, "unknown"},
 		{9, "unknown"},
@@ -496,7 +496,9 @@ func TestLoggerLevelsAndEntries(t *testing.T) {
 }
 
 func TestLoggerAsDebugLogger(t *testing.T) {
-	logger := NewScanLogger(false)
+	// A logger whose minimum level admits debug records what it is given.
+	// nil writer keeps the entry out of the test's stderr.
+	logger := NewLogger(nil, LogDebug)
 	debugf := logger.AsDebugLogger()
 	debugf("test message %s", "hello")
 
@@ -505,6 +507,38 @@ func TestLoggerAsDebugLogger(t *testing.T) {
 		t.Fatalf("expected 1 entry, got %d", len(entries))
 	}
 	if !strings.Contains(entries[0].Message, "hello") {
+		t.Fatalf("unexpected entry: %+v", entries[0])
+	}
+}
+
+// TestScanLoggerDiscardsDebugWhenNotDebugging pins the non-debug fast path.
+// ScanFile only promotes entries to result.DebugLog when cfg.Debug is set, so
+// outside debug mode every debugf call must short-circuit before formatting
+// rather than build an entry that is then thrown away.
+func TestScanLoggerDiscardsDebugWhenNotDebugging(t *testing.T) {
+	logger := NewScanLogger(false)
+	debugf := logger.AsDebugLogger()
+	for i := 0; i < 10; i++ {
+		debugf("expensive %s %d", "format", i)
+	}
+	if got := len(logger.Entries()); got != 0 {
+		t.Fatalf("non-debug scan logger retained %d entries, want 0", got)
+	}
+	if got := len(logger.Strings()); got != 0 {
+		t.Fatalf("non-debug scan logger returned %d strings, want 0", got)
+	}
+}
+
+// TestScanLoggerCapturesDebugWhenDebugging is the other half: --debug must
+// still populate result.DebugLog.
+func TestScanLoggerCapturesDebugWhenDebugging(t *testing.T) {
+	logger := NewLogger(nil, LogDebug) // same level as NewScanLogger(true), without the stderr writes
+	logger.AsDebugLogger()("captured %d", 42)
+	entries := logger.Entries()
+	if len(entries) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(entries))
+	}
+	if !strings.Contains(entries[0].Message, "captured 42") {
 		t.Fatalf("unexpected entry: %+v", entries[0])
 	}
 }
@@ -859,4 +893,3 @@ func TestWatchHashPreviewBounds(t *testing.T) {
 		}
 	}
 }
-

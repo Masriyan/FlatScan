@@ -85,27 +85,27 @@ type stixKC struct {
 }
 
 type stixRelationship struct {
-	Type            string `json:"type"`
-	SpecVersion     string `json:"spec_version"`
-	ID              string `json:"id"`
-	Created         string `json:"created"`
-	Modified        string `json:"modified"`
+	Type             string `json:"type"`
+	SpecVersion      string `json:"spec_version"`
+	ID               string `json:"id"`
+	Created          string `json:"created"`
+	Modified         string `json:"modified"`
 	RelationshipType string `json:"relationship_type"`
-	SourceRef       string `json:"source_ref"`
-	TargetRef       string `json:"target_ref"`
+	SourceRef        string `json:"source_ref"`
+	TargetRef        string `json:"target_ref"`
 }
 
 type stixMalware struct {
-	Type        string   `json:"type"`
-	SpecVersion string   `json:"spec_version"`
-	ID          string   `json:"id"`
-	Created     string   `json:"created"`
-	Modified    string   `json:"modified"`
-	Name        string   `json:"name"`
-	Description string   `json:"description,omitempty"`
+	Type         string   `json:"type"`
+	SpecVersion  string   `json:"spec_version"`
+	ID           string   `json:"id"`
+	Created      string   `json:"created"`
+	Modified     string   `json:"modified"`
+	Name         string   `json:"name"`
+	Description  string   `json:"description,omitempty"`
 	MalwareTypes []string `json:"malware_types,omitempty"`
-	IsFamily    bool     `json:"is_family"`
-	Labels      []string `json:"labels,omitempty"`
+	IsFamily     bool     `json:"is_family"`
+	Labels       []string `json:"labels,omitempty"`
 }
 
 // WriteSTIXBundle exports a ScanResult as a STIX 2.1 JSON bundle.

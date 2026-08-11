@@ -6,20 +6,20 @@ import (
 )
 
 type PackerSignature struct {
-	Name           string
-	Severity       string
-	Score          int
-	SectionNames   []string // any of these section names triggers
+	Name            string
+	Severity        string
+	Score           int
+	SectionNames    []string // any of these section names triggers
 	EntryPointBytes []byte   // optional entry-point byte prefix
-	OverlayMarker  []byte   // optional overlay magic bytes
+	OverlayMarker   []byte   // optional overlay magic bytes
 }
 
 var packerSignatures = []PackerSignature{
 	{
-		Name:         "UPX packer",
-		Severity:     "High",
-		Score:        20,
-		SectionNames: []string{"upx0", "upx1", "upx!"},
+		Name:          "UPX packer",
+		Severity:      "High",
+		Score:         20,
+		SectionNames:  []string{"upx0", "upx1", "upx!"},
 		OverlayMarker: []byte("UPX!"),
 	},
 	{

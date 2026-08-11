@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -59,7 +60,7 @@ func RunBatchScan(cfg Config) error {
 		return fmt.Errorf("no scannable files found in %s", cfg.DirPath)
 	}
 
-	useColor := !cfg.NoColor && colorEnabled()
+	useColor := !cfg.NoColor && stderrColorEnabled()
 	start := time.Now()
 
 	// Print batch header
@@ -81,47 +82,45 @@ func RunBatchScan(cfg Config) error {
 		workers = len(files)
 	}
 
-	type indexedResult struct {
-		idx int
-		br  batchResult
-	}
-
+	// Each worker owns exactly one index of resultSlots, which is allocated at
+	// full length up front. Disjoint element writes need no synchronization,
+	// and wg.Wait provides the happens-before edge for the reader below.
 	sem := make(chan struct{}, workers)
-	var mu sync.Mutex
 	resultSlots := make([]batchResult, len(files))
 	var wg sync.WaitGroup
 
 	for i, filePath := range files {
+		// Acquire the slot before spawning. Blocking here caps the number of
+		// live goroutines at `workers`; acquiring inside the goroutine would
+		// cap concurrent scans but still create one goroutine per file up
+		// front — hundreds of thousands of them on a large sample directory.
+		sem <- struct{}{}
 		wg.Add(1)
 		go func(idx int, fp string) {
 			defer wg.Done()
-			sem <- struct{}{}
 			defer func() { <-sem }()
 
 			name := filepath.Base(fp)
-			if useColor {
-				fmt.Fprintf(os.Stderr, "%s [%d/%d] %s\n", dim("→"), idx+1, len(files), name)
-			} else {
-				fmt.Fprintf(os.Stderr, "[%d/%d] scanning %s\n", idx+1, len(files), name)
-			}
 
 			fileCfg := cfg
 			fileCfg.FilePath = fp
 			fileCfg.NoSplash = true
 			fileCfg.NoProgress = true
 			fileCfg.DirPath = ""
+			fileCfg.Quiet = true // suppress per-file report; only the summary is printed
 
 			result, err := RunConfiguredScan(fileCfg)
 			if err != nil {
 				br := batchResult{FileName: name, Error: err.Error()}
 				if useColor {
-					fmt.Fprintf(os.Stderr, "  %s %s\n", colorize(colorRed, "✗"), dim(err.Error()))
+					progressLine(fmt.Sprintf("%s [%d/%d] %s  %s %s\n",
+						dim("→"), idx+1, len(files), name,
+						colorize(colorRed, "✗"), dim(err.Error())))
 				} else {
-					fmt.Fprintf(os.Stderr, "  ERROR: %s\n", err.Error())
+					progressLine(fmt.Sprintf("[%d/%d] %s  ERROR: %s\n",
+						idx+1, len(files), name, err.Error()))
 				}
-				mu.Lock()
 				resultSlots[idx] = br
-				mu.Unlock()
 				return
 			}
 
@@ -140,35 +139,34 @@ func RunBatchScan(cfg Config) error {
 				Size: result.Size,
 			}
 			if useColor {
-				fmt.Fprintf(os.Stderr, "  %s %s score=%s findings=%d\n",
+				progressLine(fmt.Sprintf("%s [%d/%d] %s  %s %s score=%s findings=%d\n",
+					dim("→"), idx+1, len(files), name,
 					colorize(colorGreen, "✓"),
 					colorize(verdictColor(br.Verdict), br.Verdict),
 					colorize(verdictColor(br.Verdict), fmt.Sprintf("%d", br.Score)),
-					br.Findings)
+					br.Findings))
 			} else {
-				fmt.Fprintf(os.Stderr, "  %s score=%d findings=%d\n", br.Verdict, br.Score, br.Findings)
+				progressLine(fmt.Sprintf("[%d/%d] %s  %s score=%d findings=%d\n",
+					idx+1, len(files), name, br.Verdict, br.Score, br.Findings))
 			}
-			mu.Lock()
 			resultSlots[idx] = br
-			mu.Unlock()
 		}(i, filePath)
 	}
 	wg.Wait()
 
-	// Filter out zero-value placeholders (files with errors already have FileName set)
-	var results []batchResult
-	for _, r := range resultSlots {
-		results = append(results, r)
-	}
+	// Every slot is filled by its worker — successful scans carry the result,
+	// failed ones carry FileName plus Error — so the slice is used as-is.
+	results := resultSlots
 
 	elapsed := time.Since(start)
 
-	// Print summary table
-	fmt.Fprintln(os.Stderr)
+	// The summary table is the batch deliverable, so it goes to STDOUT where it
+	// can be redirected/captured. Per-file progress lines above stay on stderr.
+	fmt.Fprintln(os.Stdout)
 	if useColor {
-		printColorBatchSummary(results, elapsed)
+		printColorBatchSummary(os.Stdout, results, elapsed)
 	} else {
-		printPlainBatchSummary(results, elapsed)
+		printPlainBatchSummary(os.Stdout, results, elapsed)
 	}
 
 	// Write JSON batch summary if requested
@@ -178,7 +176,41 @@ func RunBatchScan(cfg Config) error {
 		}
 	}
 
+	// Risk-based exit code mirrors the single-file matrix: 20 if any file is
+	// malicious, 10 if any is suspicious/over CI threshold, else 0.
+	worst := 0
+	for _, r := range results {
+		if r.Error == "" && r.Score > worst {
+			worst = r.Score
+		}
+	}
+	switch {
+	case worst >= 80:
+		batchExitCode = 20
+	case cfg.CI && worst >= cfg.CIThreshold:
+		batchExitCode = 10
+	case !cfg.CI && worst >= 30:
+		batchExitCode = 10
+	}
+
 	return nil
+}
+
+// batchExitCode carries the risk-based exit code out of RunBatchScan so main()
+// can apply the same 0/10/20 matrix used for single-file scans.
+var batchExitCode int
+
+// progressMu serializes batch progress output. Workers finish out of order, so
+// each one emits a single self-describing line naming the file it reports on,
+// written under the lock — previously the "scanning X" header and the "✓ score"
+// result were two separate writes that other workers could interleave between,
+// which attributed verdicts to the wrong file in the transcript.
+var progressMu sync.Mutex
+
+func progressLine(s string) {
+	progressMu.Lock()
+	fmt.Fprint(os.Stderr, s)
+	progressMu.Unlock()
 }
 
 type batchJSONSummary struct {
@@ -220,17 +252,17 @@ func writeBatchJSON(path string, results []batchResult, elapsed time.Duration) e
 	return os.WriteFile(path, append(data, '\n'), 0o644)
 }
 
-func printColorBatchSummary(results []batchResult, elapsed time.Duration) {
+func printColorBatchSummary(w io.Writer, results []batchResult, elapsed time.Duration) {
 	const rule = "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-	fmt.Fprintf(os.Stderr, "%s\n", bold(rule))
-	fmt.Fprintf(os.Stderr, "%s  %s\n",
+	fmt.Fprintf(w, "%s\n", bold(rule))
+	fmt.Fprintf(w, "%s  %s\n",
 		bold("Batch Summary"),
 		dim(fmt.Sprintf("(%d files  %s)", len(results), elapsed.Round(time.Millisecond))))
-	fmt.Fprintf(os.Stderr, "%s\n", bold(rule))
+	fmt.Fprintf(w, "%s\n", bold(rule))
 
-	fmt.Fprintf(os.Stderr, "  %-28s %-20s %5s %6s %5s %5s  %s\n",
+	fmt.Fprintf(w, "  %-28s %-20s %5s %6s %5s %5s  %s\n",
 		dim("File"), dim("Verdict"), dim("Score"), dim("Size"), dim("Finds"), dim("IOCs"), dim("Type"))
-	fmt.Fprintf(os.Stderr, "  %s\n", dim(strings.Repeat("─", 90)))
+	fmt.Fprintf(w, "  %s\n", dim(strings.Repeat("─", 90)))
 
 	malicious := 0
 	suspicious := 0
@@ -240,7 +272,7 @@ func printColorBatchSummary(results []batchResult, elapsed time.Duration) {
 	for _, r := range results {
 		if r.Error != "" {
 			errCount++
-			fmt.Fprintf(os.Stderr, "  %-28s %s\n",
+			fmt.Fprintf(w, "  %-28s %s\n",
 				truncStr(r.FileName, 28),
 				colorize(colorRed, "ERROR: "+truncStr(r.Error, 50)))
 			continue
@@ -256,9 +288,9 @@ func printColorBatchSummary(results []batchResult, elapsed time.Duration) {
 			r.IOCs,
 			dim(truncStr(r.FileType, 16)))
 		if r.Score >= 80 {
-			fmt.Fprint(os.Stderr, colorize(colorBold, row))
+			fmt.Fprint(w, colorize(colorBold, row))
 		} else {
-			fmt.Fprint(os.Stderr, row)
+			fmt.Fprint(w, row)
 		}
 
 		switch {
@@ -271,33 +303,33 @@ func printColorBatchSummary(results []batchResult, elapsed time.Duration) {
 		}
 	}
 
-	fmt.Fprintf(os.Stderr, "  %s\n", dim(strings.Repeat("─", 90)))
-	fmt.Fprintf(os.Stderr, "  Scanned %s in %s  —  %s  %s  %s  %s\n",
+	fmt.Fprintf(w, "  %s\n", dim(strings.Repeat("─", 90)))
+	fmt.Fprintf(w, "  Scanned %s in %s  —  %s  %s  %s  %s\n",
 		bold(fmt.Sprintf("%d files", len(results))),
 		elapsed.Round(time.Millisecond),
 		colorize(colorRed, fmt.Sprintf("%d malicious", malicious)),
 		colorize(colorOrange, fmt.Sprintf("%d suspicious", suspicious)),
 		colorize(colorGreen, fmt.Sprintf("%d clean", clean)),
 		dim(fmt.Sprintf("%d errors", errCount)))
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(w)
 }
 
-func printPlainBatchSummary(results []batchResult, elapsed time.Duration) {
-	fmt.Fprintf(os.Stderr, "Batch Summary (%d files in %s)\n",
+func printPlainBatchSummary(w io.Writer, results []batchResult, elapsed time.Duration) {
+	fmt.Fprintf(w, "Batch Summary (%d files in %s)\n",
 		len(results), elapsed.Round(time.Millisecond))
-	fmt.Fprintf(os.Stderr, "%-28s %-20s %5s %6s %5s %5s  %s\n",
+	fmt.Fprintf(w, "%-28s %-20s %5s %6s %5s %5s  %s\n",
 		"File", "Verdict", "Score", "Size", "Finds", "IOCs", "Type")
-	fmt.Fprintf(os.Stderr, "%s\n", strings.Repeat("-", 90))
+	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 90))
 
 	malicious, suspicious, clean, errCount := 0, 0, 0, 0
 	for _, r := range results {
 		if r.Error != "" {
 			errCount++
-			fmt.Fprintf(os.Stderr, "%-28s ERROR: %s\n",
+			fmt.Fprintf(w, "%-28s ERROR: %s\n",
 				truncStr(r.FileName, 28), truncStr(r.Error, 50))
 			continue
 		}
-		fmt.Fprintf(os.Stderr, "%-28s %-20s %5d %6s %5d %5d  %s\n",
+		fmt.Fprintf(w, "%-28s %-20s %5d %6s %5d %5d  %s\n",
 			truncStr(r.FileName, 28),
 			r.Verdict,
 			r.Score,
@@ -314,34 +346,38 @@ func printPlainBatchSummary(results []batchResult, elapsed time.Duration) {
 			clean++
 		}
 	}
-	fmt.Fprintf(os.Stderr, "%s\n", strings.Repeat("-", 90))
-	fmt.Fprintf(os.Stderr, "Scanned %d files in %s — %d malicious, %d suspicious, %d clean, %d errors\n",
+	fmt.Fprintf(w, "%s\n", strings.Repeat("-", 90))
+	fmt.Fprintf(w, "Scanned %d files in %s — %d malicious, %d suspicious, %d clean, %d errors\n",
 		len(results), elapsed.Round(time.Millisecond), malicious, suspicious, clean, errCount)
 }
 
-// truncStr limits a string to n characters with an ellipsis.
+// truncStr limits a string to n runes with an ellipsis. Rune-aware so
+// multibyte filenames (UTF-8 malware names) never slice mid-codepoint or panic.
 func truncStr(s string, n int) string {
-	if len(s) <= n {
+	r := []rune(s)
+	if len(r) <= n {
 		return s
 	}
 	if n <= 3 {
-		return s[:n]
+		return string(r[:n])
 	}
-	return s[:n-1] + "…"
+	return string(r[:n-1]) + "…"
 }
 
-// padRight pads a string to width with spaces.
+// padRight pads a string to width runes with trailing spaces.
 func padRight(s string, width int) string {
-	if len(s) >= width {
+	n := len([]rune(s))
+	if n >= width {
 		return s
 	}
-	return s + strings.Repeat(" ", width-len(s))
+	return s + strings.Repeat(" ", width-n)
 }
 
-// padLeft pads a string to width with leading spaces.
+// padLeft pads a string to width runes with leading spaces.
 func padLeft(s string, width int) string {
-	if len(s) >= width {
+	n := len([]rune(s))
+	if n >= width {
 		return s
 	}
-	return strings.Repeat(" ", width-len(s)) + s
+	return strings.Repeat(" ", width-n) + s
 }

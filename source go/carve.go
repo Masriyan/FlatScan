@@ -146,8 +146,8 @@ func carveArtifacts(data []byte, limit int) []CarvedArtifact {
 		if i+1 < len(candidates) && candidates[i+1].offset > item.offset {
 			end = candidates[i+1].offset
 		}
-		if end-item.offset > 2*1024*1024 {
-			end = item.offset + 2*1024*1024
+		if end-item.offset > defaultMaxCarveChunkSize {
+			end = item.offset + defaultMaxCarveChunkSize
 		}
 		if end <= item.offset {
 			continue

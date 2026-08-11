@@ -168,12 +168,21 @@ graph LR
 |------|---------|-------------|
 | `--case` | — | Case ID for local case database |
 | `--case-db` | auto | JSONL case database path |
+| `-q`, `--quiet` | false | Suppress report body, post-scan tips, splash, and progress — keeps only the verdict. Ideal for scripting. |
 | `--debug` | false | Enable debug logging |
 | `--no-progress` | false | Disable progress output |
 | `--no-splash` | false | Disable startup banner |
-| `--no-color` | false | Disable ANSI colors |
-| `--splash-seconds` | `20` | Splash duration |
+| `--no-color` | false | Disable ANSI colors (also honors the `NO_COLOR` env var) |
+| `--splash-seconds` | `20` | Splash duration (0–120) |
+| `-h`, `--help` | — | Print grouped help to **stdout** (pipeable) and exit |
 | `--version` | — | Print version and exit |
+
+> **Unknown flags** now produce a single actionable error with a "did you mean" suggestion
+> (e.g. `--carv` → `did you mean --carve ?`) instead of dumping the full help.
+>
+> **Mutually-exclusive combinations are rejected** (exit 2): `--web` with `-f`/`--dir`,
+> `--watch` with `-f`, `--ci` with `--interactive`/`--shell`, and out-of-range
+> `--web-port` / `--watch-interval`.
 
 ### Web GUI (0.6.0+)
 
@@ -483,11 +492,16 @@ FLATSCAN: MALICIOUS score=92 file=artifact.exe findings=11 sha256=deadbeef...
 
 | Code | Meaning |
 |------|---------|
-| `0` | Scan succeeded, score < 30 (clean) |
-| `10` | Score ≥ `--ci-threshold` (suspicious / above gate) |
-| `20` | Score ≥ 80 (likely malicious) |
+| `0` | Scan succeeded, clean (score < 30, or < `--ci-threshold` in CI) |
+| `10` | Suspicious — single-file score ≥ 30, or in CI score ≥ `--ci-threshold` |
+| `20` | Likely malicious — score ≥ 80 (emitted in both normal and CI mode) |
 | `1` | Scan error (file not found, parse failure) |
-| `2` | Usage error (bad flags) |
+| `2` | Usage error (bad or mutually-exclusive flags) |
+
+> **Batch mode** (`--dir`) now returns the **worst file's** exit code (20 → 10 → 0),
+> so a directory scan can gate a pipeline just like a single-file scan. The batch
+> summary table is written to **stdout** (redirectable); per-file progress goes to stderr.
+> Combine with `-q`/`--quiet` and `--batch-json` for clean machine-readable output.
 
 ### GitHub Actions Example
 
@@ -1087,7 +1101,10 @@ echo "file,score,verdict,findings,iocs,sha256" > triage.csv
 | Splash delays automation | Add `--no-splash --no-progress`, or use `--ci` which suppresses all UI |
 | JSON stdout has text mixed in | Use `--json -` (text report suppressed) or `--output-format json` |
 | CSV/JSONL mixed with progress | Progress is on stderr, CSV/JSONL on stdout — pipe safely without `2>/dev/null` |
-| `--ci` exit code always 0 | Check `--ci-threshold` (default 55) — lower it if score is below threshold |
+| `--ci` exit code always 0 | Check `--ci-threshold` (default 55) — lower it if the score is below the threshold. Note `--ci` returns **20** for score ≥ 80 and **10** at/above the threshold. |
+| Batch scan exits 0 despite bad files | Fixed in 0.10.1 — batch now returns the worst file's code. Rebuild if you are on an older binary. |
+| `flatscan --help \| less` shows nothing | Fixed in 0.10.1 — `--help` now writes to stdout. |
+| Unknown flag dumps the whole help | Fixed in 0.10.1 — you now get one line plus a "did you mean" suggestion. |
 | Large file slow | Files >100MB use mmap on Linux automatically |
 | Archive bomb warning | Increase `--max-archive-files` or `--max-carves` |
 | Custom rules not loading | Check path: `--rules path/to/rules/` (accepts files or directories) |

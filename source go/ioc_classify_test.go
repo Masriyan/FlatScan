@@ -16,10 +16,10 @@ func TestClassifyIOCValueCategories(t *testing.T) {
 		{"domain", "system.net", iocCatNamespace},
 		{"domain", "androidx.work", iocCatNamespace},
 		{"domain", "discord.com", iocCatBenignInfra},
-		{"domain", "index.crates.io", iocCatBuildArtifact}, // Rust registry — build noise
-		{"domain", "proxy.golang.org", iocCatBuildArtifact}, // Go module proxy
-		{"domain", "openssl.org", iocCatBenignInfra},        // PKI/library artifact
-		{"domain", "ocsp.digicert.com", iocCatBenignInfra},  // CA / PKI
+		{"domain", "index.crates.io", iocCatBuildArtifact},        // Rust registry — build noise
+		{"domain", "proxy.golang.org", iocCatBuildArtifact},       // Go module proxy
+		{"domain", "openssl.org", iocCatBenignInfra},              // PKI/library artifact
+		{"domain", "ocsp.digicert.com", iocCatBenignInfra},        // CA / PKI
 		{"domain", "android.googlesource.com", iocCatBenignInfra}, // real domain, NOT a namespace
 		{"domain", "android.app", iocCatNamespace},                // two-label namespace fragment
 		{"domain", "microsoft.com", iocCatBenignInfra},            // company domain, NOT a namespace

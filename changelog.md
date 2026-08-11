@@ -42,6 +42,167 @@ graph LR
 
 ---
 
+## 0.10.2 - Security, Reliability & Analyst Workspace Release
+
+_Released 2026-08-11._
+
+A second hardening pass over the 0.10.1 audit, plus a rebuild of the web UI around what an analyst
+actually does with a result. **No detection-engine behavior changed:** every fix below was verified
+against a pinned regression baseline of 11 samples x 3 scan modes (33 normalised JSON snapshots),
+re-diffed after every change, alongside `go vet`, `go test`, and `go test -race`. Not one byte of
+scan output moved.
+
+### Fixed - security
+
+- **Web UI rejected only by network, not by name.** The local server bound to `127.0.0.1` but
+  validated neither the `Host` nor the `Origin` header, so a page the analyst visited could reach it
+  by DNS rebinding and read complete scan results - sample paths, hashes, extracted IOCs, recovered
+  C2 config. Requests must now be addressed to a loopback name, and cross-origin POSTs are refused.
+- **Scan cache writes are now atomic** (`CreateTemp` + `Rename`), so a concurrent reader can no
+  longer observe a half-written entry. Orphaned temp files are reaped by `Clean`.
+
+### Fixed - correctness
+
+- **Watch mode no longer overwrites its own reports.** Every scanned file reused the single
+  configured `--json` / `--report` / `--stix` / `--extract-ioc` path, so each new sample clobbered the
+  last. Measured on a three-sample inbox: 4 artifact files before, 12 after - and the report that
+  survived was the *benign* file that happened to arrive last, while the samples scoring 100 and 17
+  were destroyed. Outputs are now named per sample, keeping the template's directory and suffix.
+- **HTML report risk gauge was broken above score 50.** The SVG fill arc used `large-arc-flag=1`
+  (the rule for a full-circle progress ring, not a semicircular gauge), so it drew the major arc the
+  long way round through a region clipped by the viewBox - rendering as two disconnected stubs on
+  exactly the reports worth sending to someone.
+- **Watch mode double-counted clean files** in `--watch-alert-only`, inflating the monitored tally.
+- **Batch mode misattributed verdicts.** Per-file progress and result lines were written separately
+  by concurrent workers, so a verdict frequently appeared beneath a different file's header. Each
+  worker now emits one self-describing line.
+- **Batch mode spawned one goroutine per file** before the concurrency semaphore throttled anything;
+  the slot is now acquired before the goroutine, capping live goroutines at the worker count.
+- **Non-debug scans paid for debug logging.** The scan logger's minimum level admitted debug records
+  even when nothing consumed them, so every `debugf` call formatted a message, stamped a timestamp,
+  took a mutex, and appended to a slice that was then discarded.
+
+### Added - signals and shutdown
+
+- `SIGINT` / `SIGTERM` are now handled. The web server drains in-flight requests and removes every
+  job's temp directory (each holding an uploaded sample); watch mode exits its poll loop with a tally.
+  A single scan remains uncancellable mid-pipeline - that would require threading a context through
+  every analysis stage.
+- Web jobs are reaped at a hard age limit regardless of completion, so a scan wedged on an
+  adversarial sample cannot pin an uploaded sample on disk indefinitely; concurrent scans are capped.
+
+### Added - web UI
+
+Rebuilt around triage rather than around the shape of the result JSON. Sections went from nine tabs
+mirroring JSON keys to a workspace: evidence, indicators, config, payloads, behaviour, structure, report.
+
+- **Score provenance.** The score breakdown is an interactive stacked contribution bar - click a
+  category to filter the evidence behind it.
+- **False-positive guard made inspectable.** When the research-artifact guard caps a score, the banner
+  now names the archetypes and tool markers that triggered it and offers a toggle revealing the
+  uncapped detection score. Allowlist-suppressed indicators can be shown with their exact suppression
+  reason. Neither requires a re-scan; both read data the scanner already recorded.
+- **Recovered operator configuration** (C2 endpoints, webhooks, bot tokens, mutexes, campaign and
+  build IDs, crypto markers, XOR key candidates) now has a home - previously computed and never shown.
+- **Recursive payload resolution is visible.** The 0.10.0 flagship feature had no UI representation;
+  the resolved stage tree is now rendered with per-stage verdicts, findings and indicators.
+- **Expected runtime behaviour** is surfaced as a sandbox/EDR validation checklist.
+- **Detection provenance** - which rule packs loaded, which rules fired, which plugins ran.
+- **File map** - entropy along the byte axis with sections at their true offsets, so slack space and
+  appended overlays read as gaps. Network indicators are defanged by default.
+- Triage marks (reviewed / escalate / false positive) with keyboard navigation, a light theme, and
+  per-finding confidence and corroboration counts that the correlation engine already produced.
+
+### Added - tooling and tests
+
+- GitHub Actions CI: gofmt, vet, test, race, golangci-lint, govulncheck, and a fuzz smoke job.
+- `.golangci.yml` with correctness, security and hygiene linters enabled.
+- Regression tests for the gauge geometry (all 101 scores), per-sample watch output naming, and the
+  scan logger's level behaviour.
+
+### Changed
+
+- Recovered panics now print the offending file and a stack trace to stderr unconditionally. The
+  top-level recover keeps one malformed sample from taking down a batch, but a panic is always a
+  parser bug and should be visible without needing `--debug` to reproduce.
+- Dead code removed: an unused type and a no-op filter loop in batch mode, and a mutex guarding
+  writes to disjoint slice indices. Four declared-but-unused size constants now replace the literals
+  at their intended call sites.
+
+---
+
+## 0.10.1 - Correctness, CLI UX & Web Hardening Release
+
+_Released 2026-08-10._
+
+A maintenance and hardening release from a full re-audit of the codebase (61 Go files, ~21.6k LOC),
+the CLI UX layer, and the web UI. No detection-engine behavior changed; every fix below was verified
+against real build/test/run output. See [flatscan_qa_report.md](flatscan_qa_report.md) for the full audit.
+
+### Fixed — pipeline & automation correctness
+
+- **Batch mode no longer contaminates stdout.** Previously `--dir` printed the full per-file report to
+  stdout and the summary table to stderr, so redirecting stdout captured concatenated per-file reports
+  and *not* the summary. The summary now goes to **stdout** (redirectable); per-file progress stays on stderr.
+- **Batch mode now returns a risk-based exit code** (worst file: `20` → `10` → `0`). It previously always
+  exited `0`, silently passing pipelines that scanned malicious files.
+- **CI mode can now return exit `20`.** `--ci` previously capped at `10`, so a pipeline could not
+  distinguish malicious from merely suspicious despite the documented 0/10/20 contract.
+- **`--output-format csv|jsonl` no longer double-writes stdout** when combined with `--json -`
+  (the `json` case already guarded against this; csv/jsonl did not), which produced unparseable output.
+- **Colors no longer leak into redirected output in batch/watch mode.** Both tested stdout for TTY-ness
+  while writing every byte to stderr; they now test the stream they actually write to.
+
+### Fixed — interactive & shell
+
+- **Typing `--version` or `--completion` inside the interactive shell no longer kills the process.**
+  Flag parsing returned via `os.Exit`; it now returns sentinel errors the shell can handle.
+- **Ctrl-D at the interactive menu is a clean quit** (exit 0) instead of `"interactive mode failed: EOF"` (exit 1).
+- **A typo in the guided wizard no longer aborts the whole wizard** — invalid choices re-prompt instead of
+  discarding every previously entered answer.
+
+### Fixed — validation & robustness
+
+- **Mutually-exclusive flag combinations are now rejected** with a clear message and exit `2` instead of
+  silently discarding one flag: `--web` with `-f`/`--dir`, `--watch` with `-f`, `--ci` with `--interactive`/`--shell`.
+- **`--web-port` and `--watch-interval` are now bounds-checked** at parse time (port 1–65535, interval ≥ 1).
+- **Rune-safe table rendering** — `truncStr`/`padRight`/`padLeft` sliced by byte, so a multibyte (UTF-8)
+  filename could split mid-codepoint or panic in the batch summary. Now rune-aware.
+- **`gofmt` clean** — 14 previously unformatted files reformatted.
+
+### Added — CLI UX
+
+- **`-q` / `--quiet`** — suppresses report body, post-scan tips, splash, and progress while keeping the verdict.
+- **Did-you-mean suggestions for unknown flags** (Levenshtein), replacing the duplicated error + full-help dump.
+  Example: `--carv` → `did you mean --carve ?`.
+- **`--help` / `-h` now writes to stdout**, so `flatscan --help | less` works. Help shown as part of an error
+  still goes to stderr.
+- **`LIMITS` help section** documenting five previously undocumented tuning flags: `--min-string`,
+  `--max-analyze-bytes`, `--max-archive-files`, `--max-carves`, `--splash-seconds`.
+- **Shell completions synced** — added 10 flags missing from one or more of bash/zsh/fish (`--quiet`, `--ci`,
+  `--ci-threshold`, `--output-format`, `--batch-json`, `--similarity-db`, `--intel-db`, `--watch-alert-only`,
+  `--web`, `--web-port`) plus `--resolve-depth` for fish.
+
+### Added — web hardening & accessibility
+
+- **HTTP server timeouts** (`ReadHeaderTimeout`, `ReadTimeout`, `WriteTimeout`, `IdleTimeout`, `MaxHeaderBytes`) —
+  previously none, leaving the server open to slowloris-style resource exhaustion.
+- **Security headers**: strict `Content-Security-Policy`, `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`
+  (in addition to the existing `X-Content-Type-Options: nosniff`).
+- **Accessibility**: ARIA roles (`tablist`/`tab`, `radiogroup`/`radio`, `switch`, `list`) with state kept in sync,
+  keyboard activation (Enter/Space) and visible focus outlines for every custom control.
+- **Responsive layout** for screens ≤ 720px — the sidebar stacks, the stat grid reflows, tables scroll horizontally.
+
+### Added — documentation
+
+- **New `wiki/` folder** with 13 cross-linked pages: Home, Installation, Quick-Start, CLI-Reference,
+  Output-Formats, Detection-Engine, Web-UI, CI-CD-Integration, Rules-and-Plugins, Architecture,
+  Troubleshooting, FAQ, and a sidebar.
+- **`flatscan_qa_report.md` fully rewritten** for 0.10.1 (the previous version documented v0.3.0).
+- **Regression tests** (`cli_fixes_test.go`) covering flag-conflict rejection, did-you-mean, and rune-safe padding.
+
+---
+
 ## 0.10.0 - Recursive Payload Resolution Release
 
 _Released 2026-06-14._
