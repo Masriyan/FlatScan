@@ -374,9 +374,21 @@ h3.sh{font-size:13px;margin:20px 0 9px;font-weight:650}
 #idledrop .big{font-size:17px;font-weight:600;margin-bottom:6px}
 #idledrop .sm{color:var(--muted);font-size:12.5px}
 .hintgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px;max-width:560px;width:100%;margin-top:6px}
-.hintcard{border:1px solid var(--border);border-radius:9px;padding:11px 13px;background:var(--surface);text-align:left}
+/* These read as selectable options, so they are real controls, not captions. */
+.hintcard{border:1px solid var(--border);border-radius:9px;padding:11px 13px;background:var(--surface);
+  text-align:left;cursor:pointer;font:inherit;color:inherit;transition:border-color .12s,background .12s}
+.hintcard:hover{border-color:var(--border2)}
+.hintcard.sel{border-color:var(--teal);background:var(--teal-bg)}
 .hintcard .hk{font-size:11px;color:var(--teal);font-family:var(--mono);margin-bottom:3px}
 .hintcard .hv{font-size:11.5px;color:var(--muted);line-height:1.45}
+/* Selected-file state for the idle panel. */
+#idledrop.armed{border-style:solid;border-color:var(--teal);background:var(--teal-bg)}
+#idlego{display:flex;flex-direction:column;align-items:center;gap:9px;margin-top:4px}
+#idlerun{padding:12px 30px;border:1px solid var(--green);border-radius:9px;background:var(--green-bg);
+  color:var(--green);font-weight:650;cursor:pointer;font-size:14px}
+#idlerun:hover{background:var(--green);color:var(--bg)}
+.linkish{background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
+.linkish:hover{color:var(--text)}
 .spinner{width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--teal);border-radius:50%;
   animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
@@ -494,15 +506,24 @@ h3.sh{font-size:13px;margin:20px 0 9px;font-weight:650}
     </nav>
 
     <div id="stage">
+      <!-- The idle panel is stateful: it must acknowledge the chosen file at the
+           point the user clicked, not only in the command bar 400px away. -->
       <div id="idle" class="center show">
         <button id="idledrop" type="button">
-          <div class="big">Drop a sample to analyse</div>
-          <div class="sm">or click to browse &middot; nothing leaves this machine</div>
+          <div class="big" id="idlebig">Drop a sample to analyse</div>
+          <div class="sm" id="idlesm">or click to browse &middot; nothing leaves this machine</div>
         </button>
-        <div class="hintgrid">
-          <div class="hintcard"><div class="hk">quick</div><div class="hv">hashes, strings, IOCs. Seconds.</div></div>
-          <div class="hintcard"><div class="hk">standard</div><div class="hv">adds format parsing, rules, classification.</div></div>
-          <div class="hintcard"><div class="hk">deep</div><div class="hv">adds disassembly, carving, recursive payload resolution.</div></div>
+        <div class="hintgrid" role="radiogroup" aria-label="scan depth">
+          <button class="hintcard" type="button" data-mode="quick" role="radio" aria-checked="false">
+            <div class="hk">quick</div><div class="hv">hashes, strings, IOCs. Seconds.</div></button>
+          <button class="hintcard sel" type="button" data-mode="standard" role="radio" aria-checked="true">
+            <div class="hk">standard</div><div class="hv">adds format parsing, rules, classification.</div></button>
+          <button class="hintcard" type="button" data-mode="deep" role="radio" aria-checked="false">
+            <div class="hk">deep</div><div class="hv">adds disassembly, carving, recursive payload resolution.</div></button>
+        </div>
+        <div id="idlego" style="display:none">
+          <button id="idlerun" type="button">Analyse sample</button>
+          <button id="idleclear" type="button" class="linkish">choose a different file</button>
         </div>
       </div>
 
@@ -709,20 +730,57 @@ function setFile(f){
   $("#fbmeta").textContent=fmtBytes(f.size);
   filebox.classList.add("show");
   $("#drop").style.display="none";
+  renderIdle();
 }
 function clearFile(){
   state.file=null; fileinput.value="";
   filebox.classList.remove("show");
   $("#drop").style.display="";
+  renderIdle();
+}
+/* renderIdle keeps the idle panel in sync with the selection. Without it the
+   only acknowledgement of a chosen file was a chip in the command bar, far from
+   where the user clicked — so picking a file looked like nothing had happened. */
+function renderIdle(){
+  var f=state.file;
+  var drop=$("#idledrop"), go=$("#idlego");
+  if(!drop||!go) return;
+  if(f){
+    drop.classList.add("armed");
+    $("#idlebig").textContent=f.name;
+    $("#idlesm").textContent=fmtBytes(f.size)+" · "+(f.type||"unknown type")+" · ready to analyse";
+    $("#idlerun").textContent="Analyse in "+state.mode+" mode";
+    go.style.display="flex";
+  } else {
+    drop.classList.remove("armed");
+    $("#idlebig").textContent="Drop a sample to analyse";
+    $("#idlesm").innerHTML="or click to browse &middot; nothing leaves this machine";
+    go.style.display="none";
+  }
+  $all(".hintcard").forEach(function(c){
+    var on=c.getAttribute("data-mode")===state.mode;
+    c.classList.toggle("sel",on);
+    c.setAttribute("aria-checked",on?"true":"false");
+  });
 }
 
 /* ---------- mode + options ---------- */
-$all(".mode-btn").forEach(function(btn){
-  btn.addEventListener("click",function(){
-    $all(".mode-btn").forEach(function(b){b.classList.remove("active");b.setAttribute("aria-checked","false");});
-    btn.classList.add("active"); btn.setAttribute("aria-checked","true");
-    state.mode=btn.getAttribute("data-mode");
+function setMode(m){
+  state.mode=m;
+  $all(".mode-btn").forEach(function(b){
+    var on=b.getAttribute("data-mode")===m;
+    b.classList.toggle("active",on);
+    b.setAttribute("aria-checked",on?"true":"false");
   });
+  renderIdle();
+}
+$all(".mode-btn").forEach(function(btn){
+  btn.addEventListener("click",function(){ setMode(btn.getAttribute("data-mode")); });
+});
+/* The depth cards on the idle screen look like options, so they behave like
+   options — previously they were inert captions that silently ignored clicks. */
+$all(".hintcard").forEach(function(card){
+  card.addEventListener("click",function(){ setMode(card.getAttribute("data-mode")); });
 });
 $all(".opt").forEach(function(row){
   row.addEventListener("click",function(e){
@@ -760,7 +818,7 @@ $all(".tab").forEach(function(t){
 });
 
 /* ---------- run scan ---------- */
-$("#run").addEventListener("click",function(){
+function startScan(){
   if(!state.file){
     $("#drop").classList.add("error");
     $("#idledrop").classList.add("hover");
@@ -785,7 +843,10 @@ $("#run").addEventListener("click",function(){
     logFeed("job "+j.job_id+" accepted");
     poll(j.job_id);
   }).catch(function(e){ showError(String(e&&e.message?e.message:e)); setRun(false,"Run scan"); });
-});
+}
+$("#run").addEventListener("click",startScan);
+$("#idlerun").addEventListener("click",startScan);
+$("#idleclear").addEventListener("click",function(e){ e.stopPropagation(); clearFile(); });
 function setRun(disabled,label){ var b=$("#run"); b.disabled=disabled; if(label) b.textContent=label; }
 function logFeed(msg){
   var d=document.createElement("div");
@@ -1782,12 +1843,13 @@ function scrollSel(){
   if(el&&el.scrollIntoView) el.scrollIntoView({block:"nearest"});
 }
 
-/* ---------- restore history ---------- */
+/* ---------- startup ---------- */
 (function(){
   try{
     var saved=sessionStorage.getItem("flatscan_hist");
     if(saved){ state.history=JSON.parse(saved)||[]; renderHistory(); }
   }catch(e){}
+  renderIdle();
 })();
 </script>
 </body>
