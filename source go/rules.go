@@ -116,7 +116,7 @@ func loadRulePackPath(path string) (flatRulePack, []string, error) {
 				continue
 			}
 			lower := strings.ToLower(entry.Name())
-			if !(strings.HasSuffix(lower, ".json") || strings.HasSuffix(lower, ".rule") || strings.HasSuffix(lower, ".rules") || strings.HasSuffix(lower, ".yml") || strings.HasSuffix(lower, ".yaml")) {
+			if !strings.HasSuffix(lower, ".json") && !strings.HasSuffix(lower, ".rule") && !strings.HasSuffix(lower, ".rules") && !strings.HasSuffix(lower, ".yml") && !strings.HasSuffix(lower, ".yaml") {
 				continue
 			}
 			pack, childWarnings, err := loadRulePackFile(filepath.Join(path, entry.Name()))

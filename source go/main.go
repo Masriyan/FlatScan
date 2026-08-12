@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/csv"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -11,6 +12,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -210,6 +212,19 @@ func main() {
 	}
 }
 
+// shouldPrintTextReport reports whether the human-readable report belongs on
+// stdout. It is suppressed when JSON is going to stdout (`--json -`), when
+// --output-format asks for a machine format, in CI mode, and in quiet mode
+// (batch/watch print only their own summary). Mixing the text report into any
+// of those corrupts the stream a downstream pipeline is parsing.
+//
+// Extracted from RunConfiguredScan so the rule is testable directly: the
+// condition previously lived inline, and the test that claimed to cover it
+// could only restate it in an empty if-branch that asserted nothing.
+func shouldPrintTextReport(cfg Config) bool {
+	return cfg.JSONPath != "-" && cfg.OutputFormat == "text" && !cfg.CI && !cfg.Quiet
+}
+
 func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 	progress := NewProgress(!cfg.NoProgress, os.Stderr)
 	defer func() {
@@ -260,10 +275,7 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 		if err := os.WriteFile(cfg.ReportPath, []byte(plainReport), 0o644); err != nil {
 			return result, fmt.Errorf("report write failed: %w", err)
 		}
-	} else if cfg.JSONPath != "-" && cfg.OutputFormat == "text" && !cfg.CI && !cfg.Quiet {
-		// Print text report to stdout, but not when JSON stdout is active,
-		// output-format is non-text, CI mode is active, or quiet is set
-		// (batch/watch suppress per-file reports so only the summary shows).
+	} else if shouldPrintTextReport(cfg) {
 		fmt.Print(report)
 	}
 
@@ -279,9 +291,13 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 		}
 	case "csv":
 		if cfg.JSONPath != "-" { // avoid mixing CSV with JSON on stdout
-			fmt.Printf("%s,%d,%s,%d,%d,%s\n",
-				result.FileName, result.RiskScore, result.Verdict,
-				len(result.Findings), IOCCount(result.IOCs), result.Hashes.SHA256)
+			// encoding/csv rather than Printf: the file name comes from the
+			// sample and is attacker-controlled, so an embedded comma or quote
+			// would otherwise shift every later column and silently corrupt the
+			// score a downstream pipeline reads.
+			if err := writeCSVRow(os.Stdout, result); err != nil {
+				return result, fmt.Errorf("csv render failed: %w", err)
+			}
 		}
 	case "jsonl":
 		if cfg.JSONPath != "-" { // avoid mixing JSONL with pretty JSON on stdout
@@ -346,6 +362,27 @@ func RunConfiguredScan(cfg Config) (result ScanResult, err error) {
 		}
 	}
 	return result, nil
+}
+
+// csvColumns is the field order of the --output-format csv row.
+var csvColumns = []string{"file_name", "risk_score", "verdict", "findings", "iocs", "sha256"}
+
+// writeCSVRow emits one properly quoted CSV record for a scan result. Field
+// order matches csvColumns.
+func writeCSVRow(w io.Writer, result ScanResult) error {
+	cw := csv.NewWriter(w)
+	if err := cw.Write([]string{
+		result.FileName,
+		strconv.Itoa(result.RiskScore),
+		result.Verdict,
+		strconv.Itoa(len(result.Findings)),
+		strconv.Itoa(IOCCount(result.IOCs)),
+		result.Hashes.SHA256,
+	}); err != nil {
+		return err
+	}
+	cw.Flush()
+	return cw.Error()
 }
 
 func parseFlags(args []string) (Config, error) {
@@ -675,9 +712,9 @@ func printGroupedHelp(w io.Writer) {
 	line(fmt.Sprintf("  %s", flag_("--version")))
 	line("")
 	line(note("Examples:"))
-	line(fmt.Sprintf(`  flatscan -f sample.bin -m deep --pdf report.pdf --html report.html`))
-	line(fmt.Sprintf(`  flatscan --dir ./inbox -m deep --report-pack ./out`))
-	line(fmt.Sprintf(`  flatscan --completion bash >> ~/.bashrc`))
+	line(`  flatscan -f sample.bin -m deep --pdf report.pdf --html report.html`)
+	line(`  flatscan --dir ./inbox -m deep --report-pack ./out`)
+	line(`  flatscan --completion bash >> ~/.bashrc`)
 }
 
 func normalizeReportMode(mode string) string {

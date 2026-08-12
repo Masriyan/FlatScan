@@ -58,26 +58,32 @@ func TriageIOCSet(iocs IOCSet, allowlist IOCAllowlist, debugf debugLogger) IOCSe
 	out.SuppressionReason = iocs.SuppressionReason
 	out.SuppressionLog = iocs.SuppressionLog
 
+	// Plain append, not appendUnique: NormalizeIOCSet above has already sorted
+	// and deduplicated the input, and the call below normalizes the output
+	// again, so per-value uniqueness checks here cannot change the result.
+	// appendUnique rebuilds a map of the whole accumulated slice on every call,
+	// which made this loop O(n^2) — it was the single largest cost when a
+	// sample carried many indicators.
 	for _, value := range iocs.URLs {
 		if reason := allowlist.URLReason(value); reason != "" {
 			out.recordSuppression("url", value, reason, debugf)
 			continue
 		}
-		out.URLs = appendUnique(out.URLs, value)
+		out.URLs = append(out.URLs, value)
 	}
 	for _, value := range iocs.Domains {
 		if reason := allowlist.DomainReason(value); reason != "" {
 			out.recordSuppression("domain", value, reason, debugf)
 			continue
 		}
-		out.Domains = appendUnique(out.Domains, value)
+		out.Domains = append(out.Domains, value)
 	}
 	for _, value := range iocs.IPv4 {
 		if reason := allowlist.IPv4Reason(value); reason != "" {
 			out.recordSuppression("ipv4", value, reason, debugf)
 			continue
 		}
-		out.IPv4 = appendUnique(out.IPv4, value)
+		out.IPv4 = append(out.IPv4, value)
 	}
 	NormalizeIOCSet(&out)
 	return out
@@ -260,7 +266,7 @@ func addAllowlistValue(out *IOCAllowlist, section, value string) {
 		if strings.Contains(value, "://") {
 			out.URLPrefixes = appendUnique(out.URLPrefixes, value)
 		} else if strings.Count(value, ".") == 3 && strings.IndexFunc(value, func(r rune) bool {
-			return !((r >= '0' && r <= '9') || r == '.' || r == '*')
+			return (r < '0' || r > '9') && r != '.' && r != '*'
 		}) == -1 {
 			out.IPv4 = appendUnique(out.IPv4, value)
 		} else {

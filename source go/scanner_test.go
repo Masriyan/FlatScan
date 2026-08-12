@@ -846,29 +846,64 @@ func TestPluginShouldRunSkips(t *testing.T) {
 }
 
 func TestJSONStdoutSuppressesTextReport(t *testing.T) {
-	// When JSONPath is "-", text report should NOT be printed to stdout
-	cfg := Config{
-		JSONPath:   "-",
-		ReportMode: "summary",
-	}
-	result := ScanResult{
+	// The report itself must still render — suppression is about where it goes,
+	// not whether it can be produced.
+	rendered := renderReportForTerminal(ScanResult{
 		Version:  version,
 		FileName: "test.bin",
 		Verdict:  "Suspicious",
-	}
-	// renderReportForTerminal should produce something,
-	// but the condition in RunConfiguredScan should skip printing
-	// when cfg.JSONPath == "-"
-	report := renderReportForTerminal(result, cfg)
-	if report == "" {
+	}, Config{JSONPath: "-", ReportMode: "summary"})
+	if rendered == "" {
 		t.Fatal("expected non-empty report render")
 	}
-	// The actual suppression is in RunConfiguredScan's else-if branch
-	// cfg.JSONPath != "-" — we verify the condition is correct
-	if cfg.JSONPath == "-" && cfg.ReportPath == "" {
-		// This is the condition that should suppress stdout text
-		// In the real code: else if cfg.JSONPath != "-" { fmt.Print(report) }
-		// So when JSONPath == "-" and ReportPath == "", text should NOT print
+
+	// Previously this test restated the suppression rule inside an empty
+	// if-branch, so it asserted nothing and would have passed even if stdout
+	// printing were inverted. The rule now lives in shouldPrintTextReport and is
+	// checked directly.
+	tests := []struct {
+		name string
+		cfg  Config
+		want bool
+	}{
+		{
+			name: "plain text scan prints",
+			cfg:  Config{OutputFormat: "text"},
+			want: true,
+		},
+		{
+			name: "json to stdout suppresses text",
+			cfg:  Config{JSONPath: "-", OutputFormat: "text"},
+			want: false,
+		},
+		{
+			name: "json to a file still prints text",
+			cfg:  Config{JSONPath: "out.json", OutputFormat: "text"},
+			want: true,
+		},
+		{
+			name: "machine output format suppresses text",
+			cfg:  Config{OutputFormat: "csv"},
+			want: false,
+		},
+		{
+			name: "ci mode suppresses text",
+			cfg:  Config{OutputFormat: "text", CI: true},
+			want: false,
+		},
+		{
+			name: "quiet mode suppresses text",
+			cfg:  Config{OutputFormat: "text", Quiet: true},
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shouldPrintTextReport(tt.cfg); got != tt.want {
+				t.Fatalf("shouldPrintTextReport(%+v) = %v, want %v", tt.cfg, got, tt.want)
+			}
+		})
 	}
 }
 

@@ -1088,25 +1088,6 @@ func reportClassification(result ScanResult) string {
 	return "No strong static indicators"
 }
 
-func findingTechniques(findings []Finding) []string {
-	seen := map[string]struct{}{}
-	for _, finding := range findings {
-		if finding.Tactic == "" && finding.Technique == "" {
-			continue
-		}
-		value := strings.Trim(strings.TrimSpace(finding.Tactic+" / "+finding.Technique), " /")
-		if value != "" {
-			seen[value] = struct{}{}
-		}
-	}
-	out := make([]string, 0, len(seen))
-	for value := range seen {
-		out = append(out, value)
-	}
-	sort.Strings(out)
-	return out
-}
-
 func findingRecommendations(findings []Finding) []string {
 	seen := map[string]struct{}{}
 	for _, finding := range findings {
@@ -1173,7 +1154,7 @@ func looksHashLike(value string) bool {
 		return false
 	}
 	for _, r := range value {
-		if !((r >= 'a' && r <= 'f') || (r >= 'A' && r <= 'F') || (r >= '0' && r <= '9')) {
+		if (r < 'a' || r > 'f') && (r < 'A' || r > 'F') && (r < '0' || r > '9') {
 			return false
 		}
 	}

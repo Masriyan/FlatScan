@@ -6,6 +6,7 @@ import (
 	"compress/zlib"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io"
 	"strings"
@@ -159,9 +160,7 @@ func ResolvePayloads(result *ScanResult, data []byte, extracted []ExtractedStrin
 		// Recurse into the recovered bytes unless we have hit the depth cap.
 		if job.depth+1 < cfg.MaxPayloadDepth && len(nodes) < payloadMaxNodes {
 			grandStrings, _, _ := ExtractStrings(child, cfg.MinStringLen, stringLimitForMode(cfg.Mode))
-			for _, g := range derivePayloads(child, grandStrings, node.ID, job.depth+1, cfg, budget) {
-				queue = append(queue, g)
-			}
+			queue = append(queue, derivePayloads(child, grandStrings, node.ID, job.depth+1, cfg, budget)...)
 		}
 	}
 
@@ -359,7 +358,7 @@ func inflate(data []byte, kind string) ([]byte, bool) {
 	}
 	defer r.Close()
 	out, err := io.ReadAll(io.LimitReader(r, payloadMaxChildBytes+1))
-	if (err != nil && err != io.ErrUnexpectedEOF) || len(out) < payloadMinChildBytes {
+	if (err != nil && !errors.Is(err, io.ErrUnexpectedEOF)) || len(out) < payloadMinChildBytes {
 		// A truncated stream still yields useful prefix bytes; only bail when we
 		// got essentially nothing.
 		if len(out) < payloadMinChildBytes {

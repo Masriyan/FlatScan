@@ -208,10 +208,9 @@ func parseTLSCallbacks(file *pe.File, data []byte) int {
 		return 1
 	}
 	n := 0
-	for {
-		if cbOff+ptr > len(data) {
-			break
-		}
+	// The bounds test is the loop condition: cbOff advances by ptr each pass and
+	// indexes attacker-controlled data, so it must be re-checked every iteration.
+	for cbOff+ptr <= len(data) {
 		if readPtr(data[cbOff:], is64) == 0 {
 			break
 		}

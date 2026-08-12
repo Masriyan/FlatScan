@@ -48,11 +48,13 @@ func RenderSigmaRule(result ScanResult) string {
 		fmt.Fprintln(&b, "  category: process_creation")
 	}
 	fmt.Fprintln(&b, "detection:")
-	selectionCount := writeSigmaSelections(&b, result)
-	if selectionCount == 0 {
+	// A rule with no selection block is invalid Sigma, so emit a filename
+	// fallback when nothing else matched. The generated condition below uses the
+	// "1 of selection_*" wildcard, which covers selection_fallback too — the
+	// count is not needed after this point.
+	if writeSigmaSelections(&b, result) == 0 {
 		fmt.Fprintln(&b, "  selection_fallback:")
 		fmt.Fprintf(&b, "    Image|endswith: %s\n", sigmaQuote(result.FileName))
-		selectionCount = 1
 	}
 	filterCount := writeSigmaFilters(&b, result)
 	condition := "1 of selection_*"
@@ -164,7 +166,7 @@ func writeSigmaSelections(b *strings.Builder, result ScanResult) int {
 }
 
 func writeSigmaFilters(b *strings.Builder, result ScanResult) int {
-	if result.APK != nil || !(isArchiveLike(result) || result.MSIX != nil) {
+	if result.APK != nil || (!isArchiveLike(result) && result.MSIX == nil) {
 		return 0
 	}
 	count := 0

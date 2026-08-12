@@ -744,7 +744,7 @@ func htmlSyntaxJSON(raw string) string {
 		case ch == '"':
 			// Determine if this is a key or value
 			j := i + 1
-			for j < n && !(runes[j] == '"' && runes[j-1] != '\\') {
+			for j < n && (runes[j] != '"' || runes[j-1] == '\\') {
 				j++
 			}
 			str := string(runes[i : j+1])

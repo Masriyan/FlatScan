@@ -71,6 +71,15 @@ func DetectFileType(data []byte, path string) string {
 		return "script/text"
 	case scriptHint(data, path) != "" && (looksText(data) || looksUTF16Text(data) || len(data) == 0):
 		return scriptHint(data, path)
+	case looksHTMLApplication(data):
+		// HTML carrying VBScript/JScript is the HTA/smuggling delivery shape.
+		// Typing it precisely matters twice over: it routes the body through
+		// the script engine with a real type instead of the generic "text"
+		// fallback, and it lets the extension check notice a document named
+		// .pdf whose content is a script host.
+		return "HTML application"
+	case looksHTML(data):
+		return "HTML document"
 	case looksText(data):
 		return "text"
 	default:
@@ -98,6 +107,8 @@ func AnalyzeFormats(result *ScanResult, cfg Config, data []byte, debugf debugLog
 		return analyzeZIP(result, cfg, debugf)
 	case "Windows shortcut":
 		return analyzeLNK(result, cfg, data)
+	case "PDF document":
+		return analyzePDFDocument(result, cfg, data, debugf)
 	default:
 		if isScriptType(result.FileType) {
 			return analyzeScript(result, cfg, data)
@@ -117,7 +128,7 @@ func analyzePE(result *ScanResult, cfg Config, data []byte) error {
 	defer file.Close()
 
 	info := &PEInfo{
-		Machine:   peMachine(file.FileHeader.Machine),
+		Machine:   peMachine(file.Machine),
 		Timestamp: time.Unix(int64(file.FileHeader.TimeDateStamp), 0).UTC().Format(time.RFC3339),
 	}
 
@@ -239,7 +250,7 @@ func analyzePEPosture(result *ScanResult, info *PEInfo, file *pe.File, data []by
 	enabled, missing := decodeDllCharacteristics(dllChar)
 	info.SecurityFeatures = enabled
 	info.MissingMitigations = missing
-	info.ImageCharacteristics = decodeImageCharacteristics(file.FileHeader.Characteristics)
+	info.ImageCharacteristics = decodeImageCharacteristics(file.Characteristics)
 	info.RichHeaderHash = computeRichHeaderHash(data)
 
 	if n := parseTLSCallbacks(file, data); n > 0 {
@@ -856,6 +867,40 @@ func looksJavaClass(data []byte) bool {
 	}
 	major := uint16(data[6])<<8 | uint16(data[7])
 	return major >= 45 && major <= 70
+}
+
+// htmlSniffBytes is how much of the head is searched for HTML structure. A
+// document that has not identified itself as HTML within this much text is
+// something else that happens to contain a tag.
+const htmlSniffBytes = 4096
+
+// looksHTML reports whether data opens as an HTML document.
+func looksHTML(data []byte) bool {
+	if !looksText(data) {
+		return false
+	}
+	head := strings.ToLower(string(firstN(data, htmlSniffBytes)))
+	head = strings.TrimPrefix(head, "\ufeff")
+	head = strings.TrimLeft(head, " \t\r\n")
+	return strings.HasPrefix(head, "<!doctype html") ||
+		strings.HasPrefix(head, "<html") ||
+		(strings.Contains(head, "<html") && strings.Contains(head, "<head"))
+}
+
+// looksHTMLApplication reports whether data is HTML that hosts an inline
+// script. This is the shape of an HTA and of HTML-smuggling droppers: the page
+// exists only to carry the script, and a VBScript block in particular has no
+// modern benign use — no browser has supported it since IE11.
+func looksHTMLApplication(data []byte) bool {
+	if !looksHTML(data) {
+		return false
+	}
+	body := strings.ToLower(string(firstN(data, defaultMIMESniffBytes)))
+	return strings.Contains(body, "<script") &&
+		(strings.Contains(body, "vbscript") ||
+			strings.Contains(body, "jscript") ||
+			strings.Contains(body, "application/hta") ||
+			strings.Contains(body, "<hta:application"))
 }
 
 func looksText(data []byte) bool {
