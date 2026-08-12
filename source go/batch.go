@@ -7,10 +7,20 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
 )
+
+// batchScan is the per-file scan entry point used by the batch worker. It is a
+// variable only so the panic-isolation test can inject a scanner that fails
+// deterministically; production code always runs RunConfiguredScan.
+var batchScan = RunConfiguredScan
+
+// batchPanicLog is where the batch worker reports a recovered panic. Split out
+// from os.Stderr so tests can assert the diagnostic without polluting output.
+var batchPanicLog io.Writer = os.Stderr
 
 // batchResult holds the summary of one file's scan in batch mode.
 type batchResult struct {
@@ -102,6 +112,32 @@ func RunBatchScan(cfg Config) error {
 
 			name := filepath.Base(fp)
 
+			// Defense in depth. batchScan recovers panics internally and
+			// returns them as an error, so this should never fire — but "should
+			// never" is not a guarantee worth betting an overnight 10,000-sample
+			// run on. A panic that escapes here would kill the process and
+			// discard every result already collected, so the batch worker keeps
+			// its own guard and degrades to a single error row instead.
+			defer func() {
+				if r := recover(); r != nil {
+					fmt.Fprintf(batchPanicLog,
+						"[flatscan] BUG: recovered panic scanning %q in batch worker: %v\n%s\n",
+						fp, r, debug.Stack())
+					resultSlots[idx] = batchResult{
+						FileName: name,
+						Error:    fmt.Sprintf("panic: %v", r),
+					}
+					if useColor {
+						progressLine(fmt.Sprintf("%s [%d/%d] %s  %s %s\n",
+							dim("→"), idx+1, len(files), name,
+							colorize(colorRed, "✗"), dim(fmt.Sprintf("panic: %v", r))))
+					} else {
+						progressLine(fmt.Sprintf("[%d/%d] %s  ERROR: panic: %v\n",
+							idx+1, len(files), name, r))
+					}
+				}
+			}()
+
 			fileCfg := cfg
 			fileCfg.FilePath = fp
 			fileCfg.NoSplash = true
@@ -109,7 +145,7 @@ func RunBatchScan(cfg Config) error {
 			fileCfg.DirPath = ""
 			fileCfg.Quiet = true // suppress per-file report; only the summary is printed
 
-			result, err := RunConfiguredScan(fileCfg)
+			result, err := batchScan(fileCfg)
 			if err != nil {
 				br := batchResult{FileName: name, Error: err.Error()}
 				if useColor {
