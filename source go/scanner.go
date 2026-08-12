@@ -75,6 +75,11 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 		Size:     stat.Size(),
 	}
 
+	// Drop the finding dedup index when the scan ends, however it ends. Without
+	// this a --dir run over thousands of samples would retain every title and
+	// evidence string of every file scanned for the lifetime of the process.
+	defer releaseFindingIndex(&result)
+
 	// Structured logger replaces the bare closure. All log entries are
 	// captured and promoted to result.DebugLog at the end of the pipeline.
 	// In debug mode, entries are also written to stderr in real-time.
@@ -113,6 +118,7 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	result.MIMEHint = http.DetectContentType(firstN(data, defaultMIMESniffBytes))
 	result.FileType = DetectFileType(data, cfg.FilePath)
 	debugf("detected file type: %s; mime hint: %s", result.FileType, result.MIMEHint)
+	reportExtensionMismatch(&result, cfg.FilePath)
 
 	progress.Set(26, "calculating entropy")
 	result.Entropy = ShannonEntropy(data)
@@ -396,16 +402,62 @@ func AddCorrelatedFinding(result *ScanResult, severity, category, title, evidenc
 	})
 }
 
+// findingSeen indexes the (Title, Evidence) pairs already recorded for a given
+// ScanResult, so dedup is a map lookup instead of a scan of every finding so
+// far. It is keyed by result pointer rather than living in ScanResult because
+// ScanResult is copied by value across the codebase (the same reason findingsMu
+// is package-level rather than an embedded mutex).
+//
+// Entries are removed by releaseFindingIndex once a scan finishes. A batch run
+// scans thousands of files through this map, so leaving them would retain every
+// title and evidence string of every file scanned for the life of the process.
+var findingSeen = map[*ScanResult]map[string]struct{}{}
+
+// findingKey builds the dedup key. The NUL separator prevents a title ending
+// where an evidence string begins from colliding with a different split of the
+// same bytes.
+func findingKey(f Finding) string {
+	return f.Title + "\x00" + f.Evidence
+}
+
 // addFindingStruct appends a finding with title+evidence dedup, under the mutex.
+//
+// Dedup was previously a linear scan of result.Findings on every insert, held
+// under findingsMu for the whole scan. On samples that produce thousands of
+// findings (catalogs, many-section packers) that is quadratic work performed
+// inside the lock, serializing the parallel stages against each other.
 func addFindingStruct(result *ScanResult, f Finding) {
 	findingsMu.Lock()
 	defer findingsMu.Unlock()
-	for _, existing := range result.Findings {
-		if existing.Title == f.Title && existing.Evidence == f.Evidence {
-			return
+
+	seen := findingSeen[result]
+	if seen == nil {
+		// First finding for this result. Seed the index from any findings
+		// already present, so a caller that populated Findings directly (or
+		// reused a result) still dedups correctly.
+		seen = make(map[string]struct{}, len(result.Findings)+16)
+		for _, existing := range result.Findings {
+			seen[findingKey(existing)] = struct{}{}
 		}
+		findingSeen[result] = seen
 	}
+
+	key := findingKey(f)
+	if _, dup := seen[key]; dup {
+		return
+	}
+	seen[key] = struct{}{}
+	// The slice remains the ordered store; the map only answers the seen-check,
+	// so insertion order is unchanged.
 	result.Findings = append(result.Findings, f)
+}
+
+// releaseFindingIndex drops the dedup index for a finished scan. Safe to call
+// on a result that never recorded a finding.
+func releaseFindingIndex(result *ScanResult) {
+	findingsMu.Lock()
+	delete(findingSeen, result)
+	findingsMu.Unlock()
 }
 
 func FinalizeRisk(result *ScanResult) {
