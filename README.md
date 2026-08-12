@@ -4,7 +4,7 @@
 
 <img src="Images/banner.png" alt="FlatScan Banner" width="100%"/>
 
-**Zero-Dependency Static Malware Analysis Engine**
+**Static Malware Analysis Engine — cgo-free, single pure-Go module, statically linked**
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![Version](https://img.shields.io/badge/Version-0.10.2-e94560?style=flat)]()
@@ -76,7 +76,7 @@ graph LR
 
 ## Architecture Overview
 
-FlatScan is built as a multi-stage analysis pipeline with parallel execution, a plugin system, and zero external dependencies.
+FlatScan is built as a multi-stage analysis pipeline with parallel execution, a plugin system, and a single pure-Go external module (`golang.org/x/arch`, the disassembly engine) — no cgo, no runtime or system dependencies.
 
 ```mermaid
 graph TB
@@ -137,7 +137,7 @@ graph TB
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Minimal, cgo-free deps** | Go standard library plus one pure-Go module — `golang.org/x/arch` (disassembly engine, 0.8.0). No cgo, no native libraries |
+| **Minimal, cgo-free deps** | Go standard library plus one pure-Go module — `golang.org/x/arch v0.28.0` (disassembly engine, added in FlatScan 0.8.0). No cgo, no native libraries, no runtime dependencies |
 | **Static Only** | Never executes the sample — reads bytes and metadata |
 | **Thread-Safe** | `parallelRun()` with mutex-protected findings, race-detector verified |
 | **Platform Portable** | Builds for Linux, macOS, Windows; mmap on Linux with transparent fallback |

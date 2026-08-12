@@ -152,7 +152,7 @@ Add learned signal — strictly opt-in, local, and explainable — without compr
 
 - **Pluggable ML scoring:** family-prototype / nearest-neighbour classification and learned
   packer/obfuscation detection delivered through the plugin interface with **local, bundled or
-  BYO models** — the zero-dependency static core remains fully functional without them.
+  BYO models** — the dependency-light static core remains fully functional without them.
 - **Explainable verdicts:** every score fully traceable; per-finding contribution graphs and
   "why this verdict" narratives.
 - **Smarter rule generation:** behavior-graph-aware YARA/Sigma, auto-tuned thresholds,

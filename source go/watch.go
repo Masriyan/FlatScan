@@ -83,8 +83,8 @@ func firstConfiguredOutput(cfg Config) string {
 }
 
 // RunWatchMode monitors a directory for new files and auto-scans them.
-// It uses a polling approach with configurable interval to stay within
-// the zero-dependency constraint (no fsnotify/inotify required).
+// It uses a polling approach with configurable interval so watching needs no
+// third-party notification dependency (no fsnotify/inotify required).
 //
 // Usage: ./flatscan --watch ./inbox -m deep
 //

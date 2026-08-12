@@ -1,6 +1,13 @@
 # Research vs FlatScan — Gap Analysis (working notes)
 
-FlatScan baseline: pure-Go, zero-dependency, **static-only** (never executes), signature/pattern + behavioral detection, format parsers (PE/ELF/Mach-O/APK/DEX/MSIX/ZIP), IOC extraction+triage, decoder pass, entropy, API-chain detection (7), packer fingerprint (8), rules engine (JSON+.rule), plugin engine, family classifier, similarity hashing (FlatHash/imphash/section), MITRE mapping, YARA/Sigma/STIX/PDF/HTML output, batch/watch/CI/web modes. **No ML, no dynamic analysis.**
+> **Note (2026-08-12):** these are dated working notes, retained as a snapshot of
+> the 2026-06-07 analysis. Where they say "zero-dependency", read
+> "minimal-dependency": since 0.8.0 the build pulls one pure-Go module,
+> `golang.org/x/arch`, for x86/x64 disassembly. The intent the phrase encodes —
+> no cgo, no native libraries, no runtime/system dependencies, and no heavy
+> analysis frameworks such as RetDec/LLVM — is unchanged.
+
+FlatScan baseline: pure-Go, minimal-dependency, **static-only** (never executes), signature/pattern + behavioral detection, format parsers (PE/ELF/Mach-O/APK/DEX/MSIX/ZIP), IOC extraction+triage, decoder pass, entropy, API-chain detection (7), packer fingerprint (8), rules engine (JSON+.rule), plugin engine, family classifier, similarity hashing (FlatHash/imphash/section), MITRE mapping, YARA/Sigma/STIX/PDF/HTML output, batch/watch/CI/web modes. **No ML, no dynamic analysis.**
 
 ---
 

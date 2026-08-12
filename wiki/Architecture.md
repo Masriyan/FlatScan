@@ -55,7 +55,7 @@ The Go source under `source go/` is organized by concern. Representative files:
 - **Parallel per-scan passes.** Within a single scan, independent analysis passes run concurrently and their findings are merged before scoring.
 - **Per-scan work budgets.** Each scan operates under bounded budgets — byte caps (`--max-analyze-bytes`), archive-member caps (`--max-archive-files`), carve caps (`--max-carves`), and decode/resolve depth limits — so no single file (including an archive bomb) can exhaust the host.
 
-## Zero-Dependency Philosophy
+## Minimal-Dependency Philosophy
 
 FlatScan uses **only the Go standard library plus `golang.org/x/arch`** (for x86/x64 disassembly). There is no other third-party dependency, no CGo, and **no network access in default mode**. This keeps the binary portable, auditable, reproducible, and safe to run in an air-gapped lab.
 
