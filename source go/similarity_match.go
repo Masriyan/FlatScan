@@ -175,7 +175,7 @@ func LoadSimilarityRefs(path string) ([]SimilarityRef, error) {
 		}
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	var refs []SimilarityRef
 	scanner := bufio.NewScanner(f)

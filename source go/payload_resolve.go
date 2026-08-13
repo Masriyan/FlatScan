@@ -356,7 +356,7 @@ func inflate(data []byte, kind string) ([]byte, bool) {
 	if err != nil {
 		return nil, false
 	}
-	defer r.Close()
+	defer r.Close() //nolint:errcheck // read-only handle: Close discards nothing
 	out, err := io.ReadAll(io.LimitReader(r, payloadMaxChildBytes+1))
 	if (err != nil && !errors.Is(err, io.ErrUnexpectedEOF)) || len(out) < payloadMinChildBytes {
 		// A truncated stream still yields useful prefix bytes; only bail when we

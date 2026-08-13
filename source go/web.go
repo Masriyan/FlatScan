@@ -125,7 +125,12 @@ func RunWebServer(ctx context.Context, cfg Config) error {
 			for id, job := range srv.jobs {
 				age := time.Since(job.StartedAt)
 				if (job.Done && age > jobRetention) || age > hardJobRetention {
-					os.RemoveAll(job.OutDir)
+					// These directories hold uploaded samples. A failed removal
+					// leaves malware on disk past its retention window, so say
+					// so rather than dropping the error silently.
+					if err := os.RemoveAll(job.OutDir); err != nil {
+						fmt.Fprintf(os.Stderr, "[flatscan-web] WARNING: could not remove job directory %s (uploaded sample may remain on disk): %v\n", job.OutDir, err)
+					}
 					delete(srv.jobs, id)
 				}
 			}
@@ -149,9 +154,12 @@ func RunWebServer(ctx context.Context, cfg Config) error {
 	fmt.Printf("[flatscan-web] listening on http://localhost:%d\n", cfg.WebPort)
 	fmt.Printf("[flatscan-web] open your browser at http://localhost:%d\n", cfg.WebPort)
 
-	go func() {
+	go func() { //nolint:gosec // G118: ctx is already cancelled here; the graceful drain needs its own deadline
 		<-ctx.Done()
 		fmt.Fprintln(os.Stderr, "\n[flatscan-web] shutting down…")
+		// Deliberately detached from ctx: ctx is already cancelled (that is why
+		// we are here), so deriving the shutdown deadline from it would abort
+		// the graceful drain immediately.
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		_ = server.Shutdown(shutdownCtx)
@@ -166,7 +174,9 @@ func RunWebServer(ctx context.Context, cfg Config) error {
 	// process is going away, so nothing will come back for them.
 	srv.mu.Lock()
 	for id, job := range srv.jobs {
-		os.RemoveAll(job.OutDir)
+		if err := os.RemoveAll(job.OutDir); err != nil {
+			fmt.Fprintf(os.Stderr, "[flatscan-web] WARNING: could not remove job directory %s on shutdown (uploaded sample may remain on disk): %v\n", job.OutDir, err)
+		}
 		delete(srv.jobs, id)
 	}
 	srv.mu.Unlock()
@@ -260,7 +270,9 @@ func (s *webServer) handleScan(w http.ResponseWriter, r *http.Request) {
 	}
 
 	r.Body = http.MaxBytesReader(w, r.Body, maxUploadBytes+(8<<20))
-	if err := r.ParseMultipartForm(maxUploadBytes); err != nil {
+	// The body is bounded by MaxBytesReader on the line above, so the parse is
+	// not unbounded; the reader rejects anything larger before it is buffered.
+	if err := r.ParseMultipartForm(maxUploadBytes); err != nil { //nolint:gosec // G120: request body already capped by MaxBytesReader
 		jsonError(w, "failed to parse upload: "+err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -277,7 +289,7 @@ func (s *webServer) handleScan(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "no file provided", http.StatusBadRequest)
 		return
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	mode := strings.ToLower(strings.TrimSpace(r.FormValue("mode")))
 	switch mode {
@@ -297,7 +309,9 @@ func (s *webServer) handleScan(w http.ResponseWriter, r *http.Request) {
 	fileName := safeFileName(header.Filename)
 	filePath := filepath.Join(outDir, fileName)
 	if _, err := writeUpload(filePath, file); err != nil {
-		os.RemoveAll(outDir)
+		// Best-effort cleanup of a partially written upload; the upload error
+		// below is what the client needs to see.
+		_ = os.RemoveAll(outDir)
 		jsonError(w, "failed to store upload: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -555,7 +569,7 @@ func (s *webServer) handleDownload(w http.ResponseWriter, r *http.Request) {
 		jsonError(w, "file unavailable", http.StatusNotFound)
 		return
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	w.Header().Set("Content-Type", ct)
 	w.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, filepath.Base(path)))
@@ -575,6 +589,9 @@ func zipDir(w io.Writer, dir string) (err error) {
 			err = closeErr
 		}
 	}()
+	// dir is a per-job temp directory created by FlatScan and written only by
+	// FlatScan's own report writers; no untrusted process places symlinks in it,
+	// so the TOCTOU pattern gosec warns about is not reachable here.
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -586,11 +603,11 @@ func zipDir(w io.Writer, dir string) (err error) {
 		if err != nil {
 			return err
 		}
-		src, err := os.Open(path)
+		src, err := os.Open(path) //nolint:gosec // G122: walks a FlatScan-owned temp dir, not an attacker-writable tree
 		if err != nil {
 			return err
 		}
-		defer src.Close()
+		defer src.Close() //nolint:errcheck // read-only handle: Close discards nothing
 		hdr, err := zip.FileInfoHeader(info)
 		if err != nil {
 			return err

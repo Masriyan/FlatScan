@@ -125,7 +125,7 @@ func analyzePE(result *ScanResult, cfg Config, data []byte) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	info := &PEInfo{
 		Machine:   peMachine(file.Machine),
@@ -302,7 +302,7 @@ func analyzePEPosture(result *ScanResult, info *PEInfo, file *pe.File, data []by
 		info.Signed = true
 		if f, err := os.Open(result.Target); err == nil {
 			subjects, issuers, status, selfSigned := extractPECertificates(f, secDirOffset, secDirSize)
-			f.Close()
+			f.Close() //nolint:errcheck,gosec // read-only handle: Close discards nothing
 			info.CertificateSubjects = subjects
 			info.CertificateIssuers = issuers
 			info.SignatureStatus = status
@@ -322,7 +322,7 @@ func analyzeELF(result *ScanResult, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	info := &ELFInfo{
 		Class:   file.Class.String(),
@@ -430,7 +430,7 @@ func analyzeMachO(result *ScanResult, cfg Config) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer file.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	info := &MachOInfo{
 		CPU:  file.Cpu.String(),
@@ -510,7 +510,7 @@ func analyzeZIP(result *ScanResult, cfg Config, debugf debugLogger) error {
 			continue
 		}
 		content, err := io.ReadAll(io.LimitReader(handle, defaultMaxArchiveReadSize))
-		handle.Close()
+		handle.Close() //nolint:errcheck,gosec // read-only handle: Close discards nothing
 		if err != nil {
 			debugf("archive entry read failed for %s: %v", file.Name, err)
 			continue

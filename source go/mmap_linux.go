@@ -32,7 +32,7 @@ func mmapFile(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	stat, err := f.Stat()
 	if err != nil {

@@ -115,7 +115,7 @@ func LoadIntelDB(path string) ([]IntelRecord, error) {
 		}
 		return nil, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	var records []IntelRecord
 	scanner := bufio.NewScanner(f)

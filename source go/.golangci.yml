@@ -21,17 +21,44 @@ linters:
     - wastedassign
 
   settings:
+    errcheck:
+      exclude-functions:
+        # Console output. A failed write to a terminal is not actionable - the
+        # tool cannot report the failure through the channel that just failed -
+        # and every one of these is a progress line or a report already being
+        # streamed to an operator who is watching it.
+        #
+        # Excluded by name rather than left as noise because 105 of them buried
+        # the three real bugs fixed in the "truncated report packs" commit: a
+        # dropped Close() on a *written* artifact. errcheck stays enabled
+        # everywhere else, which is what makes the next such bug visible.
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+
+        # Close on a handle opened for READING discards nothing: the bytes are
+        # already in memory. Writers are deliberately not excluded - Close is
+        # where a buffered write is flushed and where ENOSPC surfaces, which is
+        # precisely the bug class this project has already shipped once.
+        - (*archive/zip.ReadCloser).Close
+
     gosec:
       excludes:
         # This tool writes analyst reports and rule packs to paths the operator
         # supplies on the command line; that is the feature, not a flaw.
         - G304 # file path provided as taint input
-        # Report and cache files are intended to be readable by the analyst's
-        # other tooling.
+        - G703 # path traversal via taint analysis - same operator-supplied paths
+        # Report, cache and case files are intended to be readable by the
+        # analyst's other tooling (grep, jq, a SIEM importer) and by the
+        # operator's own account, so 0644/0755 is deliberate. Tightening to
+        # 0600/0750 would break the handoff these formats exist for.
+        - G301 # directory permissions
+        - G302 # file permissions (OpenFile)
         - G306 # WriteFile permissions
         # MD5 and SHA-1 are emitted as sample identifiers for IOC pivoting and
         # threat-intel lookups, never used for security decisions.
         - G401
+        - G501 # blocklisted import crypto/md5 - same rationale as G401
         - G505
 
   exclusions:
@@ -42,6 +69,21 @@ linters:
           - errcheck
           - gosec
 
+      # masquerade.go DETECTS right-to-left-override filename attacks, so it
+      # necessarily contains the bidirectional control characters it matches on.
+      # They are detection data, not a Trojan Source vulnerability in FlatScan;
+      # removing them would delete the detection. G116 flags the file as a whole,
+      # so this cannot be a line-scoped nolint.
+      - path: masquerade\.go
+        text: "G116"
+        linters:
+          - gosec
+
+
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0
+  # Fail on anything new. The repo is at zero reported issues under the
+  # exclusions above; this keeps it there rather than letting a backlog
+  # re-accumulate behind a permanently-red build.
+  new: false

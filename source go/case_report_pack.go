@@ -115,7 +115,9 @@ func StoreCaseRecord(cfg Config, result *ScanResult) error {
 		return err
 	}
 	if _, err := handle.Write(append(data, '\n')); err != nil {
-		handle.Close()
+		// Error path: the write already failed and is being reported, so a
+		// close error adds nothing. The success-path close below IS checked.
+		_ = handle.Close()
 		result.Case = &CaseRecord{CaseID: caseID, DatabasePath: dbPath, Stored: false, Error: err.Error()}
 		return err
 	}

@@ -282,7 +282,7 @@ func readSampleAndHashes(path string, size int64, maxAnalyzeBytes int64, progres
 	if err != nil {
 		return nil, Hashes{}, false, err
 	}
-	defer f.Close()
+	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
 	md5h := md5.New()
 	sha1h := sha1.New()

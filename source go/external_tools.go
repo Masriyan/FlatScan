@@ -91,7 +91,10 @@ func localToolDirs() []string {
 func runExternalTool(name string, args []string, timeout time.Duration) (string, bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, name, args...)
+	// name is not user input: it is the resolved path of a tool from the fixed
+	// allowlist in this file, located via lookExternalTool. args are literals
+	// defined alongside that allowlist. The sample is never passed as a command.
+	cmd := exec.CommandContext(ctx, name, args...) //nolint:gosec // G204: name comes from the internal tool allowlist, not from the sample or the CLI
 	output, err := cmd.CombinedOutput()
 	if ctx.Err() == context.DeadlineExceeded {
 		return string(output), true, ctx.Err()

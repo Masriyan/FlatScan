@@ -262,7 +262,7 @@ func codeWindow(fileType string, data []byte) (mode int, codeStart, codeEnd int6
 		if err != nil {
 			return 0, -1, 0, ""
 		}
-		defer pf.Close()
+		defer pf.Close() //nolint:errcheck // read-only handle: Close discards nothing
 		var entryRVA uint64
 		switch oh := pf.OptionalHeader.(type) {
 		case *pe.OptionalHeader32:
@@ -294,7 +294,7 @@ func codeWindow(fileType string, data []byte) (mode int, codeStart, codeEnd int6
 		if err != nil {
 			return 0, -1, 0, ""
 		}
-		defer ef.Close()
+		defer ef.Close() //nolint:errcheck // read-only handle: Close discards nothing
 		switch ef.Machine {
 		case elf.EM_386:
 			mode, arch = 32, "x86"

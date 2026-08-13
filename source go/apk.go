@@ -1025,7 +1025,7 @@ func readZipEntryLimited(file *zip.File, maxBytes int64) ([]byte, bool, error) {
 	if err != nil {
 		return nil, false, err
 	}
-	defer handle.Close()
+	defer handle.Close() //nolint:errcheck // read-only handle: Close discards nothing
 	data, err := io.ReadAll(io.LimitReader(handle, maxBytes+1))
 	if err != nil {
 		return nil, false, err
