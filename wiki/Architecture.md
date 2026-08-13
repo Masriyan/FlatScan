@@ -34,16 +34,16 @@ input file
 [ reporting ]           terminal / JSON / CSV / JSONL / PDF / HTML / YARA / Sigma / STIX / IOC / report-pack
 ```
 
-## Source Organization (~61 source files)
+## Source Organization (93 source files, ~22.9k non-test LOC)
 
 The Go source under `source go/` is organized by concern. Representative files:
 
 - **Entry & orchestration** — `main.go`, `scanner.go`, `types.go`, `platform.go`.
 - **Run modes** — `batch.go`, `watch.go`, `interactive.go`, `expert.go` (shell), `web.go`, `web_ui.go`.
 - **I/O & hashing** — `mmap_linux.go`, `mmap_other.go`, `cache.go`.
-- **Format parsers** — `formats.go`, `pe_intel.go`, `dotnet.go`, `apk.go`, `pdf.go`, `lnk.go`, `script.go`.
-- **Code analysis** — `disasm.go`, `hashdb.go`, `packer.go`, `entropy.go`.
-- **Strings & decoding** — `strings_extract.go`, `decode.go`, `payload_resolve.go`, `carve.go`, `chains.go`.
+- **Format parsers** — `formats.go`, `pe_intel.go`, `dotnet.go`, `apk.go`, `pdf.go`, `pdf_document.go`, `lnk.go`, `script.go`.
+- **Code analysis** — `disasm.go`, `hashdb.go`, `packer.go`, `entropy.go`, `numeric.go` (saturating conversions for attacker-controlled header fields).
+- **Strings & decoding** — `strings_extract.go`, `decode.go`, `deobfuscate.go`, `masquerade.go`, `payload_resolve.go`, `carve.go`, `chains.go`.
 - **IOCs & intel** — `ioc.go`, `ioc_classify.go`, `ioc_triage.go`, `dga.go`, `intel.go`.
 - **Detection content** — `rules.go`, `plugin.go`, `signatures.go`, `capability.go`, `family.go`, `family_fingerprints.go`, `config_extract.go`, `config_family.go`, `correlation.go`, `falsepositive.go`, `similarity.go`, `similarity_match.go`, `behavior.go`.
 - **Reporting & exports** — `report.go`, `html.go`, `pdf.go`, `yara.go`, `sigma.go`, `stix.go`, `case_report_pack.go`, `hints.go`.
@@ -53,6 +53,7 @@ The Go source under `source go/` is organized by concern. Representative files:
 
 - **Parallel batch worker pool.** In batch/watch mode files are scanned concurrently across a worker pool (`parallel.go`, `batch.go`), keeping throughput high on directories of artifacts. The aggregate exit code is the worst file's code.
 - **Parallel per-scan passes.** Within a single scan, independent analysis passes run concurrently and their findings are merged before scoring.
+- **Per-stage panic isolation.** The analysis stages parse attacker-controlled bytes, so an out-of-range index is a realistic outcome rather than a theoretical one. A panic on a goroutine cannot be recovered by the caller, so each stage recovers locally and the failure is re-raised on the calling goroutine, where it becomes an error for that one file. One malformed sample therefore costs one result, not the whole batch. Findings dedup through a per-result index under `findingsMu`, so concurrent stages cannot record duplicates or race.
 - **Per-scan work budgets.** Each scan operates under bounded budgets — byte caps (`--max-analyze-bytes`), archive-member caps (`--max-archive-files`), carve caps (`--max-carves`), and decode/resolve depth limits — so no single file (including an archive bomb) can exhaust the host.
 
 ## Minimal-Dependency Philosophy

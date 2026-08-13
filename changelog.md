@@ -42,6 +42,100 @@ graph LR
 
 ---
 
+## Unreleased
+
+_Audit and hardening pass, 2026-08-13. Verified on Fedora Linux 44 (x86_64, kernel 7.1.7) with
+Go 1.26.5._
+
+A reliability and correctness pass focused on what happens when FlatScan is handed hostile or
+malformed input, plus the test and CI infrastructure that keeps those guarantees enforced. No
+detection rule, score, or verdict band changed: `go test -race` is clean and the false-positive
+corpus below pins the known-good verdicts.
+
+**Verification:** `go build`, `go vet`, `gofmt -l`, `go test ./...`, `go test -race ./...` all clean;
+`golangci-lint run` at **0 issues** (from 185); `govulncheck` reports no vulnerabilities; coverage
+**44.9% -> 50.3%**.
+
+### Fixed - reliability
+
+- **One malformed sample could destroy an entire batch run.** `parallelRun` spawned the carving and
+  similarity-hashing stages on their own goroutines with no `recover()`. A panic on a goroutine
+  cannot be caught by the caller's deferred recover - it terminates the process regardless - so a
+  single crafted file could kill an overnight `--dir` run over thousands of samples and take every
+  result already collected with it. Stages now recover individually, wait for their siblings (they
+  share the result), and re-raise on the caller's goroutine, where the existing per-file handler
+  turns it into an error for that one file. The faulting goroutine's stack is captured at the point
+  of failure, since re-panicking discards it.
+- **Truncated report packs and case records were reported as successful.** `StoreCaseRecord`
+  deferred its `Close()` and set `Stored: true` before the close ran, so a case record that never
+  reached the database was reported to the analyst as filed. `zipDir` discarded the error from
+  `zip.Writer.Close`, which writes the central directory - losing it yields an archive that
+  downloads cleanly and cannot be opened. `writeUpload` had the same shape on the uploaded sample.
+- **Job directories holding uploaded samples could fail to be removed silently.** Three
+  `os.RemoveAll` calls in the web server discarded their errors, leaving malware on disk past its
+  retention window with no indication. Failures now warn on stderr.
+
+### Fixed - correctness
+
+- **PE TLS callback addresses could be truncated into a valid-looking offset.** `AddressOfCallBacks`
+  is a full 64-bit VA on PE32+, so `cbVA - imageBase` is a 64-bit difference that was narrowed with
+  `uint32()`. A callback address `0x100001000` above the image base folded to RVA `0x1000` - small,
+  in-image, and entirely wrong - which resolved to a real file offset that was then walked as a
+  callback array, reporting anti-debug callbacks that do not exist. Out-of-range RVAs are now
+  rejected rather than wrapped.
+- **Truncated compressed payloads were silently discarded.** `payload_resolve.go` compared
+  `err != io.ErrUnexpectedEOF` against an error that arrives wrapped from the decompressors, so the
+  comparison was always true and the truncated-stream branch never ran - discarding exactly the
+  prefix bytes the surrounding code intends to keep. Now uses `errors.Is`.
+- **ELF and Mach-O section fields could be reported as small plausible values.** 64-bit
+  attacker-controlled `Addr`/`Offset`/`Size` fields were narrowed to `uint32` report fields, so a
+  section declaring size `0x1_0000_0100` was reported as `0x100`. Beyond misleading the analyst,
+  these values feed the structural similarity fingerprint, so unrelated samples could fingerprint
+  alike. They now saturate instead of wrapping.
+
+### Changed - performance
+
+- **Finding dedup is no longer quadratic.** `addFindingStruct` linear-scanned every finding recorded
+  so far on each insert, while holding the mutex the parallel stages contend on. Samples producing
+  thousands of findings (catalogs, many-section packers) paid O(n^2) comparisons inside the lock.
+  Dedup now uses a per-result index. Measured over 5,000 unique findings: **129.2 ms -> 4.8 ms**, and
+  scaling from 1,000 to 5,000 findings costs 14.4x rather than 17.9x. Dedup semantics and insertion
+  order are unchanged.
+
+### Added - tests and CI
+
+- **The false-positive guard is now locked by a corpus regression.** `falsepositive.go` shipped
+  without a test despite being the module whose failure modes are both silent: a guard that stops
+  firing turns every rule pack back into "Likely malicious", and one that fires too eagerly
+  downgrades real malware to "Low suspicion". A checked-in table now pins both directions - APK
+  loader, Discord stealer, browser stealer, packed .NET loader, banker and ransomware must stay
+  malicious; rule packs and IR reports must cap to the low band - plus a self-scan test asserting
+  FlatScan's own binary is recognised as an analysis artifact. Fixtures are synthetic; no live
+  malware is committed.
+- **API-hash tables and the LNK parser are covered.** `hashdb.go` expected hashes are pinned as
+  literals computed independently of the implementation, so the test can disagree with the code;
+  the dictionary is also asserted collision-free. `lnk.go` gains nine malformed fixtures (truncated
+  blocks, size prefixes overrunning the buffer, flags promising absent data), verified to fail if the
+  bounds checks are removed.
+- **CI actually gates now.** The lint job ran `golangci-lint` with no threshold and had been exiting
+  non-zero on every push since it was added, which meant none of the regression tests above were
+  being enforced. The 185 findings were resolved by category - console writes and read-only `Close`
+  calls excluded with documented reasoning, false positives annotated at the site, three real bugs
+  fixed - and the exclusions were verified not to hide the bug class they cover: reintroducing a
+  dropped `Close()` on a written file is still reported.
+
+### Documentation
+
+- README test badge corrected (91 -> 176), module map updated with the modules added since 0.8.0
+  (`disasm`, `hashdb`, `deobfuscate`, `masquerade`, `correlation`, `capability`, `lnk`, `script`,
+  `pdf_document`), and a verification-status table added recording the exact platform and toolchain
+  the results were measured on.
+- The "zero-dependency" claim was reconciled with `go.mod`, which has required `golang.org/x/arch`
+  since 0.8.0 for the pure-Go disassembler. The accurate claim - cgo-free, one pure-Go module, no
+  runtime or system dependencies - replaces it across README, wiki, and in-code comments.
+
+---
+
 ## 0.10.2 - Security, Reliability & Analyst Workspace Release
 
 _Released 2026-08-11._

@@ -1,5 +1,11 @@
 # FlatScan QA / Hardening Report
 
+> **Historical record — not current status.** This documents the 0.10.0 audit; its figures
+> (61 files, ~21,600 LOC) were accurate at that time. For current numbers see the verification
+> table in [README.md](README.md) and the Unreleased section of [changelog.md](changelog.md):
+> as of 2026-08-13 the tree is 93 source files, ~22.9k non-test LOC, 176 tests, 50.3% coverage,
+> and 0 `golangci-lint` issues, verified on Fedora Linux 44 with Go 1.26.5.
+
 **Date:** 2026-08-10
 **Version audited:** 0.10.0
 **Scope:** Full codebase audit — 61 Go source files, ~21,600 LOC, plus CLI UX and web UI/UX.

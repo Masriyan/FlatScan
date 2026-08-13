@@ -1,5 +1,12 @@
 # FlatScan QA/QC Report
 
+> **Historical record — not current status.** This is a cumulative audit log covering releases
+> 0.3.0 through 0.7.0. Its figures (39 source files, 11,867 LOC, 12 tests) were accurate for the
+> versions audited and are retained as a point-in-time record. For current numbers see the
+> verification table in [README.md](README.md) and the Unreleased section of
+> [changelog.md](changelog.md): as of 2026-08-13 the tree is 93 source files, ~22.9k non-test LOC,
+> 176 tests, 50.3% coverage, and 0 `golangci-lint` issues.
+
 **Last Updated**: 2026-06-07
 **Current Version**: 0.7.0
 **Scope**: Cumulative audit log — all releases from 0.3.0 through 0.7.0, including the 2026-06-07 malware-sample precision sweep

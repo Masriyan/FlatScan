@@ -22,8 +22,8 @@ This guide covers building, verifying, cross-compiling, and setting up a safe an
 
 | Requirement | Version | Required? |
 |------------|---------|-----------|
-| **Go** | 1.25+ | ✅ Yes (the `golang.org/x/arch` disassembly dep, added in 0.8.0, raised the module's Go directive to 1.25) |
-| **OS** | Linux, macOS, or Windows | ✅ Yes |
+| **Go** | 1.25+ | ✅ Yes (the `golang.org/x/arch` disassembly dep, added in 0.8.0, raised the module's Go directive to 1.25). Tested on Go 1.26.5 |
+| **OS** | Linux, macOS, or Windows | ✅ Yes — see the tested-platform note below |
 | **Terminal** | Any shell | ✅ Yes |
 | `file` | any | Optional — `--external-tools` |
 | `exiftool` | any | Optional — `--external-tools` |
@@ -187,6 +187,21 @@ GOOS=darwin GOARCH=amd64 go build -o ../flatscan-darwin-amd64 .
 | External tools | ✅ | ✅ | Partial |
 
 > **Note:** Memory-mapped I/O is Linux-only via `syscall.Mmap`. On other platforms, FlatScan transparently falls back to buffered read with identical analysis results.
+
+### Tested platforms
+
+Being precise about what is *measured* versus what is *supported*:
+
+| Platform | Status |
+|----------|--------|
+| **Fedora Linux 44** (x86_64, kernel 7.1.7, Go 1.26.5) | **Fully verified** — build, `go vet`, `gofmt`, full test suite, race detector, `golangci-lint` (0 issues) and `govulncheck` all pass here |
+| **Ubuntu** (`ubuntu-latest`, x86_64) | Verified in CI on every push and pull request |
+| macOS (amd64/arm64) | Supported target; cross-compiles cleanly. Not independently test-verified — the buffered-read fallback replaces mmap |
+| Windows (amd64) | Supported target; cross-compiles cleanly. Not independently test-verified — buffered-read fallback, and `--external-tools` support is partial |
+
+If you run the suite on macOS or Windows, results are welcome — the platform matrix
+above describes intended behaviour, and only the first two rows are backed by an
+executed test run.
 
 ### Install Globally (Optional)
 

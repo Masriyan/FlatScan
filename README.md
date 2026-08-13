@@ -9,7 +9,7 @@
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![Version](https://img.shields.io/badge/Version-0.10.2-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-91%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-176%20passing-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
@@ -139,9 +139,27 @@ graph TB
 |-----------|---------------|
 | **Minimal, cgo-free deps** | Go standard library plus one pure-Go module — `golang.org/x/arch v0.28.0` (disassembly engine, added in FlatScan 0.8.0). No cgo, no native libraries, no runtime dependencies |
 | **Static Only** | Never executes the sample — reads bytes and metadata |
-| **Thread-Safe** | `parallelRun()` with mutex-protected findings, race-detector verified |
+| **Thread-Safe** | `parallelRun()` with mutex-protected findings, race-detector verified. Analysis stages recover panics individually, so one malformed sample cannot abort a batch |
 | **Platform Portable** | Builds for Linux, macOS, Windows; mmap on Linux with transparent fallback |
 | **Extensible** | Plugin interface + JSON manifests for custom detections without recompiling |
+
+### Verification status
+
+| Check | Result |
+|-------|--------|
+| `go build` / `go vet` / `gofmt -l` | Clean |
+| `go test ./...` | 176 tests (324 cases including subtests), all passing |
+| `go test -race ./...` | Clean |
+| `go test -cover ./...` | 50.3% of statements |
+| `golangci-lint run` | 0 issues (errcheck, govet, staticcheck, gosec, errorlint, ineffassign, unused, bodyclose, nilerr, misspell, unconvert, wastedassign) |
+| `govulncheck ./...` | No vulnerabilities found |
+
+**Test environment.** Verified on **Fedora Linux 44 (x86_64, kernel 7.1.7)** with **Go 1.26.5**. The
+`go.mod` floor is Go 1.25. CI additionally runs the same suite on `ubuntu-latest`.
+Linux is the only platform these results are measured on: macOS and Windows are
+supported targets and the code cross-compiles to them, but the numbers above are
+not independently reproduced there, and `mmap_linux.go` is Linux-only by
+construction (other platforms take the buffered-read fallback).
 
 ---
 
@@ -906,6 +924,13 @@ graph TB
         dga.go
         dotnet.go
         falsepositive.go
+        disasm.go
+        hashdb.go
+        deobfuscate.go
+        masquerade.go
+        correlation.go
+        capability.go
+        intel.go
     end
     
     subgraph "Format Parsers"
@@ -915,6 +940,9 @@ graph TB
         family.go
         similarity.go
         platform.go
+        lnk.go
+        script.go
+        pdf_document.go
     end
     
     subgraph "Output Renderers"
