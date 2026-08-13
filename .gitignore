@@ -6,7 +6,8 @@ flatscan-*
 *.out
 
 # Generated analysis output
-reports/
+reports/*
+!reports/.gitkeep
 *.full.txt
 *.iocs.txt
 *.report.json
@@ -47,6 +48,9 @@ quarantine/
 *.xlsm
 *.pptm
 
+# Working/audit documents, not part of the project source
+prompt.md
+
 # Local/editor files
 .codex
 .DS_Store
@@ -60,3 +64,11 @@ coverage.out
 
 # Bundled third-party tooling (jadx, sigmac) — large, not part of the project source
 tools/
+
+# Tracked on purpose: the single published reference report pack and its guide.
+# These negations must stay last so the extension rules above do not re-ignore
+# the files inside the pack. See reports/README.md.
+!reports/README.md
+!reports/vidar.exe.pack/
+!reports/vidar.exe.pack/**
+reports/vidar.exe.pack.zip

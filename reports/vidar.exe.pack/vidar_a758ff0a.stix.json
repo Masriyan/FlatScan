@@ -1,0 +1,185 @@
+{
+  "type": "bundle",
+  "id": "bundle--2bc5390d-ae50-d083-a2f2-f8aab632970c",
+  "objects": [
+    {
+      "type": "file",
+      "spec_version": "2.1",
+      "id": "file--2bc5390d-ae50-d083-a2f2-f8aab632970c",
+      "name": "vidar.exe",
+      "size": 4545912,
+      "hashes": {
+        "MD5": "B971E00A0514A9DD90AE4147FD2BE083",
+        "SHA-1": "814B4D722A9BC8EFF65D7833CCF9B47CF486C3F2",
+        "SHA-256": "A758FF0A172386BD3D1EFABA38BC94CD899080EB53039097C1B043C2C8C8BAFC",
+        "SHA-512": "4596403357BAB28164B2172A40D8F8555BD3645FB58C5669B0AA87978DEBAB0757487EC6B7F1C5BB358C3BE9CA1DD29EE26F336572A9DBF180F1E06D3FC96C5F"
+      },
+      "mime_type": "application/octet-stream",
+      "extensions": {
+        "windows-pebinary-ext": {
+          "pe_type": "windows-gui",
+          "machine_hex": "amd64",
+          "imphash": "5292ba861fbedd8ccd6f23c56196bc91"
+        }
+      }
+    },
+    {
+      "type": "malware-analysis",
+      "spec_version": "2.1",
+      "id": "malware-analysis--e819125f-49c9-3c8b-8e87-bcb3b533bba1",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "product": "FlatScan",
+      "version": "0.10.2",
+      "result_name": "Likely malicious",
+      "result": "malicious",
+      "sample_ref": "file--2bc5390d-ae50-d083-a2f2-f8aab632970c",
+      "x_risk_score": 100
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--caa6d910-7d2c-4afb-5f1a-9ed8b17ee5cb",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "URL: https://go.dev/issue/66821):",
+      "pattern": "[url:value = 'https://go.dev/issue/66821):']",
+      "pattern_type": "stix",
+      "valid_from": "2026-08-13T18:18:29Z",
+      "labels": [
+        "malicious-activity"
+      ]
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--944a41bd-e091-2d03-d539-4767ecdb9bff",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "Domain: eq.io",
+      "pattern": "[domain-name:value = 'eq.io']",
+      "pattern_type": "stix",
+      "valid_from": "2026-08-13T18:18:29Z",
+      "labels": [
+        "malicious-activity"
+      ]
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--98f5d584-6147-d7b8-7393-60529a2aebc0",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "Domain: go.dev",
+      "pattern": "[domain-name:value = 'go.dev']",
+      "pattern_type": "stix",
+      "valid_from": "2026-08-13T18:18:29Z",
+      "labels": [
+        "malicious-activity"
+      ]
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--d2713f71-6b9d-4618-4f90-df936e1dc2ef",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "Domain: godebugs.info",
+      "pattern": "[domain-name:value = 'godebugs.info']",
+      "pattern_type": "stix",
+      "valid_from": "2026-08-13T18:18:29Z",
+      "labels": [
+        "malicious-activity"
+      ]
+    },
+    {
+      "type": "indicator",
+      "spec_version": "2.1",
+      "id": "indicator--b337244c-cbe2-de41-c927-5b8865325f54",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "Domain: time.local",
+      "pattern": "[domain-name:value = 'time.local']",
+      "pattern_type": "stix",
+      "valid_from": "2026-08-13T18:18:29Z",
+      "labels": [
+        "malicious-activity"
+      ]
+    },
+    {
+      "type": "malware",
+      "spec_version": "2.1",
+      "id": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "name": "Likely malicious",
+      "description": "The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.",
+      "malware_types": [
+        "remote-access-trojan",
+        "ransomware",
+        "worm"
+      ],
+      "is_family": false
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--3d13aa23-e455-0c7b-75bb-d88bf7ab56ea",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "characterizes",
+      "source_ref": "malware-analysis--e819125f-49c9-3c8b-8e87-bcb3b533bba1",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--e4de6395-a27a-7dec-b7b6-d5035716b1e4",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "indicates",
+      "source_ref": "indicator--caa6d910-7d2c-4afb-5f1a-9ed8b17ee5cb",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--dc6bdc80-8f76-56b4-a419-7a7fc99b687e",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "indicates",
+      "source_ref": "indicator--944a41bd-e091-2d03-d539-4767ecdb9bff",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--11b9ebdf-abc0-dc86-89b9-08e669674859",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "indicates",
+      "source_ref": "indicator--98f5d584-6147-d7b8-7393-60529a2aebc0",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--4d7f8de8-1042-b8af-0af9-9118275480f5",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "indicates",
+      "source_ref": "indicator--d2713f71-6b9d-4618-4f90-df936e1dc2ef",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    },
+    {
+      "type": "relationship",
+      "spec_version": "2.1",
+      "id": "relationship--9b728f09-3234-0c31-4a6d-ca76af50cd75",
+      "created": "2026-08-13T18:18:29Z",
+      "modified": "2026-08-13T18:18:29Z",
+      "relationship_type": "indicates",
+      "source_ref": "indicator--b337244c-cbe2-de41-c927-5b8865325f54",
+      "target_ref": "malware--418211b5-59b2-0023-ac19-c6d2d2a5669d"
+    }
+  ]
+}

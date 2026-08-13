@@ -471,7 +471,7 @@ done
 | YARA rule | `--yara PATH` | Auto-generated hunting rule with structural guards and entropy conditions. |
 | Sigma rule | `--sigma PATH` | Auto-generated SIEM/EDR hunting rule with ATT&CK tags. |
 | STIX bundle | `--stix PATH` | STIX 2.1 JSON bundle with File SCO, Malware SDO, Indicators, Relationships. |
-| Report pack | `--report-pack DIR` | All formats: PDF, HTML, JSON, IOC, YARA, Sigma, STIX, text, executive markdown. |
+| Report pack | `--report-pack DIR` | All ten formats at once: full/summary text, JSON, PDF, HTML, executive markdown, IOC, YARA, Sigma, STIX. [Published example](reports/vidar.exe.pack). |
 | Case DB | `--case ID --case-db PATH` | Local JSONL case record for sample tracking. |
 | CSV | `--output-format csv` | `filename,score,verdict,findings,iocs,sha256` one-liner to stdout. |
 | JSONL | `--output-format jsonl` | Compact single-line JSON to stdout for SIEM streaming. |
@@ -515,7 +515,7 @@ sequenceDiagram
 
 ### Screenshots
 
-The web GUI analyzing a Windows banker trojan sample (`banker.exe` — verdict **SUSPICIOUS, 34/100**):
+The web GUI analyzing a Windows banker trojan sample (`banker.exe` — verdict **SUSPICIOUS, 34/100**). The screenshots below show a different, lower-scoring sample than the [published report pack](#sample-report), which is a `Likely malicious` PE:
 
 <img src="Images/overview-page.png" alt="FlatScan web GUI — overview tab" width="100%"/>
 
@@ -545,158 +545,232 @@ The web GUI analyzing a Windows banker trojan sample (`banker.exe` — verdict *
 
 ## Sample Report
 
-Below is the full **plain-text report** for the same `banker.exe` sample shown in the screenshots above — a `deep` scan produced by FlatScan ([reports/banker.exe.txt](reports/banker.exe.txt)). It demonstrates the verdict, score breakdown, malware profile, findings with ATT&CK mappings, suspicious APIs, IOCs, carved artifacts, similarity hashes, and full PE metadata.
+A complete **report pack** produced by a single `deep` scan is published in this repository under
+[`reports/vidar.exe.pack/`](reports/vidar.exe.pack) — see [`reports/README.md`](reports/README.md) for a
+guided walkthrough of every file. The sample is a Windows PE named `vidar.exe`
+(SHA-256 `a758ff0a…8bafc`), scanned with **FlatScan 0.10.2** through the web GUI with `--carve` and
+`--debug` enabled.
 
 **At a glance:**
 
 | Field | Value |
 | --- | --- |
-| Verdict | **Suspicious (34/100)** |
-| Score breakdown | `Persistence:20  Evasion:10  Configuration:4` |
-| File type | PE executable (amd64, windows-console) · 332.5 KiB |
-| Entropy | 5.73 / 8.00 — normal |
-| Likely type | Persistent Windows malware |
-| Top finding | `[High] Windows persistence indicator` — ATT&CK T1547.001 |
-| Carved artifacts | 2 gzip blobs · 20 embedded compressed streams |
-| SHA-256 | `67e55b73e07b3cb11d3f5bc1490cb585fb185c0267a7827cf801c9f6bb3abe7e` |
+| Verdict | **Likely malicious (100/100)** |
+| Score breakdown | `Chain:166  Cryptominer:26  Wiper:26  Packing:18  Behavior:12  Persistence:12  IOC:7  Configuration:4  Obfuscation:4  PE Posture:3` |
+| File type | PE executable (amd64, windows-gui) · 4.3 MiB |
+| Entropy | 6.17 / 8.00 — normal (with 25 high-entropy regions at ≥7.77) |
+| Likely type | AsyncRAT · FormBook/XLoader · Generic ransomware · XWorm |
+| Top finding | `[Critical] Chain: Classic DLL injection chain` — ATT&CK T1055 (confidence 85) |
+| Findings · IOCs · TTPs | 19 findings · 10 IOCs · 10 MITRE TTPs |
+| Carved artifacts | 9 gzip blobs · 36 crypto/config artifacts |
+| PE posture | Self-signed certificate (`CN=blobalkas.tv`) · missing CFG · 2.4 KiB overlay |
+| Recovered config | AsyncRAT — 5 C2 entries, 1 campaign ID |
+| Scan duration | 1.31 s over 4,545,912 bytes / 15,759 strings |
+| SHA-256 | `a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc` |
+
+### What the pack contains
+
+`--report-pack <dir>` writes all ten artifacts below in one command. Every file is named
+`<sample>_<sha256[:8]>.<kind>`, so packs from different samples never collide in the same directory.
+
+| File | Format | Audience |
+| --- | --- | --- |
+| [`vidar_a758ff0a.full.txt`](reports/vidar.exe.pack/vidar_a758ff0a.full.txt) | Full text report | Analyst — every section, untruncated |
+| [`vidar_a758ff0a.summary.txt`](reports/vidar.exe.pack/vidar_a758ff0a.summary.txt) | Summary text report | Triage — top findings and IOCs only |
+| [`vidar_a758ff0a.report.json`](reports/vidar.exe.pack/vidar_a758ff0a.report.json) | JSON | Automation, SOAR, pipelines |
+| [`vidar_a758ff0a.ciso.pdf`](reports/vidar.exe.pack/vidar_a758ff0a.ciso.pdf) | PDF | Management — executive summary, MITRE matrix, risk bar |
+| [`vidar_a758ff0a.analyst.html`](reports/vidar.exe.pack/vidar_a758ff0a.analyst.html) | HTML | Analyst — searchable dark report with MITRE heatmap |
+| [`vidar_a758ff0a.executive.md`](reports/vidar.exe.pack/vidar_a758ff0a.executive.md) | Markdown | Ticket / incident channel paste |
+| [`vidar_a758ff0a.iocs.txt`](reports/vidar.exe.pack/vidar_a758ff0a.iocs.txt) | IOC text | Blocklist ingestion |
+| [`vidar_a758ff0a.yar`](reports/vidar.exe.pack/vidar_a758ff0a.yar) | YARA | Corpus hunting |
+| [`vidar_a758ff0a.sigma.yml`](reports/vidar.exe.pack/vidar_a758ff0a.sigma.yml) | Sigma | SIEM / EDR detection |
+| [`vidar_a758ff0a.stix.json`](reports/vidar.exe.pack/vidar_a758ff0a.stix.json) | STIX 2.1 | MISP / OpenCTI / TAXII sharing |
+
+Reproduce it with:
+
+```bash
+./flatscan -m deep -f vidar.exe --report-pack reports/vidar.exe.pack --carve --debug
+```
 
 <details>
-<summary><strong>📄 Click to expand the full text report (banker.exe.txt)</strong></summary>
+<summary><strong>📄 Click to expand the text report (abridged)</strong></summary>
 
 ```text
-FlatScan 0.5.0 report
-Target: /tmp/flatscan_web_18b67081d06bd58c-8c6fba26_3793890109/banker.exe
+FlatScan 0.10.2 report
+Target: /tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe
 Mode: deep
-Verdict: Suspicious (34/100)
-Score breakdown: [Persistence:20 Evasion:10 Configuration:4]
+Verdict: Likely malicious (100/100)
+Score breakdown: [Chain:166 Cryptominer:26 Wiper:26 Packing:18 Behavior:12 Persistence:12 IOC:7 Configuration:4 Obfuscation:4 PE Posture:3]
 File type: PE executable
 MIME hint: application/octet-stream
-Size: 332.5 KiB (340480 bytes)
-Analyzed bytes: 332.5 KiB
-Entropy: 5.73/8.00 - normal
-Strings: 2095
-Duration: 348.588417ms
+Size: 4.3 MiB (4545912 bytes)
+Analyzed bytes: 4.3 MiB
+Entropy: 6.17/8.00 - normal
+Strings: 15759
+Duration: 1.314302253s
 
 Malware profile:
-- Classification: Suspicious
-- Confidence: Medium (34/100)
-- Likely type: Persistent Windows malware
-- Capabilities: Embedded artifact carrier, Sandbox and VM awareness, Static configuration artifacts, Windows startup persistence
-- MITRE TTPs mapped: 2
-- Crypto indicators: 1
-- Assessment: The sample contains meaningful suspicious static indicators. The findings should be correlated with endpoint, network, and sandbox telemetry before final disposition.
+- Classification: Likely malicious
+- Confidence: High (100/100)
+- Likely type: AsyncRAT, FormBook/XLoader, Generic ransomware, XWorm
+- Capabilities: Cryptographic secret handling, Embedded artifact carrier, Static configuration artifacts, Unix/Linux persistence artifact references
+- MITRE TTPs mapped: 10
+- Crypto indicators: 2
+- Assessment: The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.
+- Expected behavior (validate in sandbox/EDR):
+    • Accesses stored credentials/browser secrets (watch for reads of LSASS, Login Data, or Local State)
+    • Establishes persistence (watch for Run-key writes, scheduled tasks, or service creation)
+    • Captures keystrokes (watch for low-level keyboard hooks / GetAsyncKeyState loops)
+    • Consumes CPU/GPU for cryptomining (watch for stratum connections and sustained resource use)
 
 Hashes:
-- MD5: 34949ecd38a1d532fa22cb88fa55be98
-- SHA1: a4eb77b3d8f3cc506629294f9e8e00b078192dfa
-- SHA256: 67e55b73e07b3cb11d3f5bc1490cb585fb185c0267a7827cf801c9f6bb3abe7e
-- SHA512: 0e49ccca3b65e2a45f91c1a3c4313c4b95ac31966b8561d2aeaf97515ba44f140b476852a47db34a432914c0a4d14f9b26fef57a98566ad2d197a9caa53d9cec
-- PE import hash: e303152d27f8be77fa72264ebc0c1ef4
+- MD5: b971e00a0514a9dd90ae4147fd2be083
+- SHA1: 814b4d722a9bc8eff65d7833ccf9b47cf486c3f2
+- SHA256: a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc
+- SHA512: 4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487ec6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f
+- PE import hash: 5292ba861fbedd8ccd6f23c56196bc91
 
-Findings: 4
-- [High] Persistence: Windows persistence indicator (Run keys, service creation, scheduled task, or startup folder strings are present) score=20
-  ATT&CK: Persistence / Registry Run Keys / Startup Folder (T1547.001)
-  Recommendation: Inspect Run keys, services, scheduled tasks, and startup directories on systems where this file executed.
-- [Medium] Evasion: Anti-debugging reference (debugger detection strings or APIs are present) score=10
-- [Low] Configuration: Static configuration artifacts extracted (20 likely configuration or secret-handling artifacts) score=4
-  ATT&CK: Discovery / Data from Local System
-  Recommendation: Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.
-- [Info] Classifier: Malware family hypothesis (Packed or bundled payload (Medium))
+Findings: 19
+- [Critical] Chain: Classic DLL injection chain (behavioral API chain: process injection + memory allocation + network) score=40 confidence=85
+  ATT&CK: Defense Evasion / Process Injection (T1055)
+  Recommendation: Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.
+- [Critical] Chain: Process hollowing chain (behavioral API chain: process injection + execution + process access) score=38 confidence=85
+  ATT&CK: Defense Evasion / Process Hollowing (T1055.012)
+  Recommendation: Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.
+- [High] Chain: Keylogger with exfiltration (behavioral API chain: process injection + network) score=30 confidence=70
+  ATT&CK: Collection / Input Capture (T1056)
+- [High] Chain: Named pipe C2 with code injection (behavioral API chain: named pipe C2 + process injection) score=30 confidence=70
+  ATT&CK: Command and Control / Non-Application Layer Protocol (T1095)
+- [High] Chain: Credential theft + webhook exfiltration (behavioral API chain: process access + network) score=28 confidence=70
+  ATT&CK: Credential Access / Credentials from Web Browsers (T1555.003)
+- [High] Wiper: Low-level disk write / file deletion API chain (DeviceIoControl and file-deletion APIs are combined) score=26 confidence=70
+  ATT&CK: Impact / Data Destruction (T1485)
+- [High] Cryptominer: Mining pool connection strings (stratum protocol, pool, or miner strings are present) score=26 confidence=70
+  ATT&CK: Impact / Resource Hijacking (T1496)
+- [Medium] Behavior: Dynamic API resolution with executable memory (LoadLibrary/GetProcAddress and memory permission APIs are present) score=12 confidence=55
+- [Medium] Persistence: Linux persistence indicator (cron, systemd, SSH, preload, or shell profile paths are present) score=12 confidence=55
+- [Medium] Packing: Multiple high-entropy regions (25 high-entropy regions found) score=10 confidence=55
+- [Medium] Packing: Large high-entropy blob detected (4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload) score=8 confidence=55 offset=0x422000
+  ATT&CK: Defense Evasion / Obfuscated Files or Information (T1027)
+- [Low] Obfuscation: Encoded data decoded successfully (1 base64/hex/URL encoded artifacts decoded) score=4 confidence=40
+- [Low] IOC: High IOC density (10 total IOCs extracted) score=4 confidence=40
+- [Low] Configuration: Static configuration artifacts extracted (36 likely configuration or secret-handling artifacts) score=4 confidence=40
+- [Low] IOC: Embedded hash-like indicators (multiple MD5/SHA1/SHA256-looking values were extracted) score=3 confidence=40
+- [Low] PE Posture: PE has a self-signed certificate (CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US) score=3 confidence=40
+- [Info] PE Posture: PE missing some exploit mitigations (missing: CFG) confidence=30
+- [Info] Classifier: Malware family hypothesis (Generic ransomware (High)) confidence=30
+- [Info] Configuration: Malware configuration recovered (AsyncRAT configuration extracted: 5 C2, 1 campaign-id) confidence=80 evidence=6
+  ATT&CK: Command and Control / Application Layer Protocol (T1071)
 
-Suspicious functions/APIs: 10
-- [Medium] IsDebuggerPresent (anti-debugging, strings/imports)
-- [Medium] QueryPerformanceCounter (timing evasion, strings/imports)
-- [Low] LoadLibrary (dynamic loading, strings/imports)
-- [Low] GetProcAddress (dynamic loading, strings/imports)
+Suspicious functions/APIs: 20
+- [High] SetThreadContext (process injection, strings/imports)
+- [Medium] VirtualAlloc (memory allocation, strings/imports)
+- [Medium] OpenProcess (process access, strings/imports)
+- [Medium] GetThreadContext (process access, strings/imports)
+- [Medium] ResumeThread (process injection, strings/imports)
+- [Medium] GetVolumeInformation (sandbox fingerprinting, strings/imports)
+- [Medium] CreateNamedPipe (named pipe C2, strings/imports)
+- [Medium] RegSetValue (persistence, strings/imports)
 - [Medium] CreateProcess (execution, strings/imports)
-- [Medium] CreateProcess (execution, pe imports)
-- [Low] GetProcAddress (dynamic loading, pe imports)
-- [Medium] IsDebuggerPresent (anti-debugging, pe imports)
-- [Low] LoadLibrary (dynamic loading, pe imports)
-- [Medium] QueryPerformanceCounter (timing evasion, pe imports)
+- [Medium] ptrace (linux anti-debug/process access, strings/imports)
+- ... (10 more; the full report lists all 20 with their evidence source)
 
-IOCs: 4 total
+IOCs: 10 total
+- URLs (1), Domains (4), MD5 (2), SHA256 (3) — see vidar_a758ff0a.iocs.txt
 
-Windows paths:
-- C:\Users\Eu\Desktop\ORGANIZAR\Rats\Meus\KL2021\PlusPlus\xpl-uac-(x64)\byeintegrity8-uac-master\x64\Release\PcaPayload.pdb
-- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\eh\std_exception.cpp
-- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\internal\per_thread_data.cpp
-- D:\a\_work\1\s\src\vctools\crt\vcruntime\src\internal\winapi_downlevel.cpp
+Family classifier: 5 hypotheses
+- [High] Generic ransomware (ransomware) score=90 evidence=ransomware strings or findings
+- [Medium-High] AsyncRAT (rat) score=89 evidence=named-family fingerprint; ops
+- [Medium-High] FormBook/XLoader (stealer) score=89 evidence=named-family fingerprint; ops
+- [Medium-High] XWorm (rat) score=89 evidence=named-family fingerprint; ops
+- [Medium] Packed or bundled payload (dropper) score=55 evidence=9 carved artifacts
 
-Family classifier: 1 hypotheses
-- [Medium] Packed or bundled payload (dropper) score=55 evidence=2 carved artifacts
-
-Crypto/config artifacts: 20
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x6012 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xbfe2 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xde06 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0xee9a (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x112d0 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x11750 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x11bd0 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x12050 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x124d0 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x12950 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x23694 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x25e47 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x30470 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: gzip at 0x316f4 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x3313e (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x33146 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x331a1 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x331a9 (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: gzip at 0x3589b (compressed stream magic found in file body)
-- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x362d8 (compressed stream magic found in file body)
-
-Carved artifacts: 2
-- Gzip compressed data offset=0x316f4 length=16807 sha256=6ecb8a31a426df4aacc9dba966f6343346bf1c74037ffa55061fc92f8173a9bf entropy=5.48 preview=H9D$P
-- Gzip compressed data offset=0x3589b length=121189 sha256=01609509698b8714ec873256b3759c277b1f3e35b6d8f5437aa0c4970e8a96b3 entropy=5.30 preview=L$8H+
+Carved artifacts: 9
+- Gzip compressed data offset=0x64186 length=84579 sha256=7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c entropy=6.16
+- Gzip compressed data offset=0x8cf8c length=1980002 sha256=1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab entropy=4.21
+- Gzip compressed data offset=0x2705ee length=159262 sha256=f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c entropy=7.98
+- ... (6 more)
 
 Similarity hashes:
-- FlatHash:          FLS1:4096:769e3884a5ef5dccc354e83f99eb696bc709da156be0c2dbba3f7d49b72f7e18d3805eac9d1fdc9870e4c71db65a4c255f475f0e2203307aeb4cedb34a9cfc4f4f79bd3c2291afce4ac1aa70fa10caa9934265326a403320968c8ea7b390c6e2a89024cfccea1922b0f5242c67ad8b23f7612bad8b69db828ce5973d4e628db3a0a91633e35aa496e252e8cf6c700238049014a806931e125e9fd3f9b0535aa2444fd5308296f2ff49d20de055c7b4c4ad740925e1da0e71b606253008b82dcabd5b7e458007720a506c5d57c997976e3a5e55eb283ed4d3b4de4bae63af85026b533bc0d59ddbe8468bdaeecff3860986067927b8a81e0ccb21c045f527a096358331103fcfaf31089106129e959cc7f4f51e72e6e5164ea28daa4c03b8fd1118008036133a21d6a0c9c339ef3e33ea07b7f92694cab3e13107f1735b3a85f6da9e8768c3e3848475bf5cb99299a865
-- Byte histogram:    b0df31abc3e464958ae3796fea251f69ef20c070127e56c532fe2c51a1549c78
-- String set:        178261f2b131f2d3bd863d64d60236bdd234e928cdd725e5ce30d8434dbd6838
+- FlatHash:          FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f9…
+- Byte histogram:    580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec
+- String set:        57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a
+- Import hash:       2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6
+- Section hash:      9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff
 
 Analysis plugins: 6
 - similarity status=complete summary=computed FlatHash and structural similarity hashes
-- safe-carver status=complete summary=2 embedded artifacts reported
-- crypto-config-extractor status=complete summary=20 config artifacts
-- family-classifier status=complete summary=1 family hypotheses
-- high-entropy-blob-detector status=complete summary=ran in 1ms
-- suspicious-import-combinator status=complete summary=ran in 0s
+- safe-carver status=complete summary=9 embedded artifacts reported
+- crypto-config-extractor status=complete summary=36 config artifacts
+- family-classifier status=complete summary=5 family hypotheses
+- high-entropy-blob-detector status=complete summary=1 findings added
+- suspicious-import-combinator status=complete summary=0 findings added
+
+Malware configuration:
+- Family: AsyncRAT
+- C2 (5): eq.io, go.dev, godebugs.info
+- Campaign IDs (1): -8640-nj1i2g1z-0phd-
+
+High entropy regions: 25
+- offset=0x268000 length=65536 entropy=7.93
+- offset=0x270000 length=65536 entropy=7.98
+- ... (23 more, all ≥7.77)
 
 PE details:
 - Machine: amd64
-- Timestamp: 2026-05-15T01:34:00Z
-- Subsystem: windows-console
-- Image base: 0x180000000
-- Entry point: 0x1c30
+- Timestamp: 1970-01-01T00:00:00Z
+- Subsystem: windows-gui
+- Image base: 0x140000000
+- Entry point: 0x74dc0
 - Managed .NET runtime: false
-- Certificate table present: false
+- Certificate table present: true
+- Signature: signature present; 1 certificate(s) recovered
+- Signer subject(s): CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US
+- Self-signed: true
+- Security mitigations: ASLR, DEP, HighEntropyVA, TerminalServerAware
+- Missing mitigations: CFG
+- Image characteristics: EXECUTABLE_IMAGE, LARGE_ADDRESS_AWARE
+- Overlay: offset=0x455400 size=2.4 KiB
 
 Sections:
-- .text raw=0x400 size=243200 entropy=5.69 flags=X
-- .rdata raw=0x3ba00 size=77824 entropy=4.57 flags=-
-- .data raw=0x4ea00 size=3072 entropy=2.03 flags=W
-- .pdata raw=0x4f600 size=12288 entropy=5.38 flags=-
-- _RDATA raw=0x52600 size=512 entropy=1.95 flags=-
-- .rsrc raw=0x52800 size=512 entropy=4.72 flags=-
-- .reloc raw=0x52a00 size=2048 entropy=4.96 flags=-
+- .text   raw=0x600    size=1355264 entropy=6.21 flags=X
+- .rdata  raw=0x14b400 size=2945536 entropy=5.84 flags=-
+- .data   raw=0x41a600 size=72192   entropy=4.77 flags=W
+- .pdata  raw=0x42c000 size=22016   entropy=5.31 flags=-
+- .xdata  raw=0x431600 size=512     entropy=1.77 flags=-
+- .idata  raw=0x431800 size=1536    entropy=3.98 flags=W
+- .reloc  raw=0x431e00 size=16896   entropy=5.43 flags=-
+- .symtab raw=0x436000 size=128000  entropy=5.12 flags=-
 
-PE imports: 87 stored
-- CloseHandle:KERNEL32.dll
-- CoTaskMemFree:ole32.dll
-- CreateFileW:KERNEL32.dll
-- CreateProcessW:KERNEL32.dll
-- ... (83 more; see reports/banker.exe.txt for the full list)
+PE imports: 46 stored
+- AddVectoredContinueHandler:kernel32.dll
+- AddVectoredExceptionHandler:kernel32.dll
+- SetThreadContext:kernel32.dll
+- VirtualAlloc:kernel32.dll
+- ... (42 more; the report lists all 46 imports in full)
 
-Suspicious strings:
-- IsDebuggerPresent
+Code analysis (disassembly):
+- Arch: x86-64
+- Entry offset: 0x743c0
+- Instructions decoded: 67104 (decode errors: 375)
+- Indirect calls/jumps: 129 / 7
+- Entry-point disassembly:
+    JMP .-14629
+    INT 0x3
+    ...
 ```
 
 </details>
 
-> The sample report above was generated with FlatScan 0.5.0. The engine and output format are backward-compatible in later versions; v0.7.0 adds PE Header Intelligence (mitigations, Rich hash, TLS callbacks, Authenticode, entry-point), v0.7.1 adds the LNK/script/ELF-posture detections, and v0.8.0 adds the instruction-level **Code analysis (disassembly)** section. The full untruncated file (including all 87 PE imports) lives at [`reports/banker.exe.txt`](reports/banker.exe.txt).
+> **Reading the result critically.** This pack is published as a *format* reference, not as ground
+> truth about the sample. The scan is purely static, and several artifacts in it are exactly the
+> false positives the [Limitations](#limitations) section warns about: the sample is a Go-compiled
+> binary, so `go.dev` and `godebugs.info` are toolchain strings rather than C2, the `dddd…`/`0000…`
+> hashes are runtime test vectors, and the `crypto/internal/fips140/aes.*` symbols drive the
+> "Cryptographic secret handling" capability. FlatScan reports what is statically present and scores
+> it; **an analyst still confirms or discards each indicator** before it reaches a blocklist or a
+> detection rule. Run `./flatscan -m deep -f <sample> --report-pack <dir>` to produce the same ten
+> artifacts for a sample of your own.
 
 ---
 
@@ -781,17 +855,19 @@ graph TD
     M --> N[Compute ScoreBreakdown per category]
 ```
 
-### Score Breakdown (0.5.0)
+### Score Breakdown
 
-Every scan shows a compact per-category breakdown in the report header and in JSON output:
+Every scan shows a compact per-category breakdown in the report header and in JSON output. This is
+the breakdown from the [sample report](#sample-report) above:
 
 ```
-Score breakdown: [Credential Access:44 Evasion:31 Exfiltration:28 Packing:24 Persistence:20]
+Score breakdown: [Chain:166 Cryptominer:26 Wiper:26 Packing:18 Behavior:12 Persistence:12 IOC:7 Configuration:4 Obfuscation:4 PE Posture:3]
 ```
 
-Available in `ScanResult.score_breakdown` (JSON) for programmatic use.
+Available in `ScanResult.score_breakdown` (JSON) for programmatic use. Category totals are raw
+per-category sums; the final risk score is capped at 100.
 
-### Exit Codes (0.5.0)
+### Exit Codes
 
 | Code | Condition | Use |
 |------|-----------|-----|
@@ -1047,6 +1123,7 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 | [USECASE.md](USECASE.md) | Use cases, deployment scenarios, and recommended workflows |
 | [contributing.md](contributing.md) | Code style, testing, adding detections, PR guidelines |
 | [security.md](security.md) | Security policy, safe handling, output safety, dependency policy |
+| [reports/README.md](reports/README.md) | Walkthrough of the published reference report pack — every output format, and how to read it critically |
 | [changelog.md](changelog.md) | Version history with all changes |
 | [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.10.2) and the 5-year direction |
 | [flatscan_qa_report.md](flatscan_qa_report.md) | Full QA / hardening audit (0.10.0, historical record) |

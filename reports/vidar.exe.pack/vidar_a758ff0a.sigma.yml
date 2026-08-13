@@ -1,0 +1,64 @@
+title: "FlatScan Hunt - vidar.exe"
+id: "a758ff0a-1723-86bd-3d1e-faba38bc94cd"
+status: experimental
+description: "Auto-generated hunt rule from FlatScan static analysis. Validate before production deployment."
+references:
+  - https://github.com/Masriyan/FlatScan
+author: FlatScan by sudo3rs
+date: 2026-08-13
+tags:
+  - flatscan
+  - flatscan.risk.critical
+  - attack.t1056
+  - attack.t1071
+  - attack.t1095
+  - attack.t1555.003
+  - attack.t1027
+  - attack.t1055.012
+  - attack.t1055
+  - attack.discovery
+  - attack.t1485
+  - attack.t1496
+logsource:
+  product: generic
+  category: process_creation
+detection:
+  selection_hash:
+    Hashes|contains: "a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc"
+  selection_filename:
+    Image|endswith: "vidar.exe"
+  selection_network_iocs:
+    CommandLine|contains:
+      - "https://go.dev/issue/66821):"
+      - "eq.io"
+      - "go.dev"
+      - "godebugs.info"
+      - "time.local"
+  selection_static_strings:
+    CommandLine|contains:
+      - "Decrypt"
+      - "Encrypt"
+      - "lock: lock countbad system huge page sizearena already initialized to unused region of span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing typ..."
+      - "crypto/internal/fips140/aes.encryptBlock"
+      - "crypto/internal/fips140/aes.decryptBlock"
+      - "crypto/internal/fips140/aes.encryptBlockGeneric"
+      - "crypto/internal/fips140/aes.decryptBlockGeneric"
+      - "crypto/internal/fips140/aes.(*CBCEncrypter).CryptBlocks"
+      - "crypto/internal/fips140/aes.(*CBCDecrypter).CryptBlocks"
+      - "crypto/internal/fips140/aes.NewCBCEncrypter"
+      - "crypto/internal/fips140/aes.NewCBCDecrypter"
+      - "crypto/internal/fips140/aes.encryptBlockAsm"
+      - "crypto/internal/fips140/aes.decryptBlockAsm"
+      - "crypto/internal/fips140/aes.EncryptBlockInternal"
+      - "VirtualAlloc"
+      - "crypto/internal/fips140/aes.encryptBlockAsm.abi0"
+      - "crypto/internal/fips140/aes.decryptBlockAsm.abi0"
+  condition: 1 of selection_*
+fields:
+  - CommandLine
+  - Hashes
+  - Image
+falsepositives:
+  - "Legitimate software containing the same static strings or IOCs"
+  - "Benign test samples from malware labs or training environments"
+level: critical

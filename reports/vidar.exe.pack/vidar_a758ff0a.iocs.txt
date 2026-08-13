@@ -1,0 +1,23 @@
+# FlatScan IOC Export
+target=/tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe
+sha256=a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc
+verdict=Likely malicious
+risk_score=100
+
+[urls]
+https://go.dev/issue/66821):
+
+[domains]
+eq.io
+go.dev
+godebugs.info
+time.local
+
+[md5]
+dddddddddddddddddddddddddddddddd
+eddddddddddddddddddddddddddddddd
+
+[sha256]
+0000000000000000000000000000000000000000000000000000000000000000
+5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae
+aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc

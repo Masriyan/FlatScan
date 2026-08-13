@@ -65,9 +65,23 @@ A STIX 2.1 JSON bundle of the extracted indicators for sharing via threat-intel 
 
 A flat, deduplicated text list of extracted IOCs (URLs, domains, IPs, hashes, etc.) for quick blocklist ingestion or grepping.
 
-## Zipped Report-Pack (`--report-pack <dir>`)
+## Report Pack (`--report-pack <dir>`)
 
-A one-shot bundle that packages the JSON, PDF, HTML, IOC export, and generated YARA/Sigma into a single zipped directory. Use it when you want a complete, portable evidence package from one command — ideal for case handoff and archival.
+A one-shot bundle that writes **ten** artifacts into one directory: full text, summary text, JSON, PDF, HTML, executive Markdown, IOC export, YARA, Sigma, and STIX 2.1. Use it when you want a complete, portable evidence package from one command — ideal for case handoff and archival.
+
+Files are named `<sample>_<sha256[:8]>.<kind>`, so packs from different samples can share one output directory without colliding:
+
+```
+vidar_a758ff0a.full.txt      vidar_a758ff0a.iocs.txt
+vidar_a758ff0a.summary.txt   vidar_a758ff0a.yar
+vidar_a758ff0a.report.json   vidar_a758ff0a.sigma.yml
+vidar_a758ff0a.ciso.pdf      vidar_a758ff0a.stix.json
+vidar_a758ff0a.analyst.html  vidar_a758ff0a.executive.md
+```
+
+`--report-pack` writes a plain directory; the web GUI serves the same ten files **zipped** from `GET /api/download/{id}/pack`.
+
+A complete pack from a real `deep` scan is published in the repository under `reports/vidar.exe.pack/`, with a walkthrough in `reports/README.md`.
 
 ## Choosing an Output
 

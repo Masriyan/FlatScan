@@ -1,0 +1,12 @@
+This directory is the default output location used by the examples in README.md,
+usage.md, USECASE.md and contributing.md (e.g. --report reports/scan.txt).
+
+FlatScan does not create parent directories, so those examples fail on a fresh
+clone if this directory is missing. It is kept in the repository for that reason.
+
+Two things here are tracked on purpose and documented in reports/README.md: that
+guide itself, and the single published reference report pack in vidar.exe.pack/,
+which exists so the output formats can be inspected without building the tool.
+
+Everything else is ignored by .gitignore. Never commit your own scan output,
+analysed samples, or anything derived from them.

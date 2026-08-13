@@ -336,7 +336,9 @@ graph TD
 │   └── android-risk.rule
 ├── rules/                      # Example rule packs
 │   └── starter.rule
-├── reports/                    # Generated report output
+├── reports/                    # Report output dir (gitignored) + published reference pack
+│   ├── README.md               # Walkthrough of the reference pack
+│   └── vidar.exe.pack/         # One full deep-scan pack: all 10 output formats
 ├── Docs/                       # Research / analysis notes
 ├── Images/                     # Banner / screenshots
 ├── tools/                      # Optional external tools (jadx, sigmac)

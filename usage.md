@@ -406,7 +406,7 @@ graph LR
 | YARA rule | `--yara` | Auto-generated hunting rule with structural guards |
 | Sigma rule | `--sigma` | SIEM/EDR hunting rule with ATT&CK tags |
 | STIX 2.1 | `--stix` | Threat intel bundle: File SCO, Malware SDO, Indicators, Relationships |
-| Report Pack | `--report-pack` | All of the above in one directory |
+| Report Pack | `--report-pack` | All of the above in one directory, named `<sample>_<sha256[:8]>.<kind>` — see the published example in [`reports/`](reports/README.md) |
 | Batch JSON | `--batch-json` | JSON summary of batch scan results (written after `--dir` scan) |
 | Case DB | `--case` | JSONL append-only case record |
 

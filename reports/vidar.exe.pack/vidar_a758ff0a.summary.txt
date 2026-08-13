@@ -1,0 +1,78 @@
+FlatScan 0.10.2 report
+Target: /tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe
+Mode: deep
+Verdict: Likely malicious (100/100)
+Score breakdown: [Chain:166 Cryptominer:26 Wiper:26 Packing:18 Behavior:12 Persistence:12 IOC:7 Configuration:4 Obfuscation:4 PE Posture:3]
+File type: PE executable
+MIME hint: application/octet-stream
+Size: 4.3 MiB (4545912 bytes)
+Analyzed bytes: 4.3 MiB
+Entropy: 6.17/8.00 - normal
+Strings: 15759
+Duration: 1.314302253s
+
+Malware profile:
+- Classification: Likely malicious
+- Confidence: High (100/100)
+- Likely type: AsyncRAT, FormBook/XLoader, Generic ransomware, XWorm
+- Capabilities: Cryptographic secret handling, Embedded artifact carrier, Static configuration artifacts, Unix/Linux persistence artifact references
+- MITRE TTPs mapped: 10
+- Crypto indicators: 2
+- Assessment: The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.
+- Expected behavior (validate in sandbox/EDR):
+    • Accesses stored credentials/browser secrets (watch for reads of LSASS, Login Data, or Local State)
+    • Establishes persistence (watch for Run-key writes, scheduled tasks, or service creation)
+    • Captures keystrokes (watch for low-level keyboard hooks / GetAsyncKeyState loops)
+    • Consumes CPU/GPU for cryptomining (watch for stratum connections and sustained resource use)
+
+Findings: 19
+- [Critical] Chain: Classic DLL injection chain (behavioral API chain: process injection + memory allocation + network) score=40 confidence=85
+  ATT&CK: Defense Evasion / Process Injection (T1055)
+  Recommendation: Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.
+- [Critical] Chain: Process hollowing chain (behavioral API chain: process injection + execution + process access) score=38 confidence=85
+  ATT&CK: Defense Evasion / Process Hollowing (T1055.012)
+  Recommendation: Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.
+- [High] Chain: Keylogger with exfiltration (behavioral API chain: process injection + network) score=30 confidence=70
+  ATT&CK: Collection / Input Capture (T1056)
+  Recommendation: Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.
+- [High] Chain: Named pipe C2 with code injection (behavioral API chain: named pipe C2 + process injection) score=30 confidence=70
+  ATT&CK: Command and Control / Non-Application Layer Protocol (T1095)
+  Recommendation: Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.
+- [High] Chain: Credential theft + webhook exfiltration (behavioral API chain: process access + network) score=28 confidence=70
+  ATT&CK: Credential Access / Credentials from Web Browsers (T1555.003)
+  Recommendation: Revoke captured credentials and block webhook endpoints found in IOCs.
+- [High] Wiper: Low-level disk write / file deletion API chain (DeviceIoControl and file-deletion APIs are combined) score=26 confidence=70
+  ATT&CK: Impact / Data Destruction (T1485)
+  Recommendation: Check for disk sector writes or mass file deletions on affected hosts.
+- [High] Cryptominer: Mining pool connection strings (stratum protocol, pool, or miner strings are present) score=26 confidence=70
+  ATT&CK: Impact / Resource Hijacking (T1496)
+  Recommendation: Block outbound stratum protocol connections and scan for miner process artifacts.
+- [Medium] Behavior: Dynamic API resolution with executable memory (LoadLibrary/GetProcAddress and memory permission APIs are present) score=12 confidence=55
+- [Medium] Persistence: Linux persistence indicator (cron, systemd, SSH, preload, or shell profile paths are present) score=12 confidence=55
+- [Medium] Packing: Multiple high-entropy regions (25 high-entropy regions found) score=10 confidence=55
+- [Medium] Packing: Large high-entropy blob detected (4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload) score=8 confidence=55 offset=0x422000
+  ATT&CK: Defense Evasion / Obfuscated Files or Information (T1027)
+  Recommendation: Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.
+- [Low] Obfuscation: Encoded data decoded successfully (1 base64/hex/URL encoded artifacts decoded) score=4 confidence=40
+- ... 7 more findings omitted in summary mode
+
+IOCs: 10 total
+- URLs (1): https://go.dev/issue/66821):
+- Domains (4): eq.io, go.dev, godebugs.info
+- Hashes (5): dddddddddddddddddddddddddddddddd, eddddddddddddddddddddddddddddddd, 0000000000000000000000000000000000000000000000000000000000000000
+
+Suspicious strings:
+- Decrypt
+- Encrypt
+- lock: lock countbad system huge page sizearena already initialized to unused region of span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing typ...
+- crypto/internal/fips140/aes.encryptBlock
+- crypto/internal/fips140/aes.decryptBlock
+- crypto/internal/fips140/aes.encryptBlockGeneric
+- crypto/internal/fips140/aes.decryptBlockGeneric
+- crypto/internal/fips140/aes.(*CBCEncrypter).CryptBlocks
+- crypto/internal/fips140/aes.(*CBCDecrypter).CryptBlocks
+- crypto/internal/fips140/aes.NewCBCEncrypter
+- ... 7 more omitted
+
+Decoded artifacts:
+- hex from ascii string at offset 2499462: DDDDDDDD

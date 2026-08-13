@@ -1,0 +1,1692 @@
+<!doctype html><html data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FlatScan Malware Analysis Report — vidar.exe</title><style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1c2128;--border:#30363d;
+  --ink:#e6edf3;--muted:#7d8590;--accent:#f78166;
+  --red:#f85149;--orange:#d18616;--amber:#e3b341;--green:#3fb950;--blue:#58a6ff;--purple:#bc8cff;
+  --nav-h:52px;--radius:8px;
+  --crit:#f85149;--high:#d18616;--med:#e3b341;--low:#58a6ff;--info:#7d8590;
+}
+[data-theme="light"]{
+  --bg:#f6f8fa;--surface:#ffffff;--surface2:#f0f2f5;--border:#d0d7de;
+  --ink:#1f2328;--muted:#636c76;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;padding-top:var(--nav-h)}
+a{color:var(--blue);text-decoration:none}
+code,pre{font-family:"JetBrains Mono","Fira Code",ui-monospace,Consolas,monospace;font-size:12px}
+
+/* Nav */
+nav{position:fixed;top:0;left:0;right:0;height:var(--nav-h);background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;z-index:100}
+.nav-brand{font-weight:700;font-size:15px;color:var(--ink);white-space:nowrap}
+.nav-file{color:var(--muted);font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.nav-links{display:flex;gap:12px;white-space:nowrap}
+.nav-links a{color:var(--muted);font-size:12px;padding:4px 0;border-bottom:2px solid transparent}
+.nav-links a:hover{color:var(--ink);border-color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.theme-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:4px 10px;cursor:pointer;font-size:12px}
+.theme-btn:hover{color:var(--ink)}
+
+/* Layout */
+main{max-width:1200px;margin:0 auto;padding:28px 20px 64px}
+section{margin-bottom:32px}
+.section-title{font-size:16px;font-weight:700;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.section-title .cnt{font-size:12px;font-weight:400;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:1px 8px}
+
+/* Cards & Grid */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.metric{border-top:3px solid var(--border)}
+.metric.crit{border-color:var(--crit)}
+.metric.high{border-color:var(--high)}
+.metric.med{border-color:var(--amber)}
+.metric.low{border-color:var(--low)}
+.metric.ok{border-color:var(--green)}
+.metric .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600;margin-bottom:4px}
+.metric .val{font-size:22px;font-weight:700}
+.metric .sub{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Risk gauge */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;margin-bottom:20px}
+.gauge-label{font-size:12px;color:var(--muted);margin-top:6px}
+
+/* Executive assessment */
+.exec-box{background:var(--surface2);border-left:4px solid var(--accent);border-radius:0 var(--radius) var(--radius) 0;padding:14px 16px;line-height:1.6;margin-bottom:20px}
+
+/* Findings */
+.filter-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.filter-btn{border:1px solid var(--border);background:var(--surface2);color:var(--muted);border-radius:20px;padding:4px 12px;cursor:pointer;font-size:12px;transition:all .15s}
+.filter-btn.active,.filter-btn:hover{color:var(--ink);border-color:var(--ink)}
+.filter-btn.sev-Critical.active{background:var(--crit);border-color:var(--crit);color:#fff}
+.filter-btn.sev-High.active{background:var(--high);border-color:var(--high);color:#fff}
+.filter-btn.sev-Medium.active{background:var(--amber);border-color:var(--amber);color:#1f2328}
+.filter-btn.sev-Low.active{background:var(--low);border-color:var(--low);color:#fff}
+
+.finding-card{border:1px solid var(--border);border-left:4px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;background:var(--surface)}
+.finding-card[data-sev="Critical"]{border-left-color:var(--crit)}
+.finding-card[data-sev="High"]{border-left-color:var(--high)}
+.finding-card[data-sev="Medium"]{border-left-color:var(--amber)}
+.finding-card[data-sev="Low"]{border-left-color:var(--low)}
+.finding-card[data-sev="Info"]{border-left-color:var(--info)}
+.finding-header{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.sev-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;white-space:nowrap}
+.sev-badge.Critical{background:var(--crit);color:#fff}
+.sev-badge.High{background:var(--high);color:#fff}
+.sev-badge.Medium{background:var(--amber);color:#1f2328}
+.sev-badge.Low{background:var(--low);color:#fff}
+.sev-badge.Info{background:var(--surface2);color:var(--muted);border:1px solid var(--border)}
+.finding-title{font-weight:600;font-size:13px;flex:1}
+.finding-cat{font-size:11px;color:var(--muted)}
+.finding-body{margin-top:10px;display:flex;flex-direction:column;gap:6px}
+.finding-evidence{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:8px 10px;font-family:monospace;font-size:11px;word-break:break-all;color:var(--ink)}
+.finding-tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:11px;padding:2px 8px;border-radius:4px;border:1px solid var(--border);color:var(--muted);background:var(--surface2)}
+.tag.mitre{border-color:var(--purple);color:var(--purple)}
+.finding-rec{font-size:12px;color:var(--muted);margin-top:4px}
+
+/* IOC Tabs */
+.tab-row{display:flex;flex-wrap:wrap;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);padding:8px 16px;cursor:pointer;font-size:13px;margin-bottom:-1px}
+.tab-btn.active{color:var(--ink);border-color:var(--accent);font-weight:600}
+.tab-btn:hover{color:var(--ink)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+.ioc-toolbar{display:flex;gap:8px;margin-bottom:12px}
+.ioc-search{flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 10px;color:var(--ink);font-size:13px}
+.ioc-search::placeholder{color:var(--muted)}
+.ioc-list{display:flex;flex-direction:column;gap:4px;max-height:320px;overflow-y:auto}
+.ioc-row{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:4px;background:var(--surface2);border:1px solid var(--border)}
+.ioc-row:hover{border-color:var(--muted)}
+.ioc-val{flex:1;font-family:monospace;font-size:11px;word-break:break-all;color:var(--ink)}
+.copy-btn{background:none;border:1px solid var(--border);color:var(--muted);border-radius:4px;padding:2px 6px;cursor:pointer;font-size:10px;white-space:nowrap;flex-shrink:0}
+.copy-btn:hover{color:var(--ink);border-color:var(--muted)}
+.copy-btn.copied{color:var(--green);border-color:var(--green)}
+
+/* MITRE heatmap */
+.mitre-grid{display:flex;flex-wrap:wrap;gap:12px}
+.mitre-col{flex:1;min-width:140px;max-width:200px}
+.mitre-tactic{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.mitre-cell{font-size:11px;padding:4px 8px;border-radius:4px;margin-bottom:4px;border:1px solid var(--border);background:var(--surface2)}
+.mitre-cell.conf-High{border-color:var(--red);color:var(--red)}
+.mitre-cell.conf-Medium{border-color:var(--amber);color:var(--amber)}
+.mitre-cell.conf-Low{border-color:var(--blue);color:var(--blue)}
+.mitre-id{font-weight:700;margin-right:4px}
+
+/* Tables */
+table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+th{background:var(--surface2);border-bottom:1px solid var(--border);padding:8px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:600}
+td{border-bottom:1px solid var(--border);padding:8px 12px;vertical-align:top;font-size:12px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--surface2)}
+
+/* Technical details */
+details{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:10px;overflow:hidden}
+summary{cursor:pointer;padding:12px 16px;font-weight:600;font-size:13px;list-style:none;display:flex;align-items:center;gap:8px}
+summary::before{content:"›";font-size:16px;transition:transform .15s;display:inline-block}
+details[open] summary::before{transform:rotate(90deg)}
+.details-body{padding:0 16px 16px}
+
+/* Raw JSON */
+.json-wrap{position:relative}
+.json-copy{position:absolute;top:8px;right:8px}
+pre.json{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;overflow:auto;max-height:600px;white-space:pre-wrap;word-break:break-all;font-size:11px;line-height:1.6}
+.j-key{color:var(--blue)}
+.j-str{color:var(--green)}
+.j-num{color:var(--amber)}
+.j-bool{color:var(--orange)}
+.j-null{color:var(--muted)}
+
+.muted{color:var(--muted)}
+.sha{font-family:monospace;font-size:11px;word-break:break-all}
+</style></head><body><nav>
+<span class="nav-brand">FlatScan</span>
+<span class="nav-file" title="/tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe">vidar.exe</span>
+<span class="sev-badge Critical" style="font-size:12px">Likely malicious</span>
+<span class="nav-links">
+  <a href="#overview">Overview</a>
+  <a href="#findings">Findings</a>
+  <a href="#iocs">IOCs</a>
+  <a href="#mitre">MITRE</a>
+  <a href="#technical">Technical</a>
+  <a href="#raw">JSON</a>
+</span>
+<div class="nav-right">
+  <input id="global-search" type="search" placeholder="Search findings, IOCs…" oninput="globalSearch(this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--ink);border-radius:6px;padding:4px 10px;font-size:13px;width:220px;outline:none">
+  <button class="theme-btn" onclick="toggleTheme()">☀ / ☾</button>
+</div>
+</nav><main><section id="overview"><div class="section-title">Overview</div><div style="display:flex;flex-wrap:wrap;gap:20px;margin-bottom:20px;align-items:flex-start"><div class="gauge-wrap"><svg width="240" height="130" viewBox="0 0 240 130" xmlns="http://www.w3.org/2000/svg">
+  <path d="M 30,110 A 90,90 0 1 1 210,110" fill="none" stroke="#30363d" stroke-width="14" stroke-linecap="round"/>
+  <path d="M 30,110 A 90,90 0 0 1 210,110" fill="none" stroke="#f85149" stroke-width="14" stroke-linecap="round"/>
+  <text x="120" y="106" text-anchor="middle" font-size="28" font-weight="bold" fill="#e6edf3">100</text>
+  <text x="120" y="128" text-anchor="middle" font-size="11" fill="#7d8590">/ 100</text>
+</svg><div class="gauge-label">Risk Score: <strong>100/100</strong> — Critical Risk</div></div><div style="flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px"><div class="card metric Critical"><div class="lbl">Verdict</div><div class="val">Likely malicious</div></div><div class="card metric Critical"><div class="lbl">Findings</div><div class="val">19</div><div class="sub">Critical:2 High:5 Medium:4 Low:5 Info:3</div></div><div class="card metric"><div class="lbl">IOCs</div><div class="val">10</div><div class="sub">extracted indicators</div></div><div class="card metric"><div class="lbl">TTPs</div><div class="val">10</div><div class="sub">MITRE techniques</div></div><div class="card metric"><div class="lbl">Family</div><div class="val">Generic ransomware</div><div class="sub">classifier</div></div><div class="card metric"><div class="lbl">File</div><div class="val">4.3 MiB</div><div class="sub">PE executable</div></div></div></div><div class="exec-box">The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.</div><div class="card" style="margin-bottom:12px"><div class="lbl muted" style="font-size:11px;text-transform:uppercase;margin-bottom:6px">Sample Hashes</div><div style="display:flex;gap:8px;margin-bottom:4px"><span class="muted" style="font-size:11px;width:48px;flex-shrink:0">MD5</span><code class="sha" style="flex:1">b971e00a0514a9dd90ae4147fd2be083</code></div><div style="display:flex;gap:8px;margin-bottom:4px"><span class="muted" style="font-size:11px;width:48px;flex-shrink:0">SHA1</span><code class="sha" style="flex:1">814b4d722a9bc8eff65d7833ccf9b47cf486c3f2</code></div><div style="display:flex;gap:8px;margin-bottom:4px"><span class="muted" style="font-size:11px;width:48px;flex-shrink:0">SHA256</span><code class="sha" style="flex:1">a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc</code></div><div style="display:flex;gap:8px;margin-bottom:4px"><span class="muted" style="font-size:11px;width:48px;flex-shrink:0">SHA512</span><code class="sha" style="flex:1">4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487ec6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f</code></div></div></section><section id="findings"><div class="section-title">Findings <span class="cnt">19</span></div><div class="filter-row"><button class="filter-btn active" onclick="filterFindings('All')">All</button><button class="filter-btn sev-Critical" onclick="filterFindings('Critical')">Critical</button><button class="filter-btn sev-High" onclick="filterFindings('High')">High</button><button class="filter-btn sev-Medium" onclick="filterFindings('Medium')">Medium</button><button class="filter-btn sev-Low" onclick="filterFindings('Low')">Low</button><button class="filter-btn sev-Info" onclick="filterFindings('Info')">Info</button></div><div class="finding-card" data-sev="Critical"><div class="finding-header"><span class="sev-badge Critical">Critical</span><span class="finding-title">Classic DLL injection chain</span><span class="finding-cat muted">Chain</span></div><div class="finding-body"><div class="finding-evidence">behavioral API chain: process injection + memory allocation + network</div><div class="finding-tags"><span class="tag mitre">Defense Evasion</span><span class="tag mitre">Process Injection (T1055)</span></div><div class="finding-rec muted">→ Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.</div></div></div><div class="finding-card" data-sev="Critical"><div class="finding-header"><span class="sev-badge Critical">Critical</span><span class="finding-title">Process hollowing chain</span><span class="finding-cat muted">Chain</span></div><div class="finding-body"><div class="finding-evidence">behavioral API chain: process injection + execution + process access</div><div class="finding-tags"><span class="tag mitre">Defense Evasion</span><span class="tag mitre">Process Hollowing (T1055.012)</span></div><div class="finding-rec muted">→ Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.</div></div></div><div class="finding-card" data-sev="High"><div class="finding-header"><span class="sev-badge High">High</span><span class="finding-title">Keylogger with exfiltration</span><span class="finding-cat muted">Chain</span></div><div class="finding-body"><div class="finding-evidence">behavioral API chain: process injection + network</div><div class="finding-tags"><span class="tag mitre">Collection</span><span class="tag mitre">Input Capture (T1056)</span></div><div class="finding-rec muted">→ Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.</div></div></div><div class="finding-card" data-sev="High"><div class="finding-header"><span class="sev-badge High">High</span><span class="finding-title">Named pipe C2 with code injection</span><span class="finding-cat muted">Chain</span></div><div class="finding-body"><div class="finding-evidence">behavioral API chain: named pipe C2 + process injection</div><div class="finding-tags"><span class="tag mitre">Command and Control</span><span class="tag mitre">Non-Application Layer Protocol (T1095)</span></div><div class="finding-rec muted">→ Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.</div></div></div><div class="finding-card" data-sev="High"><div class="finding-header"><span class="sev-badge High">High</span><span class="finding-title">Credential theft + webhook exfiltration</span><span class="finding-cat muted">Chain</span></div><div class="finding-body"><div class="finding-evidence">behavioral API chain: process access + network</div><div class="finding-tags"><span class="tag mitre">Credential Access</span><span class="tag mitre">Credentials from Web Browsers (T1555.003)</span></div><div class="finding-rec muted">→ Revoke captured credentials and block webhook endpoints found in IOCs.</div></div></div><div class="finding-card" data-sev="High"><div class="finding-header"><span class="sev-badge High">High</span><span class="finding-title">Low-level disk write / file deletion API chain</span><span class="finding-cat muted">Wiper</span></div><div class="finding-body"><div class="finding-evidence">DeviceIoControl and file-deletion APIs are combined</div><div class="finding-tags"><span class="tag mitre">Impact</span><span class="tag mitre">Data Destruction (T1485)</span></div><div class="finding-rec muted">→ Check for disk sector writes or mass file deletions on affected hosts.</div></div></div><div class="finding-card" data-sev="High"><div class="finding-header"><span class="sev-badge High">High</span><span class="finding-title">Mining pool connection strings</span><span class="finding-cat muted">Cryptominer</span></div><div class="finding-body"><div class="finding-evidence">stratum protocol, pool, or miner strings are present</div><div class="finding-tags"><span class="tag mitre">Impact</span><span class="tag mitre">Resource Hijacking (T1496)</span></div><div class="finding-rec muted">→ Block outbound stratum protocol connections and scan for miner process artifacts.</div></div></div><div class="finding-card" data-sev="Medium"><div class="finding-header"><span class="sev-badge Medium">Medium</span><span class="finding-title">Dynamic API resolution with executable memory</span><span class="finding-cat muted">Behavior</span></div><div class="finding-body"><div class="finding-evidence">LoadLibrary/GetProcAddress and memory permission APIs are present</div></div></div><div class="finding-card" data-sev="Medium"><div class="finding-header"><span class="sev-badge Medium">Medium</span><span class="finding-title">Linux persistence indicator</span><span class="finding-cat muted">Persistence</span></div><div class="finding-body"><div class="finding-evidence">cron, systemd, SSH, preload, or shell profile paths are present</div></div></div><div class="finding-card" data-sev="Medium"><div class="finding-header"><span class="sev-badge Medium">Medium</span><span class="finding-title">Multiple high-entropy regions</span><span class="finding-cat muted">Packing</span></div><div class="finding-body"><div class="finding-evidence">25 high-entropy regions found</div></div></div><div class="finding-card" data-sev="Medium"><div class="finding-header"><span class="sev-badge Medium">Medium</span><span class="finding-title">Large high-entropy blob detected</span><span class="finding-cat muted">Packing</span></div><div class="finding-body"><div class="finding-evidence">4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload</div><div class="finding-tags"><span class="tag mitre">Defense Evasion</span><span class="tag mitre">Obfuscated Files or Information (T1027)</span></div><div class="finding-rec muted">→ Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.</div></div></div><div class="finding-card" data-sev="Low"><div class="finding-header"><span class="sev-badge Low">Low</span><span class="finding-title">Encoded data decoded successfully</span><span class="finding-cat muted">Obfuscation</span></div><div class="finding-body"><div class="finding-evidence">1 base64/hex/URL encoded artifacts decoded</div></div></div><div class="finding-card" data-sev="Low"><div class="finding-header"><span class="sev-badge Low">Low</span><span class="finding-title">High IOC density</span><span class="finding-cat muted">IOC</span></div><div class="finding-body"><div class="finding-evidence">10 total IOCs extracted</div></div></div><div class="finding-card" data-sev="Low"><div class="finding-header"><span class="sev-badge Low">Low</span><span class="finding-title">Static configuration artifacts extracted</span><span class="finding-cat muted">Configuration</span></div><div class="finding-body"><div class="finding-evidence">36 likely configuration or secret-handling artifacts</div><div class="finding-tags"><span class="tag mitre">Discovery</span><span class="tag mitre">Data from Local System</span></div><div class="finding-rec muted">→ Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.</div></div></div><div class="finding-card" data-sev="Low"><div class="finding-header"><span class="sev-badge Low">Low</span><span class="finding-title">Embedded hash-like indicators</span><span class="finding-cat muted">IOC</span></div><div class="finding-body"><div class="finding-evidence">multiple MD5/SHA1/SHA256-looking values were extracted</div></div></div><div class="finding-card" data-sev="Low"><div class="finding-header"><span class="sev-badge Low">Low</span><span class="finding-title">PE has a self-signed certificate</span><span class="finding-cat muted">PE Posture</span></div><div class="finding-body"><div class="finding-evidence">CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US</div></div></div><div class="finding-card" data-sev="Info"><div class="finding-header"><span class="sev-badge Info">Info</span><span class="finding-title">PE missing some exploit mitigations</span><span class="finding-cat muted">PE Posture</span></div><div class="finding-body"><div class="finding-evidence">missing: CFG</div></div></div><div class="finding-card" data-sev="Info"><div class="finding-header"><span class="sev-badge Info">Info</span><span class="finding-title">Malware family hypothesis</span><span class="finding-cat muted">Classifier</span></div><div class="finding-body"><div class="finding-evidence">Generic ransomware (High)</div></div></div><div class="finding-card" data-sev="Info"><div class="finding-header"><span class="sev-badge Info">Info</span><span class="finding-title">Malware configuration recovered</span><span class="finding-cat muted">Configuration</span></div><div class="finding-body"><div class="finding-evidence">AsyncRAT configuration extracted: 5 C2, 1 campaign-id</div><div class="finding-tags"><span class="tag mitre">Command and Control</span><span class="tag mitre">Application Layer Protocol (T1071)</span></div><div class="finding-rec muted">→ Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.</div></div></div></section><section id="iocs"><div class="section-title">Indicators of Compromise <span class="cnt">10</span></div><div class="card" style="padding:0 16px 16px"><div class="tab-row"><button class="tab-btn active" onclick="switchTab('urls')">URLs (1)</button><button class="tab-btn" onclick="switchTab('domains')">Domains (4)</button><button class="tab-btn" onclick="switchTab('hashes')">Hashes (5)</button></div><div class="tab-panel active" id="tab-urls"><div class="ioc-toolbar"><input class="ioc-search" type="text" placeholder="Filter..." oninput="filterIOCs(this,'ioc-list-urls')"></div><div class="ioc-list" id="ioc-list-urls"><div class="ioc-row"><span class="ioc-val">https://go.dev/issue/66821):</span><button class="copy-btn" onclick="copyIOC(this,'https://go.dev/issue/66821):')">copy</button></div></div></div><div class="tab-panel" id="tab-domains"><div class="ioc-toolbar"><input class="ioc-search" type="text" placeholder="Filter..." oninput="filterIOCs(this,'ioc-list-domains')"></div><div class="ioc-list" id="ioc-list-domains"><div class="ioc-row"><span class="ioc-val">eq.io</span><button class="copy-btn" onclick="copyIOC(this,'eq.io')">copy</button></div><div class="ioc-row"><span class="ioc-val">go.dev</span><button class="copy-btn" onclick="copyIOC(this,'go.dev')">copy</button></div><div class="ioc-row"><span class="ioc-val">godebugs.info</span><button class="copy-btn" onclick="copyIOC(this,'godebugs.info')">copy</button></div><div class="ioc-row"><span class="ioc-val">time.local</span><button class="copy-btn" onclick="copyIOC(this,'time.local')">copy</button></div></div></div><div class="tab-panel" id="tab-hashes"><div class="ioc-toolbar"><input class="ioc-search" type="text" placeholder="Filter..." oninput="filterIOCs(this,'ioc-list-hashes')"></div><div class="ioc-list" id="ioc-list-hashes"><div class="ioc-row"><span class="ioc-val">dddddddddddddddddddddddddddddddd</span><button class="copy-btn" onclick="copyIOC(this,'dddddddddddddddddddddddddddddddd')">copy</button></div><div class="ioc-row"><span class="ioc-val">eddddddddddddddddddddddddddddddd</span><button class="copy-btn" onclick="copyIOC(this,'eddddddddddddddddddddddddddddddd')">copy</button></div><div class="ioc-row"><span class="ioc-val">0000000000000000000000000000000000000000000000000000000000000000</span><button class="copy-btn" onclick="copyIOC(this,'0000000000000000000000000000000000000000000000000000000000000000')">copy</button></div><div class="ioc-row"><span class="ioc-val">5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae</span><button class="copy-btn" onclick="copyIOC(this,'5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae')">copy</button></div><div class="ioc-row"><span class="ioc-val">aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc</span><button class="copy-btn" onclick="copyIOC(this,'aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc')">copy</button></div></div></div></div></section><section id="mitre"><div class="section-title">MITRE ATT&amp;CK TTPs <span class="cnt">10</span></div><div class="mitre-grid"><div class="mitre-col"><div class="mitre-tactic">Defense Evasion</div><div class="mitre-cell conf-Medium" title="4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload"><span class="mitre-id">T1027</span>Obfuscated Files or Information (T1027)</div><div class="mitre-cell conf-High" title="behavioral API chain: process injection + execution + process access"><span class="mitre-id">T1055.012</span>Process Hollowing (T1055.012)</div><div class="mitre-cell conf-High" title="behavioral API chain: process injection + memory allocation + network"><span class="mitre-id">T1055</span>Process Injection (T1055)</div></div><div class="mitre-col"><div class="mitre-tactic">Credential Access</div><div class="mitre-cell conf-High" title="behavioral API chain: process access + network"><span class="mitre-id">T1555.003</span>Credentials from Web Browsers (T1555.003)</div></div><div class="mitre-col"><div class="mitre-tactic">Discovery</div><div class="mitre-cell conf-Low" title="36 likely configuration or secret-handling artifacts"><span class="mitre-id">Data from Local System</span>Data from Local System</div></div><div class="mitre-col"><div class="mitre-tactic">Collection</div><div class="mitre-cell conf-High" title="behavioral API chain: process injection + network"><span class="mitre-id">T1056</span>Input Capture (T1056)</div></div><div class="mitre-col"><div class="mitre-tactic">Command and Control</div><div class="mitre-cell conf-Info" title="AsyncRAT configuration extracted: 5 C2, 1 campaign-id"><span class="mitre-id">T1071</span>Application Layer Protocol (T1071)</div><div class="mitre-cell conf-High" title="behavioral API chain: named pipe C2 + process injection"><span class="mitre-id">T1095</span>Non-Application Layer Protocol (T1095)</div></div><div class="mitre-col"><div class="mitre-tactic">Impact</div><div class="mitre-cell conf-High" title="DeviceIoControl and file-deletion APIs are combined"><span class="mitre-id">T1485</span>Data Destruction (T1485)</div><div class="mitre-cell conf-High" title="stratum protocol, pool, or miner strings are present"><span class="mitre-id">T1496</span>Resource Hijacking (T1496)</div></div></div></section><section><div class="section-title">Family Classifier</div><table><tr><th>Family</th><th>Category</th><th>Confidence</th><th>Evidence</th></tr><tr><td><strong>Generic ransomware</strong></td><td>ransomware</td><td>High</td><td>ransomware strings or findings</td></tr><tr><td><strong>AsyncRAT</strong></td><td>rat</td><td>Medium-High</td><td>named-family fingerprint, ops</td></tr><tr><td><strong>FormBook/XLoader</strong></td><td>stealer</td><td>Medium-High</td><td>named-family fingerprint, ops</td></tr><tr><td><strong>XWorm</strong></td><td>rat</td><td>Medium-High</td><td>named-family fingerprint, ops</td></tr><tr><td><strong>Packed or bundled payload</strong></td><td>dropper</td><td>Medium</td><td>9 carved artifacts</td></tr></table></section><section><div class="section-title">Crypto &amp; Config Extraction</div><table><tr><th>Type</th><th>Confidence</th><th>Evidence</th><th>Preview</th></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x14f5c2</td><td><code>runtime.mutex</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x177933</td><td><code>sync.Mutex.Lockruntime.Goschedmalloc</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x178279</td><td><code>sync.RWMutex.Lockwait</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x1785a1</td><td><code>exhaustionlocked</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x17a63a</td><td><code>nmspinningstartlockedm</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x17e212</td><td><code>overlappingmheap.freeSpanLocked</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x37e0fd</td><td><code>runtime.mutexPreferLowLatency</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x37e12b</td><td><code>runtime.mutexWaitListHead</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x37e196</td><td><code>runtime.mutexSampleContention</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x383cb4</td><td><code>runtime.waitReason.isMutexWait</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x3882ba</td><td><code>runtime.totalMutexWaitTimeNanos</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x388ce3</td><td><code>sync.runtime_SemacquireMutex</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x38b1bb</td><td><code>eq.sync.Mutex</code></td></tr><tr><td>mutex-candidate</td><td>Low</td><td>mutex-like string at offset 0x451d97</td><td><code>runtime.mutexprofilerate</code></td></tr><tr><td>cryptocurrency-wallet</td><td>Medium</td><td>Bitcoin-style wallet address</td><td><code>1907348632812595367431640625asynctimerchanuserarenastategc</code></td></tr><tr><td>cryptocurrency-wallet</td><td>Medium</td><td>Bitcoin-style wallet address</td><td><code>180123456789abcdefghijklmnopqrstuvwxyzstrings</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x16c</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x107c0</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x19902</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x1992a</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x1dd1e</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x26453</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x26473</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x26493</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x264b3</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x264dc</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x2650a</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x31e2b</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x419c4</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x43d85</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x43d92</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x440c3</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x4420b</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x44297</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x442cd</code></td></tr><tr><td>embedded-compressed-blob</td><td>Low</td><td>compressed stream magic found in file body</td><td><code>zlib at 0x44391</code></td></tr></table></section><section id="technical"><div class="section-title">Technical Details</div><details open><summary>PE Details</summary><div class="details-body"><table><tr><td class="muted" style="white-space:nowrap;width:140px">Machine</td><td><code>amd64</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Timestamp</td><td><code>1970-01-01T00:00:00Z</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Subsystem</td><td><code>windows-gui</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Entry point</td><td><code>0x74dc0</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Image base</td><td><code>0x140000000</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Import hash</td><td><code>5292ba861fbedd8ccd6f23c56196bc91</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Managed (.NET)</td><td><code>false</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Certificate table</td><td><code>true</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Signature</td><td><code>signature present; 1 certificate(s) recovered</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Signer subject(s)</td><td><code>CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Self-signed</td><td><code>true</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Security mitigations</td><td><code>ASLR, DEP, HighEntropyVA, TerminalServerAware</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Missing mitigations</td><td><code>CFG</code></td></tr><tr><td class="muted" style="white-space:nowrap;width:140px">Image characteristics</td><td><code>EXECUTABLE_IMAGE, LARGE_ADDRESS_AWARE</code></td></tr></table><table style="margin-top:8px"><tr><th>Section</th><th>Raw offset</th><th>Raw size</th><th>Entropy</th><th>Exec</th><th>Write</th></tr><tr><td><code>.text</code></td><td>0x600</td><td>1355264</td><td>6.21</td><td>true</td><td>false</td></tr><tr><td><code>.rdata</code></td><td>0x14b400</td><td>2945536</td><td>5.84</td><td>false</td><td>false</td></tr><tr><td><code>.data</code></td><td>0x41a600</td><td>72192</td><td>4.77</td><td>false</td><td>true</td></tr><tr><td><code>.pdata</code></td><td>0x42c000</td><td>22016</td><td>5.31</td><td>false</td><td>false</td></tr><tr><td><code>.xdata</code></td><td>0x431600</td><td>512</td><td>1.77</td><td>false</td><td>false</td></tr><tr><td><code>.idata</code></td><td>0x431800</td><td>1536</td><td>3.98</td><td>false</td><td>true</td></tr><tr><td><code>.reloc</code></td><td>0x431e00</td><td>16896</td><td>5.43</td><td>false</td><td>false</td></tr><tr><td><code>.symtab</code></td><td>0x436000</td><td>128000</td><td>5.12</td><td>false</td><td>false</td></tr></table></div></details><details open><summary>Carved Artifacts <span class="cnt">9</span></summary><div class="details-body"><table><tr><th>Type</th><th>Offset</th><th>SHA256</th><th>Entropy</th></tr><tr><td>Gzip compressed data</td><td>0x64186</td><td><code>7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c</code></td><td>6.16</td></tr><tr><td>Gzip compressed data</td><td>0x78be9</td><td><code>aafa93cf1a0b9c1213b71e7cd3457ad2f8d227f04f5fd8dd90b862c8a7ef2345</code></td><td>6.26</td></tr><tr><td>Gzip compressed data</td><td>0x8cf8c</td><td><code>1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab</code></td><td>4.21</td></tr><tr><td>Gzip compressed data</td><td>0x2705ee</td><td><code>f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c</code></td><td>7.98</td></tr><tr><td>Gzip compressed data</td><td>0x29740c</td><td><code>e0602f420d5dd7e3048e59d7a253c79d0ee2c105fd38673dcf10f4f3cc1eafbc</code></td><td>7.95</td></tr><tr><td>Gzip compressed data</td><td>0x298d93</td><td><code>f4e3604630af10094c0da49a63b44ccc4bec3bbb22ae3c4e5e54c3fc5c657dbb</code></td><td>7.83</td></tr><tr><td>Gzip compressed data</td><td>0x352729</td><td><code>fdb05f580b2120c72a248f1f1be9223eccd02b4b3f5f1aef24bc431e87af07b5</code></td><td>7.76</td></tr><tr><td>Gzip compressed data</td><td>0x35b529</td><td><code>e2ab2a9190408f32f67732d3058cefd71b067140abff7dd580e7904f4c332d86</code></td><td>7.85</td></tr><tr><td>Gzip compressed data</td><td>0x36a470</td><td><code>00dbde7568817ae1f9f1f5a33f880780977ee728da2bcf75547fdd3d189c8a00</code></td><td>6.19</td></tr></table></div></details><details open><summary>Similarity Hashes</summary><div class="details-body"><pre style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px;font-size:11px">FlatHash:          FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f98a4a4a762e79aa303b012fb2ce2337c813432b8da45664fb14eaaee8b4697275133e607d4509a08a4eebe8fc960fcb0844b7909d75386488189ed6f529ab2de212547dccc5fb160d955c8aa1a4cb0533aeb824feca320e61aea35b5cd09bd9ad88b43b0de653ce838caa8476f11201b971ee4dea76ad38a8d04d66136ae8c5635d23df924b423a7e9df54eb70c76888b6d540632e37b68560897e7be3396b68635cf1facb6d11594c5928d872e0c63139f211d4b99121803bed977c83f670e870ccf02ba0794469152a7dab7191331b12071a19ec31337b74e9349d14e3dca5295471d43fe45324fa8fc2032efc9a580169cdd16b3c7bb875ec4e34e458aaa7cc3e69ca3e04f9504ea71e0a9c5dc92c2f97faa306062f1e1acb26ddc529e0484b1110950f917897ffc4cf567087be4b6e8bbd0d97c2a9a3232872c1de090056c12add9f5de3e23f49516b218077c6ff303fe42b4f23faafcc0a4f42833a246a49c11e719420ddad3de19be99af51a351f56fe1f5f8750b0b75c49f61768d60e3428541ab71dd25ea92adfa00117dc6b50509ef603626935ff430a7256d395850cc80e5679cf09f9b485948e647921da8edb0856be4b14fb5229fb28740d40ca2138ba15cafe4948c129b77503302da5612f77fd2b5fee759c2e4d251fd09dd063cce272adbc105e151c2b247df4c772cb72147d50488592292c10f4515e00576236353627909c8f288a2f6ea9715a13ede24014026d588d8aa3f66e229eb5e178ea490aa5d5ec8c331a742ce961f490775cfec9e69aa1463ede4f46a055fc6cafcd1965a6e078b289b0b236bee112da11c9863da0e9457092e51246031630c319cadfbe1188b4c23d3bc59c7d1998eae59f173d2d41f2e6aecb4a6812f270e1536ee211e78df1e68b2366148bdae38e74c7eaa28d2479b1e192ef7116de23155e4f096a47c52e971983f93894a587f6d86ed74b8236e61ba2793d7ccc1762c29f758e103f7f3ff5390a2e2045d594a79f183e41070726d3021a36de4e1043834ba42b8690096be93f63b8e4f43b18ac29e61a387c756d27d0381d4646f61eb869b0fd54a8a71feff69d1971d3c9d23f2040ad4858568b6e59d38de11838f7b6c63fb50577971bbf5cee0b5d5b63f19821750fd1de3b5f107f4da39d07667fd9623329aee571041574980e642c19c88ec91e03c9c5dd3ca9d24c42effce5e821405cd93619cf2752765bc209cb9a1447d02abb1358c4fdbbbe44c66fa275dfc9ed330658f4bb04e4dce5272abd0b464f4801a7757b64e6138f6fb7bc9813595f0ab49157fa128563e7a9b90ab66dfe28c1d0657747555a10a91dac5e0ce8c537e754e4eef04d55c7c68e660cbb73ce6a0fcfcf3a4ced3f0256e8e10ce523a5066
+Byte histogram:    580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec
+String set:        57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a
+Import hash:       2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6
+Section hash:      9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff
+</pre></div></details></section><section id="raw"><div class="section-title">Raw JSON</div><div class="json-wrap"><button class="copy-btn json-copy" onclick="copyAll()">Copy all</button><pre class="json" id="raw-json">{
+  <span class="j-key">&#34;tool&#34;</span>: <span class="j-str">&#34;FlatScan&#34;</span>,
+  <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+  <span class="j-key">&#34;mode&#34;</span>: <span class="j-str">&#34;deep&#34;</span>,
+  <span class="j-key">&#34;target&#34;</span>: <span class="j-str">&#34;/tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe&#34;</span>,
+  <span class="j-key">&#34;file_name&#34;</span>: <span class="j-str">&#34;vidar.exe&#34;</span>,
+  <span class="j-key">&#34;size&#34;</span>: <span class="j-num">4545912</span>,
+  <span class="j-key">&#34;analyzed_bytes&#34;</span>: <span class="j-num">4545912</span>,
+  <span class="j-key">&#34;truncated_analysis&#34;</span>: <span class="j-bool">false</span>,
+  <span class="j-key">&#34;duration&#34;</span>: <span class="j-str">&#34;1.314302253s&#34;</span>,
+  <span class="j-key">&#34;file_type&#34;</span>: <span class="j-str">&#34;PE executable&#34;</span>,
+  <span class="j-key">&#34;mime_hint&#34;</span>: <span class="j-str">&#34;application/octet-stream&#34;</span>,
+  <span class="j-key">&#34;hashes&#34;</span>: {
+    <span class="j-key">&#34;md5&#34;</span>: <span class="j-str">&#34;b971e00a0514a9dd90ae4147fd2be083&#34;</span>,
+    <span class="j-key">&#34;sha1&#34;</span>: <span class="j-str">&#34;814b4d722a9bc8eff65d7833ccf9b47cf486c3f2&#34;</span>,
+    <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc&#34;</span>,
+    <span class="j-key">&#34;sha512&#34;</span>: <span class="j-str">&#34;4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487ec6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f&#34;</span>
+  },
+  <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">6.169369583141848</span>,
+  <span class="j-key">&#34;entropy_assessment&#34;</span>: <span class="j-str">&#34;normal&#34;</span>,
+  <span class="j-key">&#34;high_entropy_regions&#34;</span>: [
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2523136</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.92773732222351</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2555904</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.982698532119381</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2588672</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.978134313614116</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2621440</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.97701912437967</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2654208</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.969831770199067</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2686976</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.96576322324637</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2719744</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.907063761067209</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2752512</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.829163330238855</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2785280</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.854265608363128</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2818048</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.854591473442746</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2850816</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.849052846107658</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2883584</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.842889135939328</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2916352</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.830827525394086</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2949120</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.822486970515632</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2981888</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.827196877249139</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3014656</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.822545362469797</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3047424</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.827315809747849</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3080192</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.83534968872702</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3112960</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.795827328667212</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3145728</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.768613389581242</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3178496</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.79164515048783</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3211264</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.835145561993697</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3244032</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.857760304668136</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3276800</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.837804455429879</span>
+    },
+    {
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3309568</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">65536</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.8013130874450045</span>
+    }
+  ],
+  <span class="j-key">&#34;strings_total&#34;</span>: <span class="j-num">15759</span>,
+  <span class="j-key">&#34;strings_truncated&#34;</span>: <span class="j-bool">false</span>,
+  <span class="j-key">&#34;suspicious_strings&#34;</span>: [
+    <span class="j-str">&#34;Decrypt&#34;</span>,
+    <span class="j-str">&#34;Encrypt&#34;</span>,
+    <span class="j-str">&#34;lock: lock countbad system huge page sizearena already initialized to unused region of span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing typ...&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.encryptBlock&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.decryptBlock&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.encryptBlockGeneric&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.decryptBlockGeneric&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.(*CBCEncrypter).CryptBlocks&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.(*CBCDecrypter).CryptBlocks&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.NewCBCEncrypter&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.NewCBCDecrypter&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.encryptBlockAsm&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.decryptBlockAsm&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.EncryptBlockInternal&#34;</span>,
+    <span class="j-str">&#34;VirtualAlloc&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.encryptBlockAsm.abi0&#34;</span>,
+    <span class="j-str">&#34;crypto/internal/fips140/aes.decryptBlockAsm.abi0&#34;</span>
+  ],
+  <span class="j-key">&#34;functions&#34;</span>: [
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;VirtualAlloc&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;memory allocation&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;OpenProcess&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process access&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;SetThreadContext&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process injection&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;GetThreadContext&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process access&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;ResumeThread&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process injection&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;GetVolumeInformation&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;sandbox fingerprinting&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;LoadLibrary&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;dynamic loading&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;GetProcAddress&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;dynamic loading&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;WSAStartup&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;network&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;CreateNamedPipe&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;named pipe C2&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;RegSetValue&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;persistence&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;CreateProcess&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;execution&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;ptrace&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;linux anti-debug/process access&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings/imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;GetProcAddress&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;dynamic loading&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;GetThreadContext&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process access&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;LoadLibrary&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;dynamic loading&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;LoadLibrary&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;dynamic loading&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;ResumeThread&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process injection&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;SetThreadContext&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;process injection&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;VirtualAlloc&#34;</span>,
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;memory allocation&#34;</span>,
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;pe imports&#34;</span>
+    }
+  ],
+  <span class="j-key">&#34;decoded_artifacts&#34;</span>: [
+    {
+      <span class="j-key">&#34;encoding&#34;</span>: <span class="j-str">&#34;hex&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii string at offset 2499462&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;DDDDDDDD&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    }
+  ],
+  <span class="j-key">&#34;iocs&#34;</span>: {
+    <span class="j-key">&#34;urls&#34;</span>: [
+      <span class="j-str">&#34;https://go.dev/issue/66821):&#34;</span>
+    ],
+    <span class="j-key">&#34;domains&#34;</span>: [
+      <span class="j-str">&#34;eq.io&#34;</span>,
+      <span class="j-str">&#34;go.dev&#34;</span>,
+      <span class="j-str">&#34;godebugs.info&#34;</span>,
+      <span class="j-str">&#34;time.local&#34;</span>
+    ],
+    <span class="j-key">&#34;md5&#34;</span>: [
+      <span class="j-str">&#34;dddddddddddddddddddddddddddddddd&#34;</span>,
+      <span class="j-str">&#34;eddddddddddddddddddddddddddddddd&#34;</span>
+    ],
+    <span class="j-key">&#34;sha256&#34;</span>: [
+      <span class="j-str">&#34;0000000000000000000000000000000000000000000000000000000000000000&#34;</span>,
+      <span class="j-str">&#34;5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae&#34;</span>,
+      <span class="j-str">&#34;aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc&#34;</span>
+    ],
+    <span class="j-key">&#34;classified&#34;</span>: [
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;url&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;https://go.dev/issue/66821):&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">72</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;network URL&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;domain&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;eq.io&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;domain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;domain&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;go.dev&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;domain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;domain&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;godebugs.info&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;domain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;domain&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;time.local&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;domain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;md5&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;dddddddddddddddddddddddddddddddd&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">58</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;embedded hash&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;md5&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;eddddddddddddddddddddddddddddddd&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">58</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;embedded hash&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;sha256&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;0000000000000000000000000000000000000000000000000000000000000000&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">58</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;embedded hash&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;sha256&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">58</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;embedded hash&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;sha256&#34;</span>,
+        <span class="j-key">&#34;value&#34;</span>: <span class="j-str">&#34;aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc&#34;</span>,
+        <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ioc&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">58</span>,
+        <span class="j-key">&#34;context&#34;</span>: <span class="j-str">&#34;embedded hash&#34;</span>
+      }
+    ]
+  },
+  <span class="j-key">&#34;plugins&#34;</span>: [
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;similarity&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;computed FlatHash and structural similarity hashes&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;safe-carver&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;9 embedded artifacts reported&#34;</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;crypto-config-extractor&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;36 config artifacts&#34;</span>,
+      <span class="j-key">&#34;findings&#34;</span>: <span class="j-num">36</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;family-classifier&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;5 family hypotheses&#34;</span>,
+      <span class="j-key">&#34;findings&#34;</span>: <span class="j-num">5</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;high-entropy-blob-detector&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;1 findings added&#34;</span>,
+      <span class="j-key">&#34;findings&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;suspicious-import-combinator&#34;</span>,
+      <span class="j-key">&#34;version&#34;</span>: <span class="j-str">&#34;0.10.2&#34;</span>,
+      <span class="j-key">&#34;status&#34;</span>: <span class="j-str">&#34;complete&#34;</span>,
+      <span class="j-key">&#34;summary&#34;</span>: <span class="j-str">&#34;0 findings added&#34;</span>
+    }
+  ],
+  <span class="j-key">&#34;carved_artifacts&#34;</span>: [
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">409990</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">84579</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">6.158892797740027</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;D$(HcD$&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">494569</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">82851</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;aafa93cf1a0b9c1213b71e7cd3457ad2f8d227f04f5fd8dd90b862c8a7ef2345&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">6.255999400059949</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;M9,$u&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">577420</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">1980002</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">4.21220832415445</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;P H9S u&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2557422</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">159262</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.979967396237717</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;&#39;\\5:%&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2716684</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">6535</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;e0602f420d5dd7e3048e59d7a253c79d0ee2c105fd38673dcf10f4f3cc1eafbc&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.947959008142692</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;UDl)R&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">2723219</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">760214</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;f4e3604630af10094c0da49a63b44ccc4bec3bbb22ae3c4e5e54c3fc5c657dbb&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.8344918652445426</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;J|8\&#34;VQi&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3483433</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">36352</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;fdb05f580b2120c72a248f1f1be9223eccd02b4b3f5f1aef24bc431e87af07b5&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.762435788742667</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;f~.H#&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3519785</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">61255</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;e2ab2a9190408f32f67732d3058cefd71b067140abff7dd580e7904f4c332d86&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">7.8504671341695635</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;f~\u0026H#&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;Gzip compressed data&#34;</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">3581040</span>,
+      <span class="j-key">&#34;length&#34;</span>: <span class="j-num">964872</span>,
+      <span class="j-key">&#34;sha256&#34;</span>: <span class="j-str">&#34;00dbde7568817ae1f9f1f5a33f880780977ee728da2bcf75547fdd3d189c8a00&#34;</span>,
+      <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">6.187295215772408</span>,
+      <span class="j-key">&#34;reason&#34;</span>: <span class="j-str">&#34;embedded gzip stream magic&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;EvU?:&#34;</span>,
+      <span class="j-key">&#34;contained&#34;</span>: <span class="j-bool">true</span>
+    }
+  ],
+  <span class="j-key">&#34;family_matches&#34;</span>: [
+    {
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;Generic ransomware&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;ransomware&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">90</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: [
+        <span class="j-str">&#34;ransomware strings or findings&#34;</span>
+      ]
+    },
+    {
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;AsyncRAT&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;rat&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium-High&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">89</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: [
+        <span class="j-str">&#34;named-family fingerprint&#34;</span>,
+        <span class="j-str">&#34;ops&#34;</span>
+      ]
+    },
+    {
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;FormBook/XLoader&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;stealer&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium-High&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">89</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: [
+        <span class="j-str">&#34;named-family fingerprint&#34;</span>,
+        <span class="j-str">&#34;ops&#34;</span>
+      ]
+    },
+    {
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;XWorm&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;rat&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium-High&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">89</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: [
+        <span class="j-str">&#34;named-family fingerprint&#34;</span>,
+        <span class="j-str">&#34;ops&#34;</span>
+      ]
+    },
+    {
+      <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;Packed or bundled payload&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;dropper&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">55</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: [
+        <span class="j-str">&#34;9 carved artifacts&#34;</span>
+      ]
+    }
+  ],
+  <span class="j-key">&#34;config_artifacts&#34;</span>: [
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x14f5c2&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.mutex&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x177933&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;sync.Mutex.Lockruntime.Goschedmalloc&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x178279&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;sync.RWMutex.Lockwait&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x1785a1&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;exhaustionlocked&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x17a63a&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;nmspinningstartlockedm&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x17e212&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;overlappingmheap.freeSpanLocked&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x37e0fd&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.mutexPreferLowLatency&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x37e12b&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.mutexWaitListHead&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x37e196&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.mutexSampleContention&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x383cb4&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.waitReason.isMutexWait&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x3882ba&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.totalMutexWaitTimeNanos&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x388ce3&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;sync.runtime_SemacquireMutex&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x38b1bb&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;eq.sync.Mutex&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;mutex-candidate&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;ascii&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;mutex-like string at offset 0x451d97&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;runtime.mutexprofilerate&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;cryptocurrency-wallet&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;Bitcoin-style wallet address&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;1907348632812595367431640625asynctimerchanuserarenastategc&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;cryptocurrency-wallet&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;strings&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;Bitcoin-style wallet address&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;180123456789abcdefghijklmnopqrstuvwxyzstrings&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x16c&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x107c0&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x19902&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x1992a&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x1dd1e&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x26453&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x26473&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x26493&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x264b3&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x264dc&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x2650a&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x31e2b&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x419c4&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x43d85&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x43d92&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x440c3&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x4420b&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x44297&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x442cd&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    },
+    {
+      <span class="j-key">&#34;type&#34;</span>: <span class="j-str">&#34;embedded-compressed-blob&#34;</span>,
+      <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;raw-bytes&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;compressed stream magic found in file body&#34;</span>,
+      <span class="j-key">&#34;preview&#34;</span>: <span class="j-str">&#34;zlib at 0x44391&#34;</span>,
+      <span class="j-key">&#34;iocs&#34;</span>: {}
+    }
+  ],
+  <span class="j-key">&#34;crypto_config&#34;</span>: {
+    <span class="j-key">&#34;encodings&#34;</span>: [
+      <span class="j-str">&#34;hex&#34;</span>
+    ],
+    <span class="j-key">&#34;crypto_markers&#34;</span>: [
+      <span class="j-str">&#34;aes&#34;</span>,
+      <span class="j-str">&#34;chacha&#34;</span>,
+      <span class="j-str">&#34;iv&#34;</span>,
+      <span class="j-str">&#34;rsa&#34;</span>
+    ],
+    <span class="j-key">&#34;embedded_compressed&#34;</span>: [
+      <span class="j-str">&#34;zlib at 0x16c&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x107c0&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x19902&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x1992a&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x1dd1e&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x26453&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x26473&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x26493&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x264b3&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x264dc&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x2650a&#34;</span>,
+      <span class="j-str">&#34;zlib at 0x31e2b&#34;</span>
+    ],
+    <span class="j-key">&#34;config_artifacts&#34;</span>: <span class="j-num">36</span>
+  },
+  <span class="j-key">&#34;similarity&#34;</span>: {
+    <span class="j-key">&#34;flat_hash&#34;</span>: <span class="j-str">&#34;FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f98a4a4a762e79aa303b012fb2ce2337c813432b8da45664fb14eaaee8b4697275133e607d4509a08a4eebe8fc960fcb0844b7909d75386488189ed6f529ab2de212547dccc5fb160d955c8aa1a4cb0533aeb824feca320e61aea35b5cd09bd9ad88b43b0de653ce838caa8476f11201b971ee4dea76ad38a8d04d66136ae8c5635d23df924b423a7e9df54eb70c76888b6d540632e37b68560897e7be3396b68635cf1facb6d11594c5928d872e0c63139f211d4b99121803bed977c83f670e870ccf02ba0794469152a7dab7191331b12071a19ec31337b74e9349d14e3dca5295471d43fe45324fa8fc2032efc9a580169cdd16b3c7bb875ec4e34e458aaa7cc3e69ca3e04f9504ea71e0a9c5dc92c2f97faa306062f1e1acb26ddc529e0484b1110950f917897ffc4cf567087be4b6e8bbd0d97c2a9a3232872c1de090056c12add9f5de3e23f49516b218077c6ff303fe42b4f23faafcc0a4f42833a246a49c11e719420ddad3de19be99af51a351f56fe1f5f8750b0b75c49f61768d60e3428541ab71dd25ea92adfa00117dc6b50509ef603626935ff430a7256d395850cc80e5679cf09f9b485948e647921da8edb0856be4b14fb5229fb28740d40ca2138ba15cafe4948c129b77503302da5612f77fd2b5fee759c2e4d251fd09dd063cce272adbc105e151c2b247df4c772cb72147d50488592292c10f4515e00576236353627909c8f288a2f6ea9715a13ede24014026d588d8aa3f66e229eb5e178ea490aa5d5ec8c331a742ce961f490775cfec9e69aa1463ede4f46a055fc6cafcd1965a6e078b289b0b236bee112da11c9863da0e9457092e51246031630c319cadfbe1188b4c23d3bc59c7d1998eae59f173d2d41f2e6aecb4a6812f270e1536ee211e78df1e68b2366148bdae38e74c7eaa28d2479b1e192ef7116de23155e4f096a47c52e971983f93894a587f6d86ed74b8236e61ba2793d7ccc1762c29f758e103f7f3ff5390a2e2045d594a79f183e41070726d3021a36de4e1043834ba42b8690096be93f63b8e4f43b18ac29e61a387c756d27d0381d4646f61eb869b0fd54a8a71feff69d1971d3c9d23f2040ad4858568b6e59d38de11838f7b6c63fb50577971bbf5cee0b5d5b63f19821750fd1de3b5f107f4da39d07667fd9623329aee571041574980e642c19c88ec91e03c9c5dd3ca9d24c42effce5e821405cd93619cf2752765bc209cb9a1447d02abb1358c4fdbbbe44c66fa275dfc9ed330658f4bb04e4dce5272abd0b464f4801a7757b64e6138f6fb7bc9813595f0ab49157fa128563e7a9b90ab66dfe28c1d0657747555a10a91dac5e0ce8c537e754e4eef04d55c7c68e660cbb73ce6a0fcfcf3a4ced3f0256e8e10ce523a5066&#34;</span>,
+    <span class="j-key">&#34;byte_histogram_hash&#34;</span>: <span class="j-str">&#34;580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec&#34;</span>,
+    <span class="j-key">&#34;string_set_hash&#34;</span>: <span class="j-str">&#34;57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a&#34;</span>,
+    <span class="j-key">&#34;import_hash&#34;</span>: <span class="j-str">&#34;2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6&#34;</span>,
+    <span class="j-key">&#34;section_hash&#34;</span>: <span class="j-str">&#34;9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff&#34;</span>
+  },
+  <span class="j-key">&#34;pe&#34;</span>: {
+    <span class="j-key">&#34;machine&#34;</span>: <span class="j-str">&#34;amd64&#34;</span>,
+    <span class="j-key">&#34;timestamp&#34;</span>: <span class="j-str">&#34;1970-01-01T00:00:00Z&#34;</span>,
+    <span class="j-key">&#34;subsystem&#34;</span>: <span class="j-str">&#34;windows-gui&#34;</span>,
+    <span class="j-key">&#34;image_base&#34;</span>: <span class="j-str">&#34;0x140000000&#34;</span>,
+    <span class="j-key">&#34;entry_point&#34;</span>: <span class="j-str">&#34;0x74dc0&#34;</span>,
+    <span class="j-key">&#34;managed_runtime&#34;</span>: <span class="j-bool">false</span>,
+    <span class="j-key">&#34;imports&#34;</span>: [
+      <span class="j-str">&#34;AddVectoredContinueHandler:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;AddVectoredExceptionHandler:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;CloseHandle:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;CreateEventA:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;CreateIoCompletionPort:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;CreateThread:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;CreateWaitableTimerExW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;DuplicateHandle:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;ExitProcess:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;FreeEnvironmentStringsW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetConsoleMode:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetCurrentThreadId:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetEnvironmentStringsW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetErrorMode:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetProcAddress:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetProcessAffinityMask:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetQueuedCompletionStatusEx:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetStdHandle:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetSystemDirectoryA:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetSystemInfo:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;GetThreadContext:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;LoadLibraryExW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;LoadLibraryW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;PostQueuedCompletionStatus:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;RaiseFailFastException:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;ResumeThread:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;RtlLookupFunctionEntry:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;RtlVirtualUnwind:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetConsoleCtrlHandler:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetErrorMode:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetEvent:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetProcessPriorityBoost:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetThreadContext:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SetWaitableTimer:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SuspendThread:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;SwitchToThread:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;TlsAlloc:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;VirtualAlloc:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;VirtualFree:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;VirtualQuery:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WaitForMultipleObjects:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WaitForSingleObject:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WerGetFlags:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WerSetFlags:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WriteConsoleW:kernel32.dll&#34;</span>,
+      <span class="j-str">&#34;WriteFile:kernel32.dll&#34;</span>
+    ],
+    <span class="j-key">&#34;import_hash&#34;</span>: <span class="j-str">&#34;5292ba861fbedd8ccd6f23c56196bc91&#34;</span>,
+    <span class="j-key">&#34;sections&#34;</span>: [
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.text&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4096</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">1536</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">1355264</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">6.213450979463129</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">true</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.rdata&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">1359872</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">1356800</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">2945536</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">5.840861738139686</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.data&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4308992</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4302336</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">72192</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">4.774543562331177</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">true</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.pdata&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4681728</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4374528</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">22016</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">5.3072605543095</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.xdata&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4706304</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4396544</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">512</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">1.7726656982171303</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.idata&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4710400</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4397056</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">1536</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">3.982728664359946</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">true</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.reloc&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4714496</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4398592</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">16896</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">5.432504373433238</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      },
+      {
+        <span class="j-key">&#34;name&#34;</span>: <span class="j-str">&#34;.symtab&#34;</span>,
+        <span class="j-key">&#34;virtual_address&#34;</span>: <span class="j-num">4734976</span>,
+        <span class="j-key">&#34;raw_offset&#34;</span>: <span class="j-num">4415488</span>,
+        <span class="j-key">&#34;raw_size&#34;</span>: <span class="j-num">128000</span>,
+        <span class="j-key">&#34;entropy&#34;</span>: <span class="j-num">5.117020456743661</span>,
+        <span class="j-key">&#34;executable&#34;</span>: <span class="j-bool">false</span>,
+        <span class="j-key">&#34;writable&#34;</span>: <span class="j-bool">false</span>
+      }
+    ],
+    <span class="j-key">&#34;has_certificate&#34;</span>: <span class="j-bool">true</span>,
+    <span class="j-key">&#34;overlay_offset&#34;</span>: <span class="j-num">4543488</span>,
+    <span class="j-key">&#34;overlay_size&#34;</span>: <span class="j-num">2424</span>,
+    <span class="j-key">&#34;dll_characteristics&#34;</span>: <span class="j-num">33120</span>,
+    <span class="j-key">&#34;security_features&#34;</span>: [
+      <span class="j-str">&#34;ASLR&#34;</span>,
+      <span class="j-str">&#34;DEP&#34;</span>,
+      <span class="j-str">&#34;HighEntropyVA&#34;</span>,
+      <span class="j-str">&#34;TerminalServerAware&#34;</span>
+    ],
+    <span class="j-key">&#34;missing_mitigations&#34;</span>: [
+      <span class="j-str">&#34;CFG&#34;</span>
+    ],
+    <span class="j-key">&#34;image_characteristics&#34;</span>: [
+      <span class="j-str">&#34;EXECUTABLE_IMAGE&#34;</span>,
+      <span class="j-str">&#34;LARGE_ADDRESS_AWARE&#34;</span>
+    ],
+    <span class="j-key">&#34;signed&#34;</span>: <span class="j-bool">true</span>,
+    <span class="j-key">&#34;signature_status&#34;</span>: <span class="j-str">&#34;signature present; 1 certificate(s) recovered&#34;</span>,
+    <span class="j-key">&#34;self_signed&#34;</span>: <span class="j-bool">true</span>,
+    <span class="j-key">&#34;certificate_subjects&#34;</span>: [
+      <span class="j-str">&#34;CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US&#34;</span>
+    ],
+    <span class="j-key">&#34;certificate_issuers&#34;</span>: [
+      <span class="j-str">&#34;CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US&#34;</span>
+    ],
+    <span class="j-key">&#34;entry_point_section&#34;</span>: <span class="j-str">&#34;.text&#34;</span>
+  },
+  <span class="j-key">&#34;code&#34;</span>: {
+    <span class="j-key">&#34;arch&#34;</span>: <span class="j-str">&#34;x86-64&#34;</span>,
+    <span class="j-key">&#34;entry_offset&#34;</span>: <span class="j-num">476096</span>,
+    <span class="j-key">&#34;instructions_decoded&#34;</span>: <span class="j-num">67104</span>,
+    <span class="j-key">&#34;decode_errors&#34;</span>: <span class="j-num">375</span>,
+    <span class="j-key">&#34;indirect_calls&#34;</span>: <span class="j-num">129</span>,
+    <span class="j-key">&#34;indirect_jumps&#34;</span>: <span class="j-num">7</span>,
+    <span class="j-key">&#34;entry_disasm&#34;</span>: [
+      <span class="j-str">&#34;JMP .-14629&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>,
+      <span class="j-str">&#34;INT 0x3&#34;</span>
+    ]
+  },
+  <span class="j-key">&#34;malware_config&#34;</span>: {
+    <span class="j-key">&#34;family&#34;</span>: <span class="j-str">&#34;AsyncRAT&#34;</span>,
+    <span class="j-key">&#34;c2&#34;</span>: [
+      <span class="j-str">&#34;eq.io&#34;</span>,
+      <span class="j-str">&#34;go.dev&#34;</span>,
+      <span class="j-str">&#34;godebugs.info&#34;</span>,
+      <span class="j-str">&#34;https://go.dev/issue/66821):&#34;</span>,
+      <span class="j-str">&#34;time.local&#34;</span>
+    ],
+    <span class="j-key">&#34;campaign_id&#34;</span>: [
+      <span class="j-str">&#34;-8640-nj1i2g1z-0phd-&#34;</span>
+    ]
+  },
+  <span class="j-key">&#34;findings&#34;</span>: [
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Critical&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Chain&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Classic DLL injection chain&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + memory allocation + network&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Process Injection (T1055)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">85</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Critical&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Chain&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Process hollowing chain&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + execution + process access&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">38</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Process Hollowing (T1055.012)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">85</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Chain&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Keylogger with exfiltration&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + network&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">30</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Collection&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Input Capture (T1056)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">70</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Chain&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Named pipe C2 with code injection&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: named pipe C2 + process injection&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">30</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Command and Control&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Non-Application Layer Protocol (T1095)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">70</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Chain&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Credential theft + webhook exfiltration&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process access + network&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">28</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Credential Access&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Credentials from Web Browsers (T1555.003)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Revoke captured credentials and block webhook endpoints found in IOCs.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">70</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Wiper&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Low-level disk write / file deletion API chain&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;DeviceIoControl and file-deletion APIs are combined&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">26</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Impact&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Data Destruction (T1485)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Check for disk sector writes or mass file deletions on affected hosts.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">70</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Cryptominer&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Mining pool connection strings&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;stratum protocol, pool, or miner strings are present&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">26</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Impact&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Resource Hijacking (T1496)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Block outbound stratum protocol connections and scan for miner process artifacts.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">70</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Behavior&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Dynamic API resolution with executable memory&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;LoadLibrary/GetProcAddress and memory permission APIs are present&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">12</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Persistence&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Linux persistence indicator&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;cron, systemd, SSH, preload, or shell profile paths are present&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">12</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Packing&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Multiple high-entropy regions&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;25 high-entropy regions found&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">10</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Packing&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Large high-entropy blob detected&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">8</span>,
+      <span class="j-key">&#34;offset&#34;</span>: <span class="j-num">4333568</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Obfuscated Files or Information (T1027)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">55</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Obfuscation&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Encoded data decoded successfully&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;1 base64/hex/URL encoded artifacts decoded&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">4</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;IOC&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;High IOC density&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;10 total IOCs extracted&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">4</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Configuration&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Static configuration artifacts extracted&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;36 likely configuration or secret-handling artifacts&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">4</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Discovery&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Data from Local System&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;IOC&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Embedded hash-like indicators&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;multiple MD5/SHA1/SHA256-looking values were extracted&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">3</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;PE Posture&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;PE has a self-signed certificate&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">3</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">40</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Info&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;PE Posture&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;PE missing some exploit mitigations&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;missing: CFG&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">0</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">30</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Info&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Classifier&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Malware family hypothesis&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;Generic ransomware (High)&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">0</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">30</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">1</span>
+    },
+    {
+      <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Info&#34;</span>,
+      <span class="j-key">&#34;category&#34;</span>: <span class="j-str">&#34;Configuration&#34;</span>,
+      <span class="j-key">&#34;title&#34;</span>: <span class="j-str">&#34;Malware configuration recovered&#34;</span>,
+      <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;AsyncRAT configuration extracted: 5 C2, 1 campaign-id&#34;</span>,
+      <span class="j-key">&#34;score&#34;</span>: <span class="j-num">0</span>,
+      <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Command and Control&#34;</span>,
+      <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Application Layer Protocol (T1071)&#34;</span>,
+      <span class="j-key">&#34;recommendation&#34;</span>: <span class="j-str">&#34;Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.&#34;</span>,
+      <span class="j-key">&#34;confidence&#34;</span>: <span class="j-num">80</span>,
+      <span class="j-key">&#34;evidence_count&#34;</span>: <span class="j-num">6</span>
+    }
+  ],
+  <span class="j-key">&#34;profile&#34;</span>: {
+    <span class="j-key">&#34;classification&#34;</span>: <span class="j-str">&#34;Likely malicious&#34;</span>,
+    <span class="j-key">&#34;malware_type&#34;</span>: [
+      <span class="j-str">&#34;AsyncRAT&#34;</span>,
+      <span class="j-str">&#34;FormBook/XLoader&#34;</span>,
+      <span class="j-str">&#34;Generic ransomware&#34;</span>,
+      <span class="j-str">&#34;XWorm&#34;</span>
+    ],
+    <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+    <span class="j-key">&#34;confidence_score&#34;</span>: <span class="j-num">100</span>,
+    <span class="j-key">&#34;business_impact&#34;</span>: [
+      <span class="j-str">&#34;Embedded artifact carving found additional payload-like content by offset and hash; preserve the original container and analyze carved hashes in an isolated lab.&#34;</span>,
+      <span class="j-str">&#34;Potential Unix/Linux persistence indicators; validate whether paths are application resources or operational scripts.&#34;</span>
+    ],
+    <span class="j-key">&#34;key_capabilities&#34;</span>: [
+      <span class="j-str">&#34;Cryptographic secret handling&#34;</span>,
+      <span class="j-str">&#34;Embedded artifact carrier&#34;</span>,
+      <span class="j-str">&#34;Static configuration artifacts&#34;</span>,
+      <span class="j-str">&#34;Unix/Linux persistence artifact references&#34;</span>
+    ],
+    <span class="j-key">&#34;recommended_actions&#34;</span>: [
+      <span class="j-str">&#34;Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.&#34;</span>,
+      <span class="j-str">&#34;Block outbound stratum protocol connections and scan for miner process artifacts.&#34;</span>,
+      <span class="j-str">&#34;Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.&#34;</span>,
+      <span class="j-str">&#34;Check for disk sector writes or mass file deletions on affected hosts.&#34;</span>,
+      <span class="j-str">&#34;Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.&#34;</span>,
+      <span class="j-str">&#34;Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.&#34;</span>,
+      <span class="j-str">&#34;Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.&#34;</span>,
+      <span class="j-str">&#34;Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.&#34;</span>,
+      <span class="j-str">&#34;Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.&#34;</span>,
+      <span class="j-str">&#34;Revoke captured credentials and block webhook endpoints found in IOCs.&#34;</span>
+    ],
+    <span class="j-key">&#34;ttps&#34;</span>: [
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Collection&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Input Capture (T1056)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1056&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + network&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Keylogger with exfiltration&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Command and Control&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Application Layer Protocol (T1071)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1071&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Info&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Info&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;AsyncRAT configuration extracted: 5 C2, 1 campaign-id&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Malware configuration recovered&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Command and Control&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Non-Application Layer Protocol (T1095)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1095&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: named pipe C2 + process injection&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Named pipe C2 with code injection&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Credential Access&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Credentials from Web Browsers (T1555.003)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1555.003&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process access + network&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Credential theft + webhook exfiltration&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Obfuscated Files or Information (T1027)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1027&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Large high-entropy blob detected&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Process Hollowing (T1055.012)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1055.012&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Critical&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + execution + process access&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Process hollowing chain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Defense Evasion&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Process Injection (T1055)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1055&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Critical&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;behavioral API chain: process injection + memory allocation + network&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Classic DLL injection chain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Discovery&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Data from Local System&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Low&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;36 likely configuration or secret-handling artifacts&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Static configuration artifacts extracted&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Impact&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Data Destruction (T1485)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1485&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;DeviceIoControl and file-deletion APIs are combined&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Low-level disk write / file deletion API chain&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;tactic&#34;</span>: <span class="j-str">&#34;Impact&#34;</span>,
+        <span class="j-key">&#34;technique&#34;</span>: <span class="j-str">&#34;Resource Hijacking (T1496)&#34;</span>,
+        <span class="j-key">&#34;id&#34;</span>: <span class="j-str">&#34;T1496&#34;</span>,
+        <span class="j-key">&#34;severity&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;High&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;stratum protocol, pool, or miner strings are present&#34;</span>,
+        <span class="j-key">&#34;finding&#34;</span>: <span class="j-str">&#34;Mining pool connection strings&#34;</span>
+      }
+    ],
+    <span class="j-key">&#34;crypto_indicators&#34;</span>: [
+      {
+        <span class="j-key">&#34;primitive&#34;</span>: <span class="j-str">&#34;Encoding/obfuscation layer&#34;</span>,
+        <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;decoded strings&#34;</span>,
+        <span class="j-key">&#34;purpose&#34;</span>: <span class="j-str">&#34;Static obfuscation or configuration wrapping&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;1 decoded artifacts&#34;</span>
+      },
+      {
+        <span class="j-key">&#34;primitive&#34;</span>: <span class="j-str">&#34;Symmetric crypto markers&#34;</span>,
+        <span class="j-key">&#34;source&#34;</span>: <span class="j-str">&#34;application strings&#34;</span>,
+        <span class="j-key">&#34;purpose&#34;</span>: <span class="j-str">&#34;Possible AES-GCM or authenticated decryption logic&#34;</span>,
+        <span class="j-key">&#34;confidence&#34;</span>: <span class="j-str">&#34;Medium&#34;</span>,
+        <span class="j-key">&#34;evidence&#34;</span>: <span class="j-str">&#34;AES/GCM/tag/IV/nonce style strings&#34;</span>
+      }
+    ],
+    <span class="j-key">&#34;expected_behavior&#34;</span>: [
+      <span class="j-str">&#34;Accesses stored credentials/browser secrets (watch for reads of LSASS, Login Data, or Local State)&#34;</span>,
+      <span class="j-str">&#34;Establishes persistence (watch for Run-key writes, scheduled tasks, or service creation)&#34;</span>,
+      <span class="j-str">&#34;Captures keystrokes (watch for low-level keyboard hooks / GetAsyncKeyState loops)&#34;</span>,
+      <span class="j-str">&#34;Consumes CPU/GPU for cryptomining (watch for stratum connections and sustained resource use)&#34;</span>
+    ],
+    <span class="j-key">&#34;executive_assessment&#34;</span>: <span class="j-str">&#34;The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.&#34;</span>
+  },
+  <span class="j-key">&#34;risk_score&#34;</span>: <span class="j-num">100</span>,
+  <span class="j-key">&#34;score_breakdown&#34;</span>: {
+    <span class="j-key">&#34;Behavior&#34;</span>: <span class="j-num">12</span>,
+    <span class="j-key">&#34;Chain&#34;</span>: <span class="j-num">166</span>,
+    <span class="j-key">&#34;Configuration&#34;</span>: <span class="j-num">4</span>,
+    <span class="j-key">&#34;Cryptominer&#34;</span>: <span class="j-num">26</span>,
+    <span class="j-key">&#34;IOC&#34;</span>: <span class="j-num">7</span>,
+    <span class="j-key">&#34;Obfuscation&#34;</span>: <span class="j-num">4</span>,
+    <span class="j-key">&#34;PE Posture&#34;</span>: <span class="j-num">3</span>,
+    <span class="j-key">&#34;Packing&#34;</span>: <span class="j-num">18</span>,
+    <span class="j-key">&#34;Persistence&#34;</span>: <span class="j-num">12</span>,
+    <span class="j-key">&#34;Wiper&#34;</span>: <span class="j-num">26</span>
+  },
+  <span class="j-key">&#34;verdict&#34;</span>: <span class="j-str">&#34;Likely malicious&#34;</span>,
+  <span class="j-key">&#34;debug_log&#34;</span>: [
+    <span class="j-str">&#34;[DEBUG] scan started at 2026-08-13T18:18:27Z&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] retained 4545912 bytes for analysis; truncated=false&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] detected file type: PE executable; mime hint: application/octet-stream&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] extracted 15759 strings; total candidates=15759; truncated=false&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] decoded artifacts: 1&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] corpus built once: 299870 bytes&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] safe carving found 9 artifacts&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] high-entropy blob: offset=0x422000 entropy=8.00&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] plugin high-entropy-blob-detector: completed in 7.818096ms&#34;</span>,
+    <span class="j-str">&#34;[DEBUG] plugin suspicious-import-combinator: completed in 10.711µs&#34;</span>
+  ]
+}</pre></div></section></main><script>
+function toggleTheme(){
+  var h=document.documentElement;
+  h.setAttribute('data-theme', h.getAttribute('data-theme')==='dark'?'light':'dark');
+}
+function filterFindings(sev){
+  document.querySelectorAll('.filter-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.textContent===sev);
+  });
+  document.querySelectorAll('.finding-card').forEach(function(card){
+    card.style.display=(sev==='All'||card.dataset.sev===sev)?'block':'none';
+  });
+}
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('onclick').indexOf("'"+id+"'")>-1);
+  });
+  document.querySelectorAll('.tab-panel').forEach(function(p){
+    p.classList.toggle('active', p.id==='tab-'+id);
+  });
+}
+function filterIOCs(input, listId){
+  var q=input.value.toLowerCase();
+  document.querySelectorAll('#'+listId+' .ioc-row').forEach(function(row){
+    row.style.display=row.querySelector('.ioc-val').textContent.toLowerCase().indexOf(q)>-1?'':'none';
+  });
+}
+function copyIOC(btn, val){
+  navigator.clipboard.writeText(val).then(function(){
+    btn.textContent='✓';
+    btn.classList.add('copied');
+    setTimeout(function(){btn.textContent='copy';btn.classList.remove('copied');},1500);
+  });
+}
+function copyAll(){
+  var el=document.getElementById('raw-json');
+  navigator.clipboard.writeText(el.innerText);
+}
+function globalSearch(q){
+  q=q.toLowerCase().trim();
+  var count=0;
+  document.querySelectorAll('.finding-card').forEach(function(card){
+    var text=card.textContent.toLowerCase();
+    var show=!q||text.indexOf(q)>-1;
+    card.style.display=show?'block':'none';
+    if(show&&q) count++;
+  });
+  document.querySelectorAll('.ioc-row').forEach(function(row){
+    var text=row.textContent.toLowerCase();
+    var show=!q||text.indexOf(q)>-1;
+    row.style.display=show?'':'none';
+    if(show&&q) count++;
+  });
+  var counter=document.getElementById('search-count');
+  if(counter){counter.textContent=q?'Matches: '+count:'';}
+}
+</script></body></html>

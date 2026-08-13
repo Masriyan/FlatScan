@@ -11,7 +11,7 @@ FlatScan is an **offline, single-binary static malware analysis tool** written i
 - **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook, XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT, and more. Naming a family requires a name marker plus corroborating evidence, so a packed sample falls back to a generic bucket rather than a guessed attribution.
 - **IOC extraction, triage & categorization** with confidence scoring and multi-evidence correlation.
 - **CAPA-style capability rules**, malware-config extraction, DGA scoring, similarity matching, offline threat-intel enrichment.
-- **Many outputs** — terminal report, JSON, CSV/JSONL, PDF, HTML, YARA, Sigma, STIX 2.1, IOC text export, zipped report-pack.
+- **Many outputs** — terminal report, JSON, CSV/JSONL, PDF, HTML, YARA, Sigma, STIX 2.1, IOC text export, and a ten-file report pack (see `reports/vidar.exe.pack/` for a published example).
 - **Five run modes** — single-file, batch, watch, interactive wizard, manual shell, plus a localhost-only web GUI.
 - **CI/CD ready** — machine-readable stderr line and a deterministic exit-code contract for gating builds.
 - **Zero third-party dependencies** except `golang.org/x/arch` (used for disassembly).

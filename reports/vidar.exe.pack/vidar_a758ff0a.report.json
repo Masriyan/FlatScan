@@ -1,0 +1,1471 @@
+{
+  "tool": "FlatScan",
+  "version": "0.10.2",
+  "mode": "deep",
+  "target": "/tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe",
+  "file_name": "vidar.exe",
+  "size": 4545912,
+  "analyzed_bytes": 4545912,
+  "truncated_analysis": false,
+  "duration": "1.314302253s",
+  "file_type": "PE executable",
+  "mime_hint": "application/octet-stream",
+  "hashes": {
+    "md5": "b971e00a0514a9dd90ae4147fd2be083",
+    "sha1": "814b4d722a9bc8eff65d7833ccf9b47cf486c3f2",
+    "sha256": "a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc",
+    "sha512": "4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487ec6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f"
+  },
+  "entropy": 6.169369583141848,
+  "entropy_assessment": "normal",
+  "high_entropy_regions": [
+    {
+      "offset": 2523136,
+      "length": 65536,
+      "entropy": 7.92773732222351
+    },
+    {
+      "offset": 2555904,
+      "length": 65536,
+      "entropy": 7.982698532119381
+    },
+    {
+      "offset": 2588672,
+      "length": 65536,
+      "entropy": 7.978134313614116
+    },
+    {
+      "offset": 2621440,
+      "length": 65536,
+      "entropy": 7.97701912437967
+    },
+    {
+      "offset": 2654208,
+      "length": 65536,
+      "entropy": 7.969831770199067
+    },
+    {
+      "offset": 2686976,
+      "length": 65536,
+      "entropy": 7.96576322324637
+    },
+    {
+      "offset": 2719744,
+      "length": 65536,
+      "entropy": 7.907063761067209
+    },
+    {
+      "offset": 2752512,
+      "length": 65536,
+      "entropy": 7.829163330238855
+    },
+    {
+      "offset": 2785280,
+      "length": 65536,
+      "entropy": 7.854265608363128
+    },
+    {
+      "offset": 2818048,
+      "length": 65536,
+      "entropy": 7.854591473442746
+    },
+    {
+      "offset": 2850816,
+      "length": 65536,
+      "entropy": 7.849052846107658
+    },
+    {
+      "offset": 2883584,
+      "length": 65536,
+      "entropy": 7.842889135939328
+    },
+    {
+      "offset": 2916352,
+      "length": 65536,
+      "entropy": 7.830827525394086
+    },
+    {
+      "offset": 2949120,
+      "length": 65536,
+      "entropy": 7.822486970515632
+    },
+    {
+      "offset": 2981888,
+      "length": 65536,
+      "entropy": 7.827196877249139
+    },
+    {
+      "offset": 3014656,
+      "length": 65536,
+      "entropy": 7.822545362469797
+    },
+    {
+      "offset": 3047424,
+      "length": 65536,
+      "entropy": 7.827315809747849
+    },
+    {
+      "offset": 3080192,
+      "length": 65536,
+      "entropy": 7.83534968872702
+    },
+    {
+      "offset": 3112960,
+      "length": 65536,
+      "entropy": 7.795827328667212
+    },
+    {
+      "offset": 3145728,
+      "length": 65536,
+      "entropy": 7.768613389581242
+    },
+    {
+      "offset": 3178496,
+      "length": 65536,
+      "entropy": 7.79164515048783
+    },
+    {
+      "offset": 3211264,
+      "length": 65536,
+      "entropy": 7.835145561993697
+    },
+    {
+      "offset": 3244032,
+      "length": 65536,
+      "entropy": 7.857760304668136
+    },
+    {
+      "offset": 3276800,
+      "length": 65536,
+      "entropy": 7.837804455429879
+    },
+    {
+      "offset": 3309568,
+      "length": 65536,
+      "entropy": 7.8013130874450045
+    }
+  ],
+  "strings_total": 15759,
+  "strings_truncated": false,
+  "suspicious_strings": [
+    "Decrypt",
+    "Encrypt",
+    "lock: lock countbad system huge page sizearena already initialized to unused region of span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing typ...",
+    "crypto/internal/fips140/aes.encryptBlock",
+    "crypto/internal/fips140/aes.decryptBlock",
+    "crypto/internal/fips140/aes.encryptBlockGeneric",
+    "crypto/internal/fips140/aes.decryptBlockGeneric",
+    "crypto/internal/fips140/aes.(*CBCEncrypter).CryptBlocks",
+    "crypto/internal/fips140/aes.(*CBCDecrypter).CryptBlocks",
+    "crypto/internal/fips140/aes.NewCBCEncrypter",
+    "crypto/internal/fips140/aes.NewCBCDecrypter",
+    "crypto/internal/fips140/aes.encryptBlockAsm",
+    "crypto/internal/fips140/aes.decryptBlockAsm",
+    "crypto/internal/fips140/aes.EncryptBlockInternal",
+    "VirtualAlloc",
+    "crypto/internal/fips140/aes.encryptBlockAsm.abi0",
+    "crypto/internal/fips140/aes.decryptBlockAsm.abi0"
+  ],
+  "functions": [
+    {
+      "name": "VirtualAlloc",
+      "family": "memory allocation",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "OpenProcess",
+      "family": "process access",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "SetThreadContext",
+      "family": "process injection",
+      "severity": "High",
+      "source": "strings/imports"
+    },
+    {
+      "name": "GetThreadContext",
+      "family": "process access",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "ResumeThread",
+      "family": "process injection",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "GetVolumeInformation",
+      "family": "sandbox fingerprinting",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "LoadLibrary",
+      "family": "dynamic loading",
+      "severity": "Low",
+      "source": "strings/imports"
+    },
+    {
+      "name": "GetProcAddress",
+      "family": "dynamic loading",
+      "severity": "Low",
+      "source": "strings/imports"
+    },
+    {
+      "name": "WSAStartup",
+      "family": "network",
+      "severity": "Low",
+      "source": "strings/imports"
+    },
+    {
+      "name": "CreateNamedPipe",
+      "family": "named pipe C2",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "RegSetValue",
+      "family": "persistence",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "CreateProcess",
+      "family": "execution",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "ptrace",
+      "family": "linux anti-debug/process access",
+      "severity": "Medium",
+      "source": "strings/imports"
+    },
+    {
+      "name": "GetProcAddress",
+      "family": "dynamic loading",
+      "severity": "Low",
+      "source": "pe imports"
+    },
+    {
+      "name": "GetThreadContext",
+      "family": "process access",
+      "severity": "Medium",
+      "source": "pe imports"
+    },
+    {
+      "name": "LoadLibrary",
+      "family": "dynamic loading",
+      "severity": "Low",
+      "source": "pe imports"
+    },
+    {
+      "name": "LoadLibrary",
+      "family": "dynamic loading",
+      "severity": "Low",
+      "source": "pe imports"
+    },
+    {
+      "name": "ResumeThread",
+      "family": "process injection",
+      "severity": "Medium",
+      "source": "pe imports"
+    },
+    {
+      "name": "SetThreadContext",
+      "family": "process injection",
+      "severity": "High",
+      "source": "pe imports"
+    },
+    {
+      "name": "VirtualAlloc",
+      "family": "memory allocation",
+      "severity": "Medium",
+      "source": "pe imports"
+    }
+  ],
+  "decoded_artifacts": [
+    {
+      "encoding": "hex",
+      "source": "ascii string at offset 2499462",
+      "preview": "DDDDDDDD",
+      "iocs": {}
+    }
+  ],
+  "iocs": {
+    "urls": [
+      "https://go.dev/issue/66821):"
+    ],
+    "domains": [
+      "eq.io",
+      "go.dev",
+      "godebugs.info",
+      "time.local"
+    ],
+    "md5": [
+      "dddddddddddddddddddddddddddddddd",
+      "eddddddddddddddddddddddddddddddd"
+    ],
+    "sha256": [
+      "0000000000000000000000000000000000000000000000000000000000000000",
+      "5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae",
+      "aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc"
+    ],
+    "classified": [
+      {
+        "type": "url",
+        "value": "https://go.dev/issue/66821):",
+        "category": "ioc",
+        "confidence": 72,
+        "context": "network URL"
+      },
+      {
+        "type": "domain",
+        "value": "eq.io",
+        "category": "ioc",
+        "confidence": 55,
+        "context": "domain"
+      },
+      {
+        "type": "domain",
+        "value": "go.dev",
+        "category": "ioc",
+        "confidence": 55,
+        "context": "domain"
+      },
+      {
+        "type": "domain",
+        "value": "godebugs.info",
+        "category": "ioc",
+        "confidence": 55,
+        "context": "domain"
+      },
+      {
+        "type": "domain",
+        "value": "time.local",
+        "category": "ioc",
+        "confidence": 55,
+        "context": "domain"
+      },
+      {
+        "type": "md5",
+        "value": "dddddddddddddddddddddddddddddddd",
+        "category": "ioc",
+        "confidence": 58,
+        "context": "embedded hash"
+      },
+      {
+        "type": "md5",
+        "value": "eddddddddddddddddddddddddddddddd",
+        "category": "ioc",
+        "confidence": 58,
+        "context": "embedded hash"
+      },
+      {
+        "type": "sha256",
+        "value": "0000000000000000000000000000000000000000000000000000000000000000",
+        "category": "ioc",
+        "confidence": 58,
+        "context": "embedded hash"
+      },
+      {
+        "type": "sha256",
+        "value": "5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae",
+        "category": "ioc",
+        "confidence": 58,
+        "context": "embedded hash"
+      },
+      {
+        "type": "sha256",
+        "value": "aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc",
+        "category": "ioc",
+        "confidence": 58,
+        "context": "embedded hash"
+      }
+    ]
+  },
+  "plugins": [
+    {
+      "name": "similarity",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "computed FlatHash and structural similarity hashes"
+    },
+    {
+      "name": "safe-carver",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "9 embedded artifacts reported"
+    },
+    {
+      "name": "crypto-config-extractor",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "36 config artifacts",
+      "findings": 36
+    },
+    {
+      "name": "family-classifier",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "5 family hypotheses",
+      "findings": 5
+    },
+    {
+      "name": "high-entropy-blob-detector",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "1 findings added",
+      "findings": 1
+    },
+    {
+      "name": "suspicious-import-combinator",
+      "version": "0.10.2",
+      "status": "complete",
+      "summary": "0 findings added"
+    }
+  ],
+  "carved_artifacts": [
+    {
+      "type": "Gzip compressed data",
+      "offset": 409990,
+      "length": 84579,
+      "sha256": "7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c",
+      "entropy": 6.158892797740027,
+      "reason": "embedded gzip stream magic",
+      "preview": "D$(HcD$",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 494569,
+      "length": 82851,
+      "sha256": "aafa93cf1a0b9c1213b71e7cd3457ad2f8d227f04f5fd8dd90b862c8a7ef2345",
+      "entropy": 6.255999400059949,
+      "reason": "embedded gzip stream magic",
+      "preview": "M9,$u",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 577420,
+      "length": 1980002,
+      "sha256": "1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab",
+      "entropy": 4.21220832415445,
+      "reason": "embedded gzip stream magic",
+      "preview": "P H9S u",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 2557422,
+      "length": 159262,
+      "sha256": "f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c",
+      "entropy": 7.979967396237717,
+      "reason": "embedded gzip stream magic",
+      "preview": "'\\5:%",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 2716684,
+      "length": 6535,
+      "sha256": "e0602f420d5dd7e3048e59d7a253c79d0ee2c105fd38673dcf10f4f3cc1eafbc",
+      "entropy": 7.947959008142692,
+      "reason": "embedded gzip stream magic",
+      "preview": "UDl)R",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 2723219,
+      "length": 760214,
+      "sha256": "f4e3604630af10094c0da49a63b44ccc4bec3bbb22ae3c4e5e54c3fc5c657dbb",
+      "entropy": 7.8344918652445426,
+      "reason": "embedded gzip stream magic",
+      "preview": "J|8\"VQi",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 3483433,
+      "length": 36352,
+      "sha256": "fdb05f580b2120c72a248f1f1be9223eccd02b4b3f5f1aef24bc431e87af07b5",
+      "entropy": 7.762435788742667,
+      "reason": "embedded gzip stream magic",
+      "preview": "f~.H#",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 3519785,
+      "length": 61255,
+      "sha256": "e2ab2a9190408f32f67732d3058cefd71b067140abff7dd580e7904f4c332d86",
+      "entropy": 7.8504671341695635,
+      "reason": "embedded gzip stream magic",
+      "preview": "f~\u0026H#",
+      "contained": true
+    },
+    {
+      "type": "Gzip compressed data",
+      "offset": 3581040,
+      "length": 964872,
+      "sha256": "00dbde7568817ae1f9f1f5a33f880780977ee728da2bcf75547fdd3d189c8a00",
+      "entropy": 6.187295215772408,
+      "reason": "embedded gzip stream magic",
+      "preview": "EvU?:",
+      "contained": true
+    }
+  ],
+  "family_matches": [
+    {
+      "family": "Generic ransomware",
+      "category": "ransomware",
+      "confidence": "High",
+      "score": 90,
+      "evidence": [
+        "ransomware strings or findings"
+      ]
+    },
+    {
+      "family": "AsyncRAT",
+      "category": "rat",
+      "confidence": "Medium-High",
+      "score": 89,
+      "evidence": [
+        "named-family fingerprint",
+        "ops"
+      ]
+    },
+    {
+      "family": "FormBook/XLoader",
+      "category": "stealer",
+      "confidence": "Medium-High",
+      "score": 89,
+      "evidence": [
+        "named-family fingerprint",
+        "ops"
+      ]
+    },
+    {
+      "family": "XWorm",
+      "category": "rat",
+      "confidence": "Medium-High",
+      "score": 89,
+      "evidence": [
+        "named-family fingerprint",
+        "ops"
+      ]
+    },
+    {
+      "family": "Packed or bundled payload",
+      "category": "dropper",
+      "confidence": "Medium",
+      "score": 55,
+      "evidence": [
+        "9 carved artifacts"
+      ]
+    }
+  ],
+  "config_artifacts": [
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x14f5c2",
+      "preview": "runtime.mutex",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x177933",
+      "preview": "sync.Mutex.Lockruntime.Goschedmalloc",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x178279",
+      "preview": "sync.RWMutex.Lockwait",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x1785a1",
+      "preview": "exhaustionlocked",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x17a63a",
+      "preview": "nmspinningstartlockedm",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x17e212",
+      "preview": "overlappingmheap.freeSpanLocked",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x37e0fd",
+      "preview": "runtime.mutexPreferLowLatency",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x37e12b",
+      "preview": "runtime.mutexWaitListHead",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x37e196",
+      "preview": "runtime.mutexSampleContention",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x383cb4",
+      "preview": "runtime.waitReason.isMutexWait",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x3882ba",
+      "preview": "runtime.totalMutexWaitTimeNanos",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x388ce3",
+      "preview": "sync.runtime_SemacquireMutex",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x38b1bb",
+      "preview": "eq.sync.Mutex",
+      "iocs": {}
+    },
+    {
+      "type": "mutex-candidate",
+      "source": "ascii",
+      "confidence": "Low",
+      "evidence": "mutex-like string at offset 0x451d97",
+      "preview": "runtime.mutexprofilerate",
+      "iocs": {}
+    },
+    {
+      "type": "cryptocurrency-wallet",
+      "source": "strings",
+      "confidence": "Medium",
+      "evidence": "Bitcoin-style wallet address",
+      "preview": "1907348632812595367431640625asynctimerchanuserarenastategc",
+      "iocs": {}
+    },
+    {
+      "type": "cryptocurrency-wallet",
+      "source": "strings",
+      "confidence": "Medium",
+      "evidence": "Bitcoin-style wallet address",
+      "preview": "180123456789abcdefghijklmnopqrstuvwxyzstrings",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x16c",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x107c0",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x19902",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x1992a",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x1dd1e",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x26453",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x26473",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x26493",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x264b3",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x264dc",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x2650a",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x31e2b",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x419c4",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x43d85",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x43d92",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x440c3",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x4420b",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x44297",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x442cd",
+      "iocs": {}
+    },
+    {
+      "type": "embedded-compressed-blob",
+      "source": "raw-bytes",
+      "confidence": "Low",
+      "evidence": "compressed stream magic found in file body",
+      "preview": "zlib at 0x44391",
+      "iocs": {}
+    }
+  ],
+  "crypto_config": {
+    "encodings": [
+      "hex"
+    ],
+    "crypto_markers": [
+      "aes",
+      "chacha",
+      "iv",
+      "rsa"
+    ],
+    "embedded_compressed": [
+      "zlib at 0x16c",
+      "zlib at 0x107c0",
+      "zlib at 0x19902",
+      "zlib at 0x1992a",
+      "zlib at 0x1dd1e",
+      "zlib at 0x26453",
+      "zlib at 0x26473",
+      "zlib at 0x26493",
+      "zlib at 0x264b3",
+      "zlib at 0x264dc",
+      "zlib at 0x2650a",
+      "zlib at 0x31e2b"
+    ],
+    "config_artifacts": 36
+  },
+  "similarity": {
+    "flat_hash": "FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f98a4a4a762e79aa303b012fb2ce2337c813432b8da45664fb14eaaee8b4697275133e607d4509a08a4eebe8fc960fcb0844b7909d75386488189ed6f529ab2de212547dccc5fb160d955c8aa1a4cb0533aeb824feca320e61aea35b5cd09bd9ad88b43b0de653ce838caa8476f11201b971ee4dea76ad38a8d04d66136ae8c5635d23df924b423a7e9df54eb70c76888b6d540632e37b68560897e7be3396b68635cf1facb6d11594c5928d872e0c63139f211d4b99121803bed977c83f670e870ccf02ba0794469152a7dab7191331b12071a19ec31337b74e9349d14e3dca5295471d43fe45324fa8fc2032efc9a580169cdd16b3c7bb875ec4e34e458aaa7cc3e69ca3e04f9504ea71e0a9c5dc92c2f97faa306062f1e1acb26ddc529e0484b1110950f917897ffc4cf567087be4b6e8bbd0d97c2a9a3232872c1de090056c12add9f5de3e23f49516b218077c6ff303fe42b4f23faafcc0a4f42833a246a49c11e719420ddad3de19be99af51a351f56fe1f5f8750b0b75c49f61768d60e3428541ab71dd25ea92adfa00117dc6b50509ef603626935ff430a7256d395850cc80e5679cf09f9b485948e647921da8edb0856be4b14fb5229fb28740d40ca2138ba15cafe4948c129b77503302da5612f77fd2b5fee759c2e4d251fd09dd063cce272adbc105e151c2b247df4c772cb72147d50488592292c10f4515e00576236353627909c8f288a2f6ea9715a13ede24014026d588d8aa3f66e229eb5e178ea490aa5d5ec8c331a742ce961f490775cfec9e69aa1463ede4f46a055fc6cafcd1965a6e078b289b0b236bee112da11c9863da0e9457092e51246031630c319cadfbe1188b4c23d3bc59c7d1998eae59f173d2d41f2e6aecb4a6812f270e1536ee211e78df1e68b2366148bdae38e74c7eaa28d2479b1e192ef7116de23155e4f096a47c52e971983f93894a587f6d86ed74b8236e61ba2793d7ccc1762c29f758e103f7f3ff5390a2e2045d594a79f183e41070726d3021a36de4e1043834ba42b8690096be93f63b8e4f43b18ac29e61a387c756d27d0381d4646f61eb869b0fd54a8a71feff69d1971d3c9d23f2040ad4858568b6e59d38de11838f7b6c63fb50577971bbf5cee0b5d5b63f19821750fd1de3b5f107f4da39d07667fd9623329aee571041574980e642c19c88ec91e03c9c5dd3ca9d24c42effce5e821405cd93619cf2752765bc209cb9a1447d02abb1358c4fdbbbe44c66fa275dfc9ed330658f4bb04e4dce5272abd0b464f4801a7757b64e6138f6fb7bc9813595f0ab49157fa128563e7a9b90ab66dfe28c1d0657747555a10a91dac5e0ce8c537e754e4eef04d55c7c68e660cbb73ce6a0fcfcf3a4ced3f0256e8e10ce523a5066",
+    "byte_histogram_hash": "580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec",
+    "string_set_hash": "57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a",
+    "import_hash": "2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6",
+    "section_hash": "9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff"
+  },
+  "pe": {
+    "machine": "amd64",
+    "timestamp": "1970-01-01T00:00:00Z",
+    "subsystem": "windows-gui",
+    "image_base": "0x140000000",
+    "entry_point": "0x74dc0",
+    "managed_runtime": false,
+    "imports": [
+      "AddVectoredContinueHandler:kernel32.dll",
+      "AddVectoredExceptionHandler:kernel32.dll",
+      "CloseHandle:kernel32.dll",
+      "CreateEventA:kernel32.dll",
+      "CreateIoCompletionPort:kernel32.dll",
+      "CreateThread:kernel32.dll",
+      "CreateWaitableTimerExW:kernel32.dll",
+      "DuplicateHandle:kernel32.dll",
+      "ExitProcess:kernel32.dll",
+      "FreeEnvironmentStringsW:kernel32.dll",
+      "GetConsoleMode:kernel32.dll",
+      "GetCurrentThreadId:kernel32.dll",
+      "GetEnvironmentStringsW:kernel32.dll",
+      "GetErrorMode:kernel32.dll",
+      "GetProcAddress:kernel32.dll",
+      "GetProcessAffinityMask:kernel32.dll",
+      "GetQueuedCompletionStatusEx:kernel32.dll",
+      "GetStdHandle:kernel32.dll",
+      "GetSystemDirectoryA:kernel32.dll",
+      "GetSystemInfo:kernel32.dll",
+      "GetThreadContext:kernel32.dll",
+      "LoadLibraryExW:kernel32.dll",
+      "LoadLibraryW:kernel32.dll",
+      "PostQueuedCompletionStatus:kernel32.dll",
+      "RaiseFailFastException:kernel32.dll",
+      "ResumeThread:kernel32.dll",
+      "RtlLookupFunctionEntry:kernel32.dll",
+      "RtlVirtualUnwind:kernel32.dll",
+      "SetConsoleCtrlHandler:kernel32.dll",
+      "SetErrorMode:kernel32.dll",
+      "SetEvent:kernel32.dll",
+      "SetProcessPriorityBoost:kernel32.dll",
+      "SetThreadContext:kernel32.dll",
+      "SetWaitableTimer:kernel32.dll",
+      "SuspendThread:kernel32.dll",
+      "SwitchToThread:kernel32.dll",
+      "TlsAlloc:kernel32.dll",
+      "VirtualAlloc:kernel32.dll",
+      "VirtualFree:kernel32.dll",
+      "VirtualQuery:kernel32.dll",
+      "WaitForMultipleObjects:kernel32.dll",
+      "WaitForSingleObject:kernel32.dll",
+      "WerGetFlags:kernel32.dll",
+      "WerSetFlags:kernel32.dll",
+      "WriteConsoleW:kernel32.dll",
+      "WriteFile:kernel32.dll"
+    ],
+    "import_hash": "5292ba861fbedd8ccd6f23c56196bc91",
+    "sections": [
+      {
+        "name": ".text",
+        "virtual_address": 4096,
+        "raw_offset": 1536,
+        "raw_size": 1355264,
+        "entropy": 6.213450979463129,
+        "executable": true,
+        "writable": false
+      },
+      {
+        "name": ".rdata",
+        "virtual_address": 1359872,
+        "raw_offset": 1356800,
+        "raw_size": 2945536,
+        "entropy": 5.840861738139686,
+        "executable": false,
+        "writable": false
+      },
+      {
+        "name": ".data",
+        "virtual_address": 4308992,
+        "raw_offset": 4302336,
+        "raw_size": 72192,
+        "entropy": 4.774543562331177,
+        "executable": false,
+        "writable": true
+      },
+      {
+        "name": ".pdata",
+        "virtual_address": 4681728,
+        "raw_offset": 4374528,
+        "raw_size": 22016,
+        "entropy": 5.3072605543095,
+        "executable": false,
+        "writable": false
+      },
+      {
+        "name": ".xdata",
+        "virtual_address": 4706304,
+        "raw_offset": 4396544,
+        "raw_size": 512,
+        "entropy": 1.7726656982171303,
+        "executable": false,
+        "writable": false
+      },
+      {
+        "name": ".idata",
+        "virtual_address": 4710400,
+        "raw_offset": 4397056,
+        "raw_size": 1536,
+        "entropy": 3.982728664359946,
+        "executable": false,
+        "writable": true
+      },
+      {
+        "name": ".reloc",
+        "virtual_address": 4714496,
+        "raw_offset": 4398592,
+        "raw_size": 16896,
+        "entropy": 5.432504373433238,
+        "executable": false,
+        "writable": false
+      },
+      {
+        "name": ".symtab",
+        "virtual_address": 4734976,
+        "raw_offset": 4415488,
+        "raw_size": 128000,
+        "entropy": 5.117020456743661,
+        "executable": false,
+        "writable": false
+      }
+    ],
+    "has_certificate": true,
+    "overlay_offset": 4543488,
+    "overlay_size": 2424,
+    "dll_characteristics": 33120,
+    "security_features": [
+      "ASLR",
+      "DEP",
+      "HighEntropyVA",
+      "TerminalServerAware"
+    ],
+    "missing_mitigations": [
+      "CFG"
+    ],
+    "image_characteristics": [
+      "EXECUTABLE_IMAGE",
+      "LARGE_ADDRESS_AWARE"
+    ],
+    "signed": true,
+    "signature_status": "signature present; 1 certificate(s) recovered",
+    "self_signed": true,
+    "certificate_subjects": [
+      "CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US"
+    ],
+    "certificate_issuers": [
+      "CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US"
+    ],
+    "entry_point_section": ".text"
+  },
+  "code": {
+    "arch": "x86-64",
+    "entry_offset": 476096,
+    "instructions_decoded": 67104,
+    "decode_errors": 375,
+    "indirect_calls": 129,
+    "indirect_jumps": 7,
+    "entry_disasm": [
+      "JMP .-14629",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3",
+      "INT 0x3"
+    ]
+  },
+  "malware_config": {
+    "family": "AsyncRAT",
+    "c2": [
+      "eq.io",
+      "go.dev",
+      "godebugs.info",
+      "https://go.dev/issue/66821):",
+      "time.local"
+    ],
+    "campaign_id": [
+      "-8640-nj1i2g1z-0phd-"
+    ]
+  },
+  "findings": [
+    {
+      "severity": "Critical",
+      "category": "Chain",
+      "title": "Classic DLL injection chain",
+      "evidence": "behavioral API chain: process injection + memory allocation + network",
+      "score": 40,
+      "tactic": "Defense Evasion",
+      "technique": "Process Injection (T1055)",
+      "recommendation": "Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.",
+      "confidence": 85,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Critical",
+      "category": "Chain",
+      "title": "Process hollowing chain",
+      "evidence": "behavioral API chain: process injection + execution + process access",
+      "score": 38,
+      "tactic": "Defense Evasion",
+      "technique": "Process Hollowing (T1055.012)",
+      "recommendation": "Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.",
+      "confidence": 85,
+      "evidence_count": 1
+    },
+    {
+      "severity": "High",
+      "category": "Chain",
+      "title": "Keylogger with exfiltration",
+      "evidence": "behavioral API chain: process injection + network",
+      "score": 30,
+      "tactic": "Collection",
+      "technique": "Input Capture (T1056)",
+      "recommendation": "Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.",
+      "confidence": 70,
+      "evidence_count": 1
+    },
+    {
+      "severity": "High",
+      "category": "Chain",
+      "title": "Named pipe C2 with code injection",
+      "evidence": "behavioral API chain: named pipe C2 + process injection",
+      "score": 30,
+      "tactic": "Command and Control",
+      "technique": "Non-Application Layer Protocol (T1095)",
+      "recommendation": "Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.",
+      "confidence": 70,
+      "evidence_count": 1
+    },
+    {
+      "severity": "High",
+      "category": "Chain",
+      "title": "Credential theft + webhook exfiltration",
+      "evidence": "behavioral API chain: process access + network",
+      "score": 28,
+      "tactic": "Credential Access",
+      "technique": "Credentials from Web Browsers (T1555.003)",
+      "recommendation": "Revoke captured credentials and block webhook endpoints found in IOCs.",
+      "confidence": 70,
+      "evidence_count": 1
+    },
+    {
+      "severity": "High",
+      "category": "Wiper",
+      "title": "Low-level disk write / file deletion API chain",
+      "evidence": "DeviceIoControl and file-deletion APIs are combined",
+      "score": 26,
+      "tactic": "Impact",
+      "technique": "Data Destruction (T1485)",
+      "recommendation": "Check for disk sector writes or mass file deletions on affected hosts.",
+      "confidence": 70,
+      "evidence_count": 1
+    },
+    {
+      "severity": "High",
+      "category": "Cryptominer",
+      "title": "Mining pool connection strings",
+      "evidence": "stratum protocol, pool, or miner strings are present",
+      "score": 26,
+      "tactic": "Impact",
+      "technique": "Resource Hijacking (T1496)",
+      "recommendation": "Block outbound stratum protocol connections and scan for miner process artifacts.",
+      "confidence": 70,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Medium",
+      "category": "Behavior",
+      "title": "Dynamic API resolution with executable memory",
+      "evidence": "LoadLibrary/GetProcAddress and memory permission APIs are present",
+      "score": 12,
+      "confidence": 55,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Medium",
+      "category": "Persistence",
+      "title": "Linux persistence indicator",
+      "evidence": "cron, systemd, SSH, preload, or shell profile paths are present",
+      "score": 12,
+      "confidence": 55,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Medium",
+      "category": "Packing",
+      "title": "Multiple high-entropy regions",
+      "evidence": "25 high-entropy regions found",
+      "score": 10,
+      "confidence": 55,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Medium",
+      "category": "Packing",
+      "title": "Large high-entropy blob detected",
+      "evidence": "4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload",
+      "score": 8,
+      "offset": 4333568,
+      "tactic": "Defense Evasion",
+      "technique": "Obfuscated Files or Information (T1027)",
+      "recommendation": "Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.",
+      "confidence": 55,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Low",
+      "category": "Obfuscation",
+      "title": "Encoded data decoded successfully",
+      "evidence": "1 base64/hex/URL encoded artifacts decoded",
+      "score": 4,
+      "confidence": 40,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Low",
+      "category": "IOC",
+      "title": "High IOC density",
+      "evidence": "10 total IOCs extracted",
+      "score": 4,
+      "confidence": 40,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Low",
+      "category": "Configuration",
+      "title": "Static configuration artifacts extracted",
+      "evidence": "36 likely configuration or secret-handling artifacts",
+      "score": 4,
+      "tactic": "Discovery",
+      "technique": "Data from Local System",
+      "recommendation": "Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.",
+      "confidence": 40,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Low",
+      "category": "IOC",
+      "title": "Embedded hash-like indicators",
+      "evidence": "multiple MD5/SHA1/SHA256-looking values were extracted",
+      "score": 3,
+      "confidence": 40,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Low",
+      "category": "PE Posture",
+      "title": "PE has a self-signed certificate",
+      "evidence": "CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US",
+      "score": 3,
+      "confidence": 40,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Info",
+      "category": "PE Posture",
+      "title": "PE missing some exploit mitigations",
+      "evidence": "missing: CFG",
+      "score": 0,
+      "confidence": 30,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Info",
+      "category": "Classifier",
+      "title": "Malware family hypothesis",
+      "evidence": "Generic ransomware (High)",
+      "score": 0,
+      "confidence": 30,
+      "evidence_count": 1
+    },
+    {
+      "severity": "Info",
+      "category": "Configuration",
+      "title": "Malware configuration recovered",
+      "evidence": "AsyncRAT configuration extracted: 5 C2, 1 campaign-id",
+      "score": 0,
+      "tactic": "Command and Control",
+      "technique": "Application Layer Protocol (T1071)",
+      "recommendation": "Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.",
+      "confidence": 80,
+      "evidence_count": 6
+    }
+  ],
+  "profile": {
+    "classification": "Likely malicious",
+    "malware_type": [
+      "AsyncRAT",
+      "FormBook/XLoader",
+      "Generic ransomware",
+      "XWorm"
+    ],
+    "confidence": "High",
+    "confidence_score": 100,
+    "business_impact": [
+      "Embedded artifact carving found additional payload-like content by offset and hash; preserve the original container and analyze carved hashes in an isolated lab.",
+      "Potential Unix/Linux persistence indicators; validate whether paths are application resources or operational scripts."
+    ],
+    "key_capabilities": [
+      "Cryptographic secret handling",
+      "Embedded artifact carrier",
+      "Static configuration artifacts",
+      "Unix/Linux persistence artifact references"
+    ],
+    "recommended_actions": [
+      "Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.",
+      "Block outbound stratum protocol connections and scan for miner process artifacts.",
+      "Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.",
+      "Check for disk sector writes or mass file deletions on affected hosts.",
+      "Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.",
+      "Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.",
+      "Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.",
+      "Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.",
+      "Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.",
+      "Revoke captured credentials and block webhook endpoints found in IOCs."
+    ],
+    "ttps": [
+      {
+        "tactic": "Collection",
+        "technique": "Input Capture (T1056)",
+        "id": "T1056",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "behavioral API chain: process injection + network",
+        "finding": "Keylogger with exfiltration"
+      },
+      {
+        "tactic": "Command and Control",
+        "technique": "Application Layer Protocol (T1071)",
+        "id": "T1071",
+        "severity": "Info",
+        "confidence": "Info",
+        "evidence": "AsyncRAT configuration extracted: 5 C2, 1 campaign-id",
+        "finding": "Malware configuration recovered"
+      },
+      {
+        "tactic": "Command and Control",
+        "technique": "Non-Application Layer Protocol (T1095)",
+        "id": "T1095",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "behavioral API chain: named pipe C2 + process injection",
+        "finding": "Named pipe C2 with code injection"
+      },
+      {
+        "tactic": "Credential Access",
+        "technique": "Credentials from Web Browsers (T1555.003)",
+        "id": "T1555.003",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "behavioral API chain: process access + network",
+        "finding": "Credential theft + webhook exfiltration"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Obfuscated Files or Information (T1027)",
+        "id": "T1027",
+        "severity": "Medium",
+        "confidence": "Medium",
+        "evidence": "4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload",
+        "finding": "Large high-entropy blob detected"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Process Hollowing (T1055.012)",
+        "id": "T1055.012",
+        "severity": "Critical",
+        "confidence": "High",
+        "evidence": "behavioral API chain: process injection + execution + process access",
+        "finding": "Process hollowing chain"
+      },
+      {
+        "tactic": "Defense Evasion",
+        "technique": "Process Injection (T1055)",
+        "id": "T1055",
+        "severity": "Critical",
+        "confidence": "High",
+        "evidence": "behavioral API chain: process injection + memory allocation + network",
+        "finding": "Classic DLL injection chain"
+      },
+      {
+        "tactic": "Discovery",
+        "technique": "Data from Local System",
+        "severity": "Low",
+        "confidence": "Low",
+        "evidence": "36 likely configuration or secret-handling artifacts",
+        "finding": "Static configuration artifacts extracted"
+      },
+      {
+        "tactic": "Impact",
+        "technique": "Data Destruction (T1485)",
+        "id": "T1485",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "DeviceIoControl and file-deletion APIs are combined",
+        "finding": "Low-level disk write / file deletion API chain"
+      },
+      {
+        "tactic": "Impact",
+        "technique": "Resource Hijacking (T1496)",
+        "id": "T1496",
+        "severity": "High",
+        "confidence": "High",
+        "evidence": "stratum protocol, pool, or miner strings are present",
+        "finding": "Mining pool connection strings"
+      }
+    ],
+    "crypto_indicators": [
+      {
+        "primitive": "Encoding/obfuscation layer",
+        "source": "decoded strings",
+        "purpose": "Static obfuscation or configuration wrapping",
+        "confidence": "Medium",
+        "evidence": "1 decoded artifacts"
+      },
+      {
+        "primitive": "Symmetric crypto markers",
+        "source": "application strings",
+        "purpose": "Possible AES-GCM or authenticated decryption logic",
+        "confidence": "Medium",
+        "evidence": "AES/GCM/tag/IV/nonce style strings"
+      }
+    ],
+    "expected_behavior": [
+      "Accesses stored credentials/browser secrets (watch for reads of LSASS, Login Data, or Local State)",
+      "Establishes persistence (watch for Run-key writes, scheduled tasks, or service creation)",
+      "Captures keystrokes (watch for low-level keyboard hooks / GetAsyncKeyState loops)",
+      "Consumes CPU/GPU for cryptomining (watch for stratum connections and sustained resource use)"
+    ],
+    "executive_assessment": "The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab."
+  },
+  "risk_score": 100,
+  "score_breakdown": {
+    "Behavior": 12,
+    "Chain": 166,
+    "Configuration": 4,
+    "Cryptominer": 26,
+    "IOC": 7,
+    "Obfuscation": 4,
+    "PE Posture": 3,
+    "Packing": 18,
+    "Persistence": 12,
+    "Wiper": 26
+  },
+  "verdict": "Likely malicious",
+  "debug_log": [
+    "[DEBUG] scan started at 2026-08-13T18:18:27Z",
+    "[DEBUG] retained 4545912 bytes for analysis; truncated=false",
+    "[DEBUG] detected file type: PE executable; mime hint: application/octet-stream",
+    "[DEBUG] extracted 15759 strings; total candidates=15759; truncated=false",
+    "[DEBUG] decoded artifacts: 1",
+    "[DEBUG] corpus built once: 299870 bytes",
+    "[DEBUG] safe carving found 9 artifacts",
+    "[DEBUG] high-entropy blob: offset=0x422000 entropy=8.00",
+    "[DEBUG] plugin high-entropy-blob-detector: completed in 7.818096ms",
+    "[DEBUG] plugin suspicious-import-combinator: completed in 10.711µs"
+  ]
+}

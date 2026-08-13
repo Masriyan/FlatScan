@@ -18,7 +18,7 @@ This is the exhaustive flag reference for FlatScan v0.10.2, grouped exactly as i
 | `--json <path>` | path | — | Write JSON; use `-` to stream JSON to stdout. |
 | `--pdf <path>` | path | — | Write a management-oriented PDF report. |
 | `--html <path>` | path | — | Write an analyst-oriented HTML report. |
-| `--report-pack <dir>` | dir | — | Write a zipped bundle of all report artifacts into a directory. |
+| `--report-pack <dir>` | dir | — | Write all ten report artifacts (full/summary text, JSON, PDF, HTML, executive MD, IOC, YARA, Sigma, STIX) into a directory. |
 | `--extract-ioc <path>` | path | — | Export a flat text list of extracted IOCs. |
 | `--yara <path>` | path | — | Generate a YARA rule derived from the sample. |
 | `--sigma <path>` | path | — | Generate a Sigma rule derived from the sample. |

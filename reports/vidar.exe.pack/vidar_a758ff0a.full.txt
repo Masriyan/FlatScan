@@ -1,0 +1,349 @@
+FlatScan 0.10.2 report
+Target: /tmp/flatscan_web_18cb7042688bcdb7-c57104a1_3268223639/vidar.exe
+Mode: deep
+Verdict: Likely malicious (100/100)
+Score breakdown: [Chain:166 Cryptominer:26 Wiper:26 Packing:18 Behavior:12 Persistence:12 IOC:7 Configuration:4 Obfuscation:4 PE Posture:3]
+File type: PE executable
+MIME hint: application/octet-stream
+Size: 4.3 MiB (4545912 bytes)
+Analyzed bytes: 4.3 MiB
+Entropy: 6.17/8.00 - normal
+Strings: 15759
+Duration: 1.314302253s
+
+Malware profile:
+- Classification: Likely malicious
+- Confidence: High (100/100)
+- Likely type: AsyncRAT, FormBook/XLoader, Generic ransomware, XWorm
+- Capabilities: Cryptographic secret handling, Embedded artifact carrier, Static configuration artifacts, Unix/Linux persistence artifact references
+- MITRE TTPs mapped: 10
+- Crypto indicators: 2
+- Assessment: The sample contains multiple high-confidence malicious indicators. Prioritize containment, IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.
+- Expected behavior (validate in sandbox/EDR):
+    • Accesses stored credentials/browser secrets (watch for reads of LSASS, Login Data, or Local State)
+    • Establishes persistence (watch for Run-key writes, scheduled tasks, or service creation)
+    • Captures keystrokes (watch for low-level keyboard hooks / GetAsyncKeyState loops)
+    • Consumes CPU/GPU for cryptomining (watch for stratum connections and sustained resource use)
+
+Hashes:
+- MD5: b971e00a0514a9dd90ae4147fd2be083
+- SHA1: 814b4d722a9bc8eff65d7833ccf9b47cf486c3f2
+- SHA256: a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc
+- SHA512: 4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487ec6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f
+- PE import hash: 5292ba861fbedd8ccd6f23c56196bc91
+
+Findings: 19
+- [Critical] Chain: Classic DLL injection chain (behavioral API chain: process injection + memory allocation + network) score=40 confidence=85
+  ATT&CK: Defense Evasion / Process Injection (T1055)
+  Recommendation: Correlate process injection artifacts in EDR telemetry; capture memory from injected processes.
+- [Critical] Chain: Process hollowing chain (behavioral API chain: process injection + execution + process access) score=38 confidence=85
+  ATT&CK: Defense Evasion / Process Hollowing (T1055.012)
+  Recommendation: Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR logs.
+- [High] Chain: Keylogger with exfiltration (behavioral API chain: process injection + network) score=30 confidence=70
+  ATT&CK: Collection / Input Capture (T1056)
+  Recommendation: Block outbound connections to extracted network IOCs and rotate credentials on affected hosts.
+- [High] Chain: Named pipe C2 with code injection (behavioral API chain: named pipe C2 + process injection) score=30 confidence=70
+  ATT&CK: Command and Control / Non-Application Layer Protocol (T1095)
+  Recommendation: Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.
+- [High] Chain: Credential theft + webhook exfiltration (behavioral API chain: process access + network) score=28 confidence=70
+  ATT&CK: Credential Access / Credentials from Web Browsers (T1555.003)
+  Recommendation: Revoke captured credentials and block webhook endpoints found in IOCs.
+- [High] Wiper: Low-level disk write / file deletion API chain (DeviceIoControl and file-deletion APIs are combined) score=26 confidence=70
+  ATT&CK: Impact / Data Destruction (T1485)
+  Recommendation: Check for disk sector writes or mass file deletions on affected hosts.
+- [High] Cryptominer: Mining pool connection strings (stratum protocol, pool, or miner strings are present) score=26 confidence=70
+  ATT&CK: Impact / Resource Hijacking (T1496)
+  Recommendation: Block outbound stratum protocol connections and scan for miner process artifacts.
+- [Medium] Behavior: Dynamic API resolution with executable memory (LoadLibrary/GetProcAddress and memory permission APIs are present) score=12 confidence=55
+- [Medium] Persistence: Linux persistence indicator (cron, systemd, SSH, preload, or shell profile paths are present) score=12 confidence=55
+- [Medium] Packing: Multiple high-entropy regions (25 high-entropy regions found) score=10 confidence=55
+- [Medium] Packing: Large high-entropy blob detected (4KB block at offset 0x422000 has entropy 8.00/8.00 — likely encrypted or compressed payload) score=8 confidence=55 offset=0x422000
+  ATT&CK: Defense Evasion / Obfuscated Files or Information (T1027)
+  Recommendation: Investigate whether the high-entropy region contains an encrypted payload or packed executable stage.
+- [Low] Obfuscation: Encoded data decoded successfully (1 base64/hex/URL encoded artifacts decoded) score=4 confidence=40
+- [Low] IOC: High IOC density (10 total IOCs extracted) score=4 confidence=40
+- [Low] Configuration: Static configuration artifacts extracted (36 likely configuration or secret-handling artifacts) score=4 confidence=40
+  ATT&CK: Discovery / Data from Local System
+  Recommendation: Review extracted config artifacts for live C2, token, wallet, campaign, or mutex values before sharing reports.
+- [Low] IOC: Embedded hash-like indicators (multiple MD5/SHA1/SHA256-looking values were extracted) score=3 confidence=40
+- [Low] PE Posture: PE has a self-signed certificate (CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US) score=3 confidence=40
+- [Info] PE Posture: PE missing some exploit mitigations (missing: CFG) confidence=30
+- [Info] Classifier: Malware family hypothesis (Generic ransomware (High)) confidence=30
+- [Info] Configuration: Malware configuration recovered (AsyncRAT configuration extracted: 5 C2, 1 campaign-id) confidence=80 evidence=6
+  ATT&CK: Command and Control / Application Layer Protocol (T1071)
+  Recommendation: Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build IDs and mutexes.
+
+Suspicious functions/APIs: 20
+- [Medium] VirtualAlloc (memory allocation, strings/imports)
+- [Medium] OpenProcess (process access, strings/imports)
+- [High] SetThreadContext (process injection, strings/imports)
+- [Medium] GetThreadContext (process access, strings/imports)
+- [Medium] ResumeThread (process injection, strings/imports)
+- [Medium] GetVolumeInformation (sandbox fingerprinting, strings/imports)
+- [Low] LoadLibrary (dynamic loading, strings/imports)
+- [Low] GetProcAddress (dynamic loading, strings/imports)
+- [Low] WSAStartup (network, strings/imports)
+- [Medium] CreateNamedPipe (named pipe C2, strings/imports)
+- [Medium] RegSetValue (persistence, strings/imports)
+- [Medium] CreateProcess (execution, strings/imports)
+- [Medium] ptrace (linux anti-debug/process access, strings/imports)
+- [Low] GetProcAddress (dynamic loading, pe imports)
+- [Medium] GetThreadContext (process access, pe imports)
+- [Low] LoadLibrary (dynamic loading, pe imports)
+- [Medium] ResumeThread (process injection, pe imports)
+- [High] SetThreadContext (process injection, pe imports)
+- [Medium] VirtualAlloc (memory allocation, pe imports)
+
+IOCs: 10 total
+
+URLs:
+- https://go.dev/issue/66821):
+
+Domains:
+- eq.io
+- go.dev
+- godebugs.info
+- time.local
+
+MD5:
+- dddddddddddddddddddddddddddddddd
+- eddddddddddddddddddddddddddddddd
+
+SHA256:
+- 0000000000000000000000000000000000000000000000000000000000000000
+- 5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae
+- aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc
+
+Decoded artifacts: 1
+- hex from ascii string at offset 2499462: DDDDDDDD
+
+Family classifier: 5 hypotheses
+- [High] Generic ransomware (ransomware) score=90 evidence=ransomware strings or findings
+- [Medium-High] AsyncRAT (rat) score=89 evidence=named-family fingerprint; ops
+- [Medium-High] FormBook/XLoader (stealer) score=89 evidence=named-family fingerprint; ops
+- [Medium-High] XWorm (rat) score=89 evidence=named-family fingerprint; ops
+- [Medium] Packed or bundled payload (dropper) score=55 evidence=9 carved artifacts
+
+Crypto/config artifacts: 36
+- [Low] mutex-candidate from ascii: runtime.mutex (mutex-like string at offset 0x14f5c2)
+- [Low] mutex-candidate from ascii: sync.Mutex.Lockruntime.Goschedmalloc (mutex-like string at offset 0x177933)
+- [Low] mutex-candidate from ascii: sync.RWMutex.Lockwait (mutex-like string at offset 0x178279)
+- [Low] mutex-candidate from ascii: exhaustionlocked (mutex-like string at offset 0x1785a1)
+- [Low] mutex-candidate from ascii: nmspinningstartlockedm (mutex-like string at offset 0x17a63a)
+- [Low] mutex-candidate from ascii: overlappingmheap.freeSpanLocked (mutex-like string at offset 0x17e212)
+- [Low] mutex-candidate from ascii: runtime.mutexPreferLowLatency (mutex-like string at offset 0x37e0fd)
+- [Low] mutex-candidate from ascii: runtime.mutexWaitListHead (mutex-like string at offset 0x37e12b)
+- [Low] mutex-candidate from ascii: runtime.mutexSampleContention (mutex-like string at offset 0x37e196)
+- [Low] mutex-candidate from ascii: runtime.waitReason.isMutexWait (mutex-like string at offset 0x383cb4)
+- [Low] mutex-candidate from ascii: runtime.totalMutexWaitTimeNanos (mutex-like string at offset 0x3882ba)
+- [Low] mutex-candidate from ascii: sync.runtime_SemacquireMutex (mutex-like string at offset 0x388ce3)
+- [Low] mutex-candidate from ascii: eq.sync.Mutex (mutex-like string at offset 0x38b1bb)
+- [Low] mutex-candidate from ascii: runtime.mutexprofilerate (mutex-like string at offset 0x451d97)
+- [Medium] cryptocurrency-wallet from strings: 1907348632812595367431640625asynctimerchanuserarenastategc (Bitcoin-style wallet address)
+- [Medium] cryptocurrency-wallet from strings: 180123456789abcdefghijklmnopqrstuvwxyzstrings (Bitcoin-style wallet address)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x16c (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x107c0 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x19902 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x1992a (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x1dd1e (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x26453 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x26473 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x26493 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x264b3 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x264dc (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x2650a (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x31e2b (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x419c4 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x43d85 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x43d92 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x440c3 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x4420b (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x44297 (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x442cd (compressed stream magic found in file body)
+- [Low] embedded-compressed-blob from raw-bytes: zlib at 0x44391 (compressed stream magic found in file body)
+
+Carved artifacts: 9
+- Gzip compressed data offset=0x64186 length=84579 sha256=7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c entropy=6.16 preview=D$(HcD$
+- Gzip compressed data offset=0x78be9 length=82851 sha256=aafa93cf1a0b9c1213b71e7cd3457ad2f8d227f04f5fd8dd90b862c8a7ef2345 entropy=6.26 preview=M9,$u
+- Gzip compressed data offset=0x8cf8c length=1980002 sha256=1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab entropy=4.21 preview=P H9S u
+- Gzip compressed data offset=0x2705ee length=159262 sha256=f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c entropy=7.98 preview='\5:%
+- Gzip compressed data offset=0x29740c length=6535 sha256=e0602f420d5dd7e3048e59d7a253c79d0ee2c105fd38673dcf10f4f3cc1eafbc entropy=7.95 preview=UDl)R
+- Gzip compressed data offset=0x298d93 length=760214 sha256=f4e3604630af10094c0da49a63b44ccc4bec3bbb22ae3c4e5e54c3fc5c657dbb entropy=7.83 preview=J|8"VQi
+- Gzip compressed data offset=0x352729 length=36352 sha256=fdb05f580b2120c72a248f1f1be9223eccd02b4b3f5f1aef24bc431e87af07b5 entropy=7.76 preview=f~.H#
+- Gzip compressed data offset=0x35b529 length=61255 sha256=e2ab2a9190408f32f67732d3058cefd71b067140abff7dd580e7904f4c332d86 entropy=7.85 preview=f~&H#
+- Gzip compressed data offset=0x36a470 length=964872 sha256=00dbde7568817ae1f9f1f5a33f880780977ee728da2bcf75547fdd3d189c8a00 entropy=6.19 preview=EvU?:
+
+Similarity hashes:
+- FlatHash:          FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f98a4a4a762e79aa303b012fb2ce2337c813432b8da45664fb14eaaee8b4697275133e607d4509a08a4eebe8fc960fcb0844b7909d75386488189ed6f529ab2de212547dccc5fb160d955c8aa1a4cb0533aeb824feca320e61aea35b5cd09bd9ad88b43b0de653ce838caa8476f11201b971ee4dea76ad38a8d04d66136ae8c5635d23df924b423a7e9df54eb70c76888b6d540632e37b68560897e7be3396b68635cf1facb6d11594c5928d872e0c63139f211d4b99121803bed977c83f670e870ccf02ba0794469152a7dab7191331b12071a19ec31337b74e9349d14e3dca5295471d43fe45324fa8fc2032efc9a580169cdd16b3c7bb875ec4e34e458aaa7cc3e69ca3e04f9504ea71e0a9c5dc92c2f97faa306062f1e1acb26ddc529e0484b1110950f917897ffc4cf567087be4b6e8bbd0d97c2a9a3232872c1de090056c12add9f5de3e23f49516b218077c6ff303fe42b4f23faafcc0a4f42833a246a49c11e719420ddad3de19be99af51a351f56fe1f5f8750b0b75c49f61768d60e3428541ab71dd25ea92adfa00117dc6b50509ef603626935ff430a7256d395850cc80e5679cf09f9b485948e647921da8edb0856be4b14fb5229fb28740d40ca2138ba15cafe4948c129b77503302da5612f77fd2b5fee759c2e4d251fd09dd063cce272adbc105e151c2b247df4c772cb72147d50488592292c10f4515e00576236353627909c8f288a2f6ea9715a13ede24014026d588d8aa3f66e229eb5e178ea490aa5d5ec8c331a742ce961f490775cfec9e69aa1463ede4f46a055fc6cafcd1965a6e078b289b0b236bee112da11c9863da0e9457092e51246031630c319cadfbe1188b4c23d3bc59c7d1998eae59f173d2d41f2e6aecb4a6812f270e1536ee211e78df1e68b2366148bdae38e74c7eaa28d2479b1e192ef7116de23155e4f096a47c52e971983f93894a587f6d86ed74b8236e61ba2793d7ccc1762c29f758e103f7f3ff5390a2e2045d594a79f183e41070726d3021a36de4e1043834ba42b8690096be93f63b8e4f43b18ac29e61a387c756d27d0381d4646f61eb869b0fd54a8a71feff69d1971d3c9d23f2040ad4858568b6e59d38de11838f7b6c63fb50577971bbf5cee0b5d5b63f19821750fd1de3b5f107f4da39d07667fd9623329aee571041574980e642c19c88ec91e03c9c5dd3ca9d24c42effce5e821405cd93619cf2752765bc209cb9a1447d02abb1358c4fdbbbe44c66fa275dfc9ed330658f4bb04e4dce5272abd0b464f4801a7757b64e6138f6fb7bc9813595f0ab49157fa128563e7a9b90ab66dfe28c1d0657747555a10a91dac5e0ce8c537e754e4eef04d55c7c68e660cbb73ce6a0fcfcf3a4ced3f0256e8e10ce523a5066
+- Byte histogram:    580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec
+- String set:        57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a
+- Import hash:       2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6
+- Section hash:      9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff
+
+Analysis plugins: 6
+- similarity status=complete summary=computed FlatHash and structural similarity hashes
+- safe-carver status=complete summary=9 embedded artifacts reported
+- crypto-config-extractor status=complete summary=36 config artifacts
+- family-classifier status=complete summary=5 family hypotheses
+- high-entropy-blob-detector status=complete summary=1 findings added
+- suspicious-import-combinator status=complete summary=0 findings added
+
+Malware configuration:
+- Family: AsyncRAT
+- C2 (5): eq.io, go.dev, godebugs.info
+- Campaign IDs (1): -8640-nj1i2g1z-0phd-
+
+High entropy regions:
+- offset=0x268000 length=65536 entropy=7.93
+- offset=0x270000 length=65536 entropy=7.98
+- offset=0x278000 length=65536 entropy=7.98
+- offset=0x280000 length=65536 entropy=7.98
+- offset=0x288000 length=65536 entropy=7.97
+- offset=0x290000 length=65536 entropy=7.97
+- offset=0x298000 length=65536 entropy=7.91
+- offset=0x2a0000 length=65536 entropy=7.83
+- offset=0x2a8000 length=65536 entropy=7.85
+- offset=0x2b0000 length=65536 entropy=7.85
+- offset=0x2b8000 length=65536 entropy=7.85
+- offset=0x2c0000 length=65536 entropy=7.84
+- offset=0x2c8000 length=65536 entropy=7.83
+- offset=0x2d0000 length=65536 entropy=7.82
+- offset=0x2d8000 length=65536 entropy=7.83
+- offset=0x2e0000 length=65536 entropy=7.82
+- offset=0x2e8000 length=65536 entropy=7.83
+- offset=0x2f0000 length=65536 entropy=7.84
+- offset=0x2f8000 length=65536 entropy=7.80
+- offset=0x300000 length=65536 entropy=7.77
+- offset=0x308000 length=65536 entropy=7.79
+- offset=0x310000 length=65536 entropy=7.84
+- offset=0x318000 length=65536 entropy=7.86
+- offset=0x320000 length=65536 entropy=7.84
+- offset=0x328000 length=65536 entropy=7.80
+
+PE details:
+- Machine: amd64
+- Timestamp: 1970-01-01T00:00:00Z
+- Subsystem: windows-gui
+- Image base: 0x140000000
+- Entry point: 0x74dc0
+- Managed .NET runtime: false
+- Certificate table present: true
+- Signature: signature present; 1 certificate(s) recovered
+- Signer subject(s): CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US
+- Self-signed: true
+- Security mitigations: ASLR, DEP, HighEntropyVA, TerminalServerAware
+- Missing mitigations: CFG
+- Image characteristics: EXECUTABLE_IMAGE, LARGE_ADDRESS_AWARE
+- Overlay: offset=0x455400 size=2.4 KiB
+
+Sections:
+- .text raw=0x600 size=1355264 entropy=6.21 flags=X
+- .rdata raw=0x14b400 size=2945536 entropy=5.84 flags=-
+- .data raw=0x41a600 size=72192 entropy=4.77 flags=W
+- .pdata raw=0x42c000 size=22016 entropy=5.31 flags=-
+- .xdata raw=0x431600 size=512 entropy=1.77 flags=-
+- .idata raw=0x431800 size=1536 entropy=3.98 flags=W
+- .reloc raw=0x431e00 size=16896 entropy=5.43 flags=-
+- .symtab raw=0x436000 size=128000 entropy=5.12 flags=-
+
+PE imports: 46 stored
+- AddVectoredContinueHandler:kernel32.dll
+- AddVectoredExceptionHandler:kernel32.dll
+- CloseHandle:kernel32.dll
+- CreateEventA:kernel32.dll
+- CreateIoCompletionPort:kernel32.dll
+- CreateThread:kernel32.dll
+- CreateWaitableTimerExW:kernel32.dll
+- DuplicateHandle:kernel32.dll
+- ExitProcess:kernel32.dll
+- FreeEnvironmentStringsW:kernel32.dll
+- GetConsoleMode:kernel32.dll
+- GetCurrentThreadId:kernel32.dll
+- GetEnvironmentStringsW:kernel32.dll
+- GetErrorMode:kernel32.dll
+- GetProcAddress:kernel32.dll
+- GetProcessAffinityMask:kernel32.dll
+- GetQueuedCompletionStatusEx:kernel32.dll
+- GetStdHandle:kernel32.dll
+- GetSystemDirectoryA:kernel32.dll
+- GetSystemInfo:kernel32.dll
+- GetThreadContext:kernel32.dll
+- LoadLibraryExW:kernel32.dll
+- LoadLibraryW:kernel32.dll
+- PostQueuedCompletionStatus:kernel32.dll
+- RaiseFailFastException:kernel32.dll
+- ResumeThread:kernel32.dll
+- RtlLookupFunctionEntry:kernel32.dll
+- RtlVirtualUnwind:kernel32.dll
+- SetConsoleCtrlHandler:kernel32.dll
+- SetErrorMode:kernel32.dll
+- SetEvent:kernel32.dll
+- SetProcessPriorityBoost:kernel32.dll
+- SetThreadContext:kernel32.dll
+- SetWaitableTimer:kernel32.dll
+- SuspendThread:kernel32.dll
+- SwitchToThread:kernel32.dll
+- TlsAlloc:kernel32.dll
+- VirtualAlloc:kernel32.dll
+- VirtualFree:kernel32.dll
+- VirtualQuery:kernel32.dll
+- WaitForMultipleObjects:kernel32.dll
+- WaitForSingleObject:kernel32.dll
+- WerGetFlags:kernel32.dll
+- WerSetFlags:kernel32.dll
+- WriteConsoleW:kernel32.dll
+- WriteFile:kernel32.dll
+
+Code analysis (disassembly):
+- Arch: x86-64
+- Entry offset: 0x743c0
+- Instructions decoded: 67104 (decode errors: 375)
+- Indirect calls/jumps: 129 / 7
+- Entry-point disassembly:
+    JMP .-14629
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+    INT 0x3
+
+Suspicious strings:
+- Decrypt
+- Encrypt
+- lock: lock countbad system huge page sizearena already initialized to unused region of span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing typ...
+- crypto/internal/fips140/aes.encryptBlock
+- crypto/internal/fips140/aes.decryptBlock
+- crypto/internal/fips140/aes.encryptBlockGeneric
+- crypto/internal/fips140/aes.decryptBlockGeneric
+- crypto/internal/fips140/aes.(*CBCEncrypter).CryptBlocks
+- crypto/internal/fips140/aes.(*CBCDecrypter).CryptBlocks
+- crypto/internal/fips140/aes.NewCBCEncrypter
+- crypto/internal/fips140/aes.NewCBCDecrypter
+- crypto/internal/fips140/aes.encryptBlockAsm
+- crypto/internal/fips140/aes.decryptBlockAsm
+- crypto/internal/fips140/aes.EncryptBlockInternal
+- VirtualAlloc
+- crypto/internal/fips140/aes.encryptBlockAsm.abi0
+- crypto/internal/fips140/aes.decryptBlockAsm.abi0
+
+Debug log:
+- [DEBUG] scan started at 2026-08-13T18:18:27Z
+- [DEBUG] retained 4545912 bytes for analysis; truncated=false
+- [DEBUG] detected file type: PE executable; mime hint: application/octet-stream
+- [DEBUG] extracted 15759 strings; total candidates=15759; truncated=false
+- [DEBUG] decoded artifacts: 1
+- [DEBUG] corpus built once: 299870 bytes
+- [DEBUG] safe carving found 9 artifacts
+- [DEBUG] high-entropy blob: offset=0x422000 entropy=8.00
+- [DEBUG] plugin high-entropy-blob-detector: completed in 7.818096ms
+- [DEBUG] plugin suspicious-import-combinator: completed in 10.711µs

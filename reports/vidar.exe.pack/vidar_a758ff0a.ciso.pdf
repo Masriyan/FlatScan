@@ -1,0 +1,1269 @@
+%PDF-1.4
+%‚„œ”
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [6 0 R 8 0 R 10 0 R 12 0 R 14 0 R 16 0 R 18 0 R 20 0 R 22 0 R 24 0 R 26 0 R] /Count 11 >>
+endobj
+3 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 4383 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 1) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg 0.00 720.00 612.00 72.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 22.00 Tf 48.00 760.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 10.50 Tf 48.00 742.00 Td (Executive and Technical Static Analysis  -  v0.10.2) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 442.00 724.00 122.00 30.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.00 Tf 450.00 742.00 Td (Critical Risk) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F1 7.80 Tf 450.00 730.00 Td (Likely malicious) Tj ET 0 0 0 rg
+BT /F2 17.00 Tf 48.00 678.00 Td (vidar.exe) Tj ET
+BT /F1 10.50 Tf 48.00 658.00 Td (Generated 2026-08-13T18:18:29Z UTC) Tj ET
+BT /F1 10.50 Tf 48.00 640.00 Td (SHA256: a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc) Tj ET
+0.260 0.480 0.320 rg 48.00 606.00 154.80 10.00 re f 0 0 0 rg
+0.790 0.580 0.120 rg 202.80 606.00 129.00 10.00 re f 0 0 0 rg
+0.860 0.360 0.100 rg 331.80 606.00 129.00 10.00 re f 0 0 0 rg
+0.700 0.120 0.120 rg 460.80 606.00 103.20 10.00 re f 0 0 0 rg
+0.500 0.520 0.560 RG 0.6 w 48.00 606.00 516.00 10.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg 561.00 618.00 6.00 4.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 8.00 Tf 558.00 630.00 Td (100) Tj ET 0 0 0 rg
+0.500 0.520 0.560 rg BT /F1 7.00 Tf 48.00 601.00 Td (0) Tj ET 0 0 0 rg
+0.500 0.520 0.560 rg BT /F1 7.00 Tf 198.80 601.00 Td (30) Tj ET 0 0 0 rg
+0.500 0.520 0.560 rg BT /F1 7.00 Tf 327.80 601.00 Td (55) Tj ET 0 0 0 rg
+0.500 0.520 0.560 rg BT /F1 7.00 Tf 456.80 601.00 Td (80) Tj ET 0 0 0 rg
+0.500 0.520 0.560 rg BT /F1 7.00 Tf 554.00 601.00 Td (100) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 48.00 538.00 166.67 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 48.00 538.00 166.67 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 48.00 538.00 166.67 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 56.00 588.00 Td (VERDICT) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 56.00 570.00 Td (Likely malicious) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 56.00 552.00 Td (Likely malicious) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 222.67 538.00 166.67 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 222.67 538.00 166.67 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 222.67 538.00 166.67 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 230.67 588.00 Td (RISK SCORE) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 230.67 570.00 Td (100/100) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 230.67 552.00 Td (Critical Risk) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 397.33 538.00 166.67 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 397.33 538.00 166.67 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 397.33 538.00 166.67 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 405.33 588.00 Td (CONFIDENCE) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 405.33 570.00 Td (High) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 405.33 552.00 Td (static analysis) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 518.00 Td (Report scope) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 502.00 Td (FlatScan performs static analysis only. The sample is not executed. Findings are heuristic) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 489.00 Td (indicators intended to support triage, containment, and deeper reverse engineering.) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 470.00 Td (Executive assessment) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 454.00 Td (The sample contains multiple high-confidence malicious indicators. Prioritize containment,) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 441.00 Td (IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.) Tj ET 0 0 0 rg
+
+endstream
+endobj
+8 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 9 0 R >>
+endobj
+9 0 obj
+<< /Length 9578 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 2) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 712.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 716.00 Td (CISO Decision Summary) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 706.00 m 564.00 706.00 l S 0 0 0 RG
+0.960 0.970 0.990 rg 48.00 630.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 48.00 630.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 48.00 630.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 56.00 680.00 Td (RISK) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 56.00 662.00 Td (100/100) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 56.00 644.00 Td (Likely malicious) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 179.00 630.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 179.00 630.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 179.00 630.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 187.00 680.00 Td (CONFIDENCE) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 187.00 662.00 Td (High) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 187.00 644.00 Td (100/100) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 310.00 630.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 310.00 630.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 310.00 630.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 318.00 680.00 Td (FINDINGS) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 318.00 662.00 Td (19) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 318.00 644.00 Td (Critical:2 High:5) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 318.00 634.00 Td (Medium:4 Low:5) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 441.00 630.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 441.00 630.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 441.00 630.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 449.00 680.00 Td (TTPS) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 449.00 662.00 Td (10) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 449.00 644.00 Td (MITRE mapped) Tj ET 0 0 0 rg
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 610.00 Td (Classification:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 610.00 Td (Likely malicious) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 596.00 Td (Likely malware type:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 596.00 Td (AsyncRAT, FormBook/XLoader, Generic ransomware, XWorm) Tj ET
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 582.00 Td (Key capabilities) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 563.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 566.00 Td (Cryptographic secret handling) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 550.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 553.00 Td (Embedded artifact carrier) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 537.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 540.00 Td (Static configuration artifacts) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 524.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 527.00 Td (Unix/Linux persistence artifact references) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 514.00 Td (Business impact) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 495.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 498.00 Td (Embedded artifact carving found additional payload-like content by offset and hash;) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 485.00 Td (preserve the original container and analyze carved hashes in an isolated lab.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 469.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 472.00 Td (Potential Unix/Linux persistence indicators; validate whether paths are application) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 459.00 Td (resources or operational scripts.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 434.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 438.00 Td (Final Analyst Assessment) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 428.00 m 564.00 428.00 l S 0 0 0 RG
+0.960 0.970 0.990 rg 48.00 352.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 48.00 352.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 48.00 352.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 56.00 402.00 Td (DISPOSITION) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 10.80 Tf 56.00 384.00 Td (Likely) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 10.80 Tf 56.00 373.00 Td (malicious) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 56.00 359.00 Td (Critical Risk) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 179.00 352.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 179.00 352.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 179.00 352.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 187.00 402.00 Td (PRIORITY) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 187.00 384.00 Td (Immediate) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 187.00 366.00 Td (triage queue) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 310.00 352.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 310.00 352.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 310.00 352.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 318.00 402.00 Td (CONFIDENCE) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 318.00 384.00 Td (High) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 318.00 366.00 Td (static evidence) Tj ET 0 0 0 rg
+0.960 0.970 0.990 rg 441.00 352.00 123.00 66.00 re f 0 0 0 rg
+0.740 0.780 0.840 RG 0.6 w 441.00 352.00 123.00 66.00 re S 0 0 0 RG
+0.700 0.120 0.120 rg 441.00 352.00 123.00 4.00 re f 0 0 0 rg
+0.260 0.300 0.360 rg BT /F2 8.00 Tf 449.00 402.00 Td (SCOPE) Tj ET 0 0 0 rg
+0.080 0.100 0.140 rg BT /F2 13.00 Tf 449.00 384.00 Td (PE executable) Tj ET 0 0 0 rg
+0.300 0.340 0.400 rg BT /F1 7.80 Tf 449.00 366.00 Td (evidence surface) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 332.00 Td (The sample contains multiple high-confidence malicious indicators. Prioritize containment,) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 319.00 Td (IOC blocking, credential rotation, and dynamic analysis in an isolated malware lab.) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 300.00 Td (Decision points) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 281.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 284.00 Td (Confirm the sample origin, delivery path, first-seen time, and whether it executed on) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 271.00 Td (any production system.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 255.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 258.00 Td (Operationalize extracted network indicators with allow-list-aware blocking and) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 245.00 Td (historical telemetry searches.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 229.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 232.00 Td (Treat the sample as unsafe while containment, IOC blocking, and deeper reverse) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 219.00 Td (engineering are completed.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 203.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 206.00 Td (Use the 10 mapped ATT&CK entries to guide SIEM, EDR, and proxy hunting logic.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 181.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 185.00 Td (Management Actions) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 175.00 m 564.00 175.00 l S 0 0 0 RG
+0.700 0.120 0.120 rg 50.00 154.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 157.00 Td (Block extracted IOCs at proxy, DNS, EDR, and email security controls where operationally) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 144.00 Td (safe.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 128.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 131.00 Td (Block outbound connections to extracted network IOCs and rotate credentials on affected) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 118.00 Td (hosts.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 102.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 105.00 Td (Block outbound stratum protocol connections and scan for miner process artifacts.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 89.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 92.00 Td (Block the recovered C2/webhook indicators and pivot threat-intel on the campaign/build) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 79.00 Td (IDs and mutexes.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 63.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 66.00 Td (Check for disk sector writes or mass file deletions on affected hosts.) Tj ET 0 0 0 rg
+
+endstream
+endobj
+10 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 11 0 R >>
+endobj
+11 0 obj
+<< /Length 13655 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 3) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 721.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 724.00 Td (Correlate process injection artifacts in EDR telemetry; capture memory from injected) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 711.00 Td (processes.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 695.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 698.00 Td (Hunt for named pipe creation events matching extracted pipe names in EDR telemetry.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 682.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 685.00 Td (Identify exposed hosts and rotate credentials/tokens used on those endpoints.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 669.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 672.00 Td (Investigate whether the high-entropy region contains an encrypted payload or packed) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 659.00 Td (executable stage.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 643.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 646.00 Td (Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and ResumeThread in EDR) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 633.00 Td (logs.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 617.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 620.00 Td (3 additional actions omitted from PDF.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 595.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 599.00 Td (Evidence Summary) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 589.00 m 564.00 589.00 l S 0 0 0 RG
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 571.00 Td (This table condenses the strongest static evidence into management-readable meaning. Use the) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 558.00 Td (detailed findings and JSON output for analyst follow-up.) Tj ET 0 0 0 rg
+0.110 0.140 0.200 rg 48.00 523.00 516.00 20.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 52.00 529.00 Td (Severity) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 114.00 529.00 Td (Evidence) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 342.00 529.00 Td (Why it matters) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 483.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 483.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 511.00 Td (Critical) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 483.00 m 110.00 523.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 511.00 Td (Chain: Classic DLL injection chain - behavioral API) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 501.00 Td (chain: process injection + memory allocation +) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 491.00 Td (network) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 483.00 m 338.00 523.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 511.00 Td (Correlate process injection artifacts in EDR) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 501.00 Td (telemetry; capture memory from injected processes.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 453.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 453.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 471.00 Td (Critical) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 453.00 m 110.00 483.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 471.00 Td (Chain: Process hollowing chain - behavioral API) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 461.00 Td (chain: process injection + execution + process access) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 453.00 m 338.00 483.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 471.00 Td (Look for CreateProcess+SUSPENDED followed by) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 461.00 Td (WriteProcessMemory and ResumeThread in EDR logs.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 423.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 423.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 441.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 423.00 m 110.00 453.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 441.00 Td (Chain: Keylogger with exfiltration - behavioral API) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 431.00 Td (chain: process injection + network) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 423.00 m 338.00 453.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 441.00 Td (Block outbound connections to extracted network IOCs) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 431.00 Td (and rotate credentials on affected hosts.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 393.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 393.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 411.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 393.00 m 110.00 423.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 411.00 Td (Chain: Named pipe C2 with code injection - behavioral) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 401.00 Td (API chain: named pipe C2 + process injection) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 393.00 m 338.00 423.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 411.00 Td (Hunt for named pipe creation events matching) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 401.00 Td (extracted pipe names in EDR telemetry.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 363.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 363.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 381.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 363.00 m 110.00 393.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 381.00 Td (Chain: Credential theft + webhook exfiltration -) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 371.00 Td (behavioral API chain: process access + network) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 363.00 m 338.00 393.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 381.00 Td (Revoke captured credentials and block webhook) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 371.00 Td (endpoints found in IOCs.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 333.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 333.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 351.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 333.00 m 110.00 363.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 351.00 Td (Wiper: Low-level disk write / file deletion API chain) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 341.00 Td (- DeviceIoControl and file-deletion APIs are combined) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 333.00 m 338.00 363.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 351.00 Td (Check for disk sector writes or mass file deletions) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 341.00 Td (on affected hosts.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 303.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 303.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 321.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 303.00 m 110.00 333.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 321.00 Td (Cryptominer: Mining pool connection strings - stratum) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 311.00 Td (protocol, pool, or miner strings are present) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 303.00 m 338.00 333.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 321.00 Td (Block outbound stratum protocol connections and scan) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 311.00 Td (for miner process artifacts.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 263.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 263.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 291.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 263.00 m 110.00 303.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 291.00 Td (Behavior: Dynamic API resolution with executable) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 281.00 Td (memory - LoadLibrary/GetProcAddress and memory) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 271.00 Td (permission APIs are present) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 263.00 m 338.00 303.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 291.00 Td (Review the evidence with incident context and) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 281.00 Td (validate with runtime telemetry.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 223.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 223.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 251.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 223.00 m 110.00 263.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 251.00 Td (Persistence: Linux persistence indicator - cron,) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 241.00 Td (systemd, SSH, preload, or shell profile paths are) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 231.00 Td (present) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 223.00 m 338.00 263.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 251.00 Td (The sample may survive reboot or re-login; check) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 241.00 Td (startup locations and device policy controls.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 193.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 193.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 211.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 193.00 m 110.00 223.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 211.00 Td (Packing: Multiple high-entropy regions - 25) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 201.00 Td (high-entropy regions found) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 193.00 m 338.00 223.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 211.00 Td (Static visibility may be reduced; deeper unpacking) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 201.00 Td (or dynamic tracing may be required.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 153.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 153.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 181.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 153.00 m 110.00 193.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 181.00 Td (Packing: Large high-entropy blob detected - 4KB block) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 171.00 Td (at offset 0x422000 has entropy 8.00/8.00 - likely) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 161.00 Td (encrypted or compressed payload) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 153.00 m 338.00 193.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 181.00 Td (Static visibility may be reduced; deeper unpacking) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 171.00 Td (or dynamic tracing may be required.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 123.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 123.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 141.00 Td (Low) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 123.00 m 110.00 153.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 141.00 Td (Obfuscation: Encoded data decoded successfully - 1) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 131.00 Td (base64/hex/URL encoded artifacts decoded) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 123.00 m 338.00 153.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 141.00 Td (Review the evidence with incident context and) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 131.00 Td (validate with runtime telemetry.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 93.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 93.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 111.00 Td (Low) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 93.00 m 110.00 123.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 111.00 Td (IOC: High IOC density - 10 total IOCs extracted) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 93.00 m 338.00 123.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 111.00 Td (Review the evidence with incident context and) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 101.00 Td (validate with runtime telemetry.) Tj ET 0 0 0 rg
+
+endstream
+endobj
+12 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 13 0 R >>
+endobj
+13 0 obj
+<< /Length 9080 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 4) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 688.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 688.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 716.00 Td (Low) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 688.00 m 110.00 728.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 716.00 Td (Configuration: Static configuration artifacts) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 706.00 Td (extracted - 36 likely configuration or) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 696.00 Td (secret-handling artifacts) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 688.00 m 338.00 728.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 716.00 Td (Review extracted config artifacts for live C2,) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 706.00 Td (token, wallet, campaign, or mutex values before) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 696.00 Td (sharing reports.) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 668.00 516.00 20.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 668.00 516.00 20.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 676.00 Td () Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 110.00 668.00 m 110.00 688.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 114.00 676.00 Td () Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 668.00 m 338.00 688.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 676.00 Td (5 additional evidence rows omitted from PDF.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 644.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 648.00 Td (Advanced Analysis) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 638.00 m 564.00 638.00 l S 0 0 0 RG
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 620.00 Td (Family classifier) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 601.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 604.00 Td ([High] Generic ransomware \(ransomware\): ransomware strings or findings) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 588.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 591.00 Td ([Medium-High] AsyncRAT \(rat\): named-family fingerprint, ops) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 575.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 578.00 Td ([Medium-High] FormBook/XLoader \(stealer\): named-family fingerprint, ops) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 562.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 565.00 Td ([Medium-High] XWorm \(rat\): named-family fingerprint, ops) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 549.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 552.00 Td ([Medium] Packed or bundled payload \(dropper\): 9 carved artifacts) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 539.00 Td (Crypto/config artifacts) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 520.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 523.00 Td ([Low] mutex-candidate: runtime.mutex) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 507.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 510.00 Td ([Low] mutex-candidate: sync.Mutex.Lockruntime.Goschedmalloc) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 494.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 497.00 Td ([Low] mutex-candidate: sync.RWMutex.Lockwait) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 481.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 484.00 Td ([Low] mutex-candidate: exhaustionlocked) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 468.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 471.00 Td ([Low] mutex-candidate: nmspinningstartlockedm) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 455.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 458.00 Td ([Low] mutex-candidate: overlappingmheap.freeSpanLocked) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 442.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 445.00 Td ([Low] mutex-candidate: runtime.mutexPreferLowLatency) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 429.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 432.00 Td ([Low] mutex-candidate: runtime.mutexWaitListHead) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 416.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 419.00 Td ([Low] mutex-candidate: runtime.mutexSampleContention) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 403.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 406.00 Td ([Low] mutex-candidate: runtime.waitReason.isMutexWait) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 390.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 393.00 Td (26 additional config artifacts omitted.) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 380.00 Td (Safe carved artifacts) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 361.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 364.00 Td (Gzip compressed data offset=0x64186) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 353.00 Td (sha256=7c0804505a89549113816c375fa023926e50be204cd25741ee20f88c1caf8c3c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 342.00 Td (entropy=6.16) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 328.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 331.00 Td (Gzip compressed data offset=0x78be9) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 320.00 Td (sha256=aafa93cf1a0b9c1213b71e7cd3457ad2f8d227f04f5fd8dd90b862c8a7ef2345) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 309.00 Td (entropy=6.26) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 295.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 298.00 Td (Gzip compressed data offset=0x8cf8c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 287.00 Td (sha256=1f4558c2572c9d522187a24d062b61d10998d3d4899c5721cc4e4c84f0a718ab) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 276.00 Td (entropy=4.21) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 262.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 265.00 Td (Gzip compressed data offset=0x2705ee) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 254.00 Td (sha256=f854aea0e3b4aa0daea4a2a6bb8d100750c4a2f6060312266fbe8f5216ca5f0c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 243.00 Td (entropy=7.98) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 229.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 232.00 Td (Gzip compressed data offset=0x29740c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 221.00 Td (sha256=e0602f420d5dd7e3048e59d7a253c79d0ee2c105fd38673dcf10f4f3cc1eafbc) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 210.00 Td (entropy=7.95) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 196.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 199.00 Td (Gzip compressed data offset=0x298d93) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 188.00 Td (sha256=f4e3604630af10094c0da49a63b44ccc4bec3bbb22ae3c4e5e54c3fc5c657dbb) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 177.00 Td (entropy=7.83) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 163.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 166.00 Td (Gzip compressed data offset=0x352729) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 155.00 Td (sha256=fdb05f580b2120c72a248f1f1be9223eccd02b4b3f5f1aef24bc431e87af07b5) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 144.00 Td (entropy=7.76) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 130.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 133.00 Td (Gzip compressed data offset=0x35b529) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 122.00 Td (sha256=e2ab2a9190408f32f67732d3058cefd71b067140abff7dd580e7904f4c332d86) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 111.00 Td (entropy=7.85) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 97.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 100.00 Td (Gzip compressed data offset=0x36a470) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 89.00 Td (sha256=00dbde7568817ae1f9f1f5a33f880780977ee728da2bcf75547fdd3d189c8a00) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 78.00 Td (entropy=6.19) Tj ET 0 0 0 rg
+
+endstream
+endobj
+14 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 15 0 R >>
+endobj
+15 0 obj
+<< /Length 12666 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 5) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 724.00 Td (Similarity hashes) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 705.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 708.00 Td (FlatHash:) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 697.00 Td (FLS1:16384:11a2765e07421a95d27b58bee35bd35ba714a7596fec64748164b2bad492a6f98a4a4a7) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 686.00 Td (62e79aa303b012fb2ce2337c813432b8da45664fb14eaaee8b4697275133e607d4509a08a4eebe8fc9) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 675.00 Td (60fcb0844b7909d75386488189ed6f529ab2de212547dccc5fb160d955c8aa1a4cb0533aeb824feca3) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 664.00 Td (20e61aea35b5cd09bd9ad88b43b0de653ce838caa8476f11201b971ee4dea76ad38a8d04d66136ae8c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 653.00 Td (5635d23df924b423a7e9df54eb70c76888b6d540632e37b68560897e7be3396b68635cf1facb6d1159) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 642.00 Td (4c5928d872e0c63139f211d4b99121803bed977c83f670e870ccf02ba0794469152a7dab7191331b12) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 631.00 Td (071a19ec31337b74e9349d14e3dca5295471d43fe45324fa8fc2032efc9a580169cdd16b3c7bb875ec) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 620.00 Td (4e34e458aaa7cc3e69ca3e04f9504ea71e0a9c5dc92c2f97faa306062f1e1acb26ddc529e0484b1110) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 609.00 Td (950f917897ffc4cf567087be4b6e8bbd0d97c2a9a3232872c1de090056c12add9f5de3e23f49516b21) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 598.00 Td (8077c6ff303fe42b4f23faafcc0a4f42833a246a49c11e719420ddad3de19be99af51a351f56fe1f5f) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 587.00 Td (8750b0b75c49f61768d60e3428541ab71dd25ea92adfa00117dc6b50509ef603626935ff430a7256d3) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 576.00 Td (95850cc80e5679cf09f9b485948e647921da8edb0856be4b14fb5229fb28740d40ca2138ba15cafe49) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 565.00 Td (48c129b77503302da5612f77fd2b5fee759c2e4d251fd09dd063cce272adbc105e151c2b247df4c772) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 554.00 Td (cb72147d50488592292c10f4515e00576236353627909c8f288a2f6ea9715a13ede24014026d588d8a) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 543.00 Td (a3f66e229eb5e178ea490aa5d5ec8c331a742ce961f490775cfec9e69aa1463ede4f46a055fc6cafcd) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 532.00 Td (1965a6e078b289b0b236bee112da11c9863da0e9457092e51246031630c319cadfbe1188b4c23d3bc5) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 521.00 Td (9c7d1998eae59f173d2d41f2e6aecb4a6812f270e1536ee211e78df1e68b2366148bdae38e74c7eaa2) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 510.00 Td (8d2479b1e192ef7116de23155e4f096a47c52e971983f93894a587f6d86ed74b8236e61ba2793d7ccc) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 499.00 Td (1762c29f758e103f7f3ff5390a2e2045d594a79f183e41070726d3021a36de4e1043834ba42b869009) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 488.00 Td (6be93f63b8e4f43b18ac29e61a387c756d27d0381d4646f61eb869b0fd54a8a71feff69d1971d3c9d2) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 477.00 Td (3f2040ad4858568b6e59d38de11838f7b6c63fb50577971bbf5cee0b5d5b63f19821750fd1de3b5f10) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 466.00 Td (7f4da39d07667fd9623329aee571041574980e642c19c88ec91e03c9c5dd3ca9d24c42effce5e82140) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 455.00 Td (5cd93619cf2752765bc209cb9a1447d02abb1358c4fdbbbe44c66fa275dfc9ed330658f4bb04e4dce5) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 444.00 Td (272abd0b464f4801a7757b64e6138f6fb7bc9813595f0ab49157fa128563e7a9b90ab66dfe28c1d065) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 433.00 Td (7747555a10a91dac5e0ce8c537e754e4eef04d55c7c68e660cbb73ce6a0fcfcf3a4ced3f0256e8e10c) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 422.00 Td (e523a5066) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 408.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 411.00 Td (Byte histogram: 580c24f1c6247e712123e94de2a070d1804a953dcc6cfe2e5d3cc0a72be44fec) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 397.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 400.00 Td (String set: 57b91206fc3855f4d06bf1b9540a68c356c43bf824bc6ff3611c890c6b63694a) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 386.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 389.00 Td (Import hash: 2b7bd21d160267a3bf75de97e3662abb5c711ce5f15c623be4efb13a146f2ff6) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 375.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 378.00 Td (Section hash: 9573cca6324c982e5310a88f51100264c595089b6e3995bdb5ba16225c6b92ff) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 355.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 359.00 Td (MITRE ATT&CK TTP Matrix) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 349.00 m 564.00 349.00 l S 0 0 0 RG
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 331.00 Td (The matrix below maps static evidence to ATT&CK-style tactics and techniques. Confidence) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 318.00 Td (reflects static-evidence strength, not confirmed runtime execution.) Tj ET 0 0 0 rg
+0.110 0.140 0.200 rg 48.00 283.00 516.00 20.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 52.00 289.00 Td (Tactic) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 144.00 289.00 Td (Technique) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 294.00 289.00 Td (Conf.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 342.00 289.00 Td (Evidence) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 253.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 253.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 271.00 Td (Collection) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 253.00 m 140.00 283.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 271.00 Td (Input Capture \(T1056\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 253.00 m 290.00 283.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 271.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 253.00 m 338.00 283.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 271.00 Td (Keylogger with exfiltration - behavioral API chain:) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 261.00 Td (process injection + network) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 223.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 223.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 241.00 Td (Command and Control) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 223.00 m 140.00 253.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 241.00 Td (Application Layer Protocol \(T1071\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 223.00 m 290.00 253.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 241.00 Td (Info) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 223.00 m 338.00 253.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 241.00 Td (Malware configuration recovered - AsyncRAT) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 231.00 Td (configuration extracted: 5 C2, 1 campaign-id) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 193.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 193.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 211.00 Td (Command and Control) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 193.00 m 140.00 223.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 211.00 Td (Non-Application Layer Protocol) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 201.00 Td (\(T1095\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 193.00 m 290.00 223.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 211.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 193.00 m 338.00 223.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 211.00 Td (Named pipe C2 with code injection - behavioral API) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 201.00 Td (chain: named pipe C2 + process injection) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 163.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 163.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 181.00 Td (Credential Access) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 163.00 m 140.00 193.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 181.00 Td (Credentials from Web Browsers) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 171.00 Td (\(T1555.003\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 163.00 m 290.00 193.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 181.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 163.00 m 338.00 193.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 181.00 Td (Credential theft + webhook exfiltration - behavioral) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 171.00 Td (API chain: process access + network) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 123.00 516.00 40.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 123.00 516.00 40.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 151.00 Td (Defense Evasion) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 123.00 m 140.00 163.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 151.00 Td (Obfuscated Files or Information) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 141.00 Td (\(T1027\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 123.00 m 290.00 163.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 151.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 123.00 m 338.00 163.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 151.00 Td (Large high-entropy blob detected - 4KB block at) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 141.00 Td (offset 0x422000 has entropy 8.00/8.00 - likely) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 131.00 Td (encrypted or compressed payload) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 93.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 93.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 111.00 Td (Defense Evasion) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 93.00 m 140.00 123.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 111.00 Td (Process Hollowing \(T1055.012\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 93.00 m 290.00 123.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 111.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 93.00 m 338.00 123.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 111.00 Td (Process hollowing chain - behavioral API chain:) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 101.00 Td (process injection + execution + process access) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 63.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 63.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 81.00 Td (Defense Evasion) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 63.00 m 140.00 93.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 81.00 Td (Process Injection \(T1055\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 63.00 m 290.00 93.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 81.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 63.00 m 338.00 93.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 81.00 Td (Classic DLL injection chain - behavioral API chain:) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 71.00 Td (process injection + memory allocation + network) Tj ET 0 0 0 rg
+
+endstream
+endobj
+16 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 17 0 R >>
+endobj
+17 0 obj
+<< /Length 10203 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 6) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 698.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 698.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 716.00 Td (Discovery) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 698.00 m 140.00 728.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 716.00 Td (Data from Local System) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 698.00 m 290.00 728.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 716.00 Td (Low) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 698.00 m 338.00 728.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 716.00 Td (Static configuration artifacts extracted - 36 likely) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 706.00 Td (configuration or secret-handling artifacts) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 668.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 668.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 686.00 Td (Impact) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 668.00 m 140.00 698.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 686.00 Td (Data Destruction \(T1485\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 668.00 m 290.00 698.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 686.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 668.00 m 338.00 698.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 686.00 Td (Low-level disk write / file deletion API chain -) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 676.00 Td (DeviceIoControl and file-deletion APIs are combined) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 638.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 638.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 656.00 Td (Impact) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 140.00 638.00 m 140.00 668.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 144.00 656.00 Td (Resource Hijacking \(T1496\)) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 290.00 638.00 m 290.00 668.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 294.00 656.00 Td (High) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 338.00 638.00 m 338.00 668.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 656.00 Td (Mining pool connection strings - stratum protocol,) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 342.00 646.00 Td (pool, or miner strings are present) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 616.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 620.00 Td (Priority Findings) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 610.00 m 564.00 610.00 l S 0 0 0 RG
+0.500 0.060 0.100 rg 48.00 581.00 54.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 590.00 Td (Critical) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 108.80 592.00 Td (Chain: Classic DLL injection chain \(40\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 575.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 578.00 Td (Evidence: behavioral API chain: process injection + memory allocation + network) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 562.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 565.00 Td (ATT&CK: Defense Evasion / Process Injection \(T1055\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 549.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 552.00 Td (Recommendation: Correlate process injection artifacts in EDR telemetry; capture memory) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 539.00 Td (from injected processes.) Tj ET 0 0 0 rg
+0.500 0.060 0.100 rg 48.00 510.00 54.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 519.00 Td (Critical) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 108.80 521.00 Td (Chain: Process hollowing chain \(38\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 504.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 507.00 Td (Evidence: behavioral API chain: process injection + execution + process access) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 491.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 494.00 Td (ATT&CK: Defense Evasion / Process Hollowing \(T1055.012\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 478.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 481.00 Td (Recommendation: Look for CreateProcess+SUSPENDED followed by WriteProcessMemory and) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 468.00 Td (ResumeThread in EDR logs.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 439.00 32.40 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 448.00 Td (High) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 86.40 450.00 Td (Chain: Keylogger with exfiltration \(30\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 433.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 436.00 Td (Evidence: behavioral API chain: process injection + network) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 420.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 423.00 Td (ATT&CK: Collection / Input Capture \(T1056\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 407.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 410.00 Td (Recommendation: Block outbound connections to extracted network IOCs and rotate) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 397.00 Td (credentials on affected hosts.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 368.00 32.40 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 377.00 Td (High) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 86.40 379.00 Td (Chain: Named pipe C2 with code injection \(30\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 362.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 365.00 Td (Evidence: behavioral API chain: named pipe C2 + process injection) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 349.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 352.00 Td (ATT&CK: Command and Control / Non-Application Layer Protocol \(T1095\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 336.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 339.00 Td (Recommendation: Hunt for named pipe creation events matching extracted pipe names in EDR) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 326.00 Td (telemetry.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 297.00 32.40 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 306.00 Td (High) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 86.40 308.00 Td (Chain: Credential theft + webhook exfiltration \(28\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 291.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 294.00 Td (Evidence: behavioral API chain: process access + network) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 278.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 281.00 Td (ATT&CK: Credential Access / Credentials from Web Browsers \(T1555.003\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 265.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 268.00 Td (Recommendation: Revoke captured credentials and block webhook endpoints found in IOCs.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 239.00 32.40 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 248.00 Td (High) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 86.40 250.00 Td (Wiper: Low-level disk write / file deletion API chain \(26\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 233.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 236.00 Td (Evidence: DeviceIoControl and file-deletion APIs are combined) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 220.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 223.00 Td (ATT&CK: Impact / Data Destruction \(T1485\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 207.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 210.00 Td (Recommendation: Check for disk sector writes or mass file deletions on affected hosts.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 181.00 32.40 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 190.00 Td (High) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 86.40 192.00 Td (Cryptominer: Mining pool connection strings \(26\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 175.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 178.00 Td (Evidence: stratum protocol, pool, or miner strings are present) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 162.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 165.00 Td (ATT&CK: Impact / Resource Hijacking \(T1496\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 149.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 152.00 Td (Recommendation: Block outbound stratum protocol connections and scan for miner process) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 139.00 Td (artifacts.) Tj ET 0 0 0 rg
+0.790 0.500 0.120 rg 48.00 110.00 43.60 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 119.00 Td (Medium) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 97.60 121.00 Td (Behavior: Dynamic API resolution with executable memory \(12\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 104.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 107.00 Td (Evidence: LoadLibrary/GetProcAddress and memory permission APIs are present) Tj ET 0 0 0 rg
+
+endstream
+endobj
+18 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 19 0 R >>
+endobj
+19 0 obj
+<< /Length 9382 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 7) Tj ET 0 0 0 rg
+0.790 0.500 0.120 rg 48.00 713.00 43.60 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 722.00 Td (Medium) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 97.60 724.00 Td (Persistence: Linux persistence indicator \(12\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 707.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 710.00 Td (Evidence: cron, systemd, SSH, preload, or shell profile paths are present) Tj ET 0 0 0 rg
+0.790 0.500 0.120 rg 48.00 681.00 43.60 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 690.00 Td (Medium) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 97.60 692.00 Td (Packing: Multiple high-entropy regions \(10\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 675.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 678.00 Td (Evidence: 25 high-entropy regions found) Tj ET 0 0 0 rg
+0.790 0.500 0.120 rg 48.00 649.00 43.60 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 658.00 Td (Medium) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 97.60 660.00 Td (Packing: Large high-entropy blob detected \(8\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 643.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 646.00 Td (Evidence: 4KB block at offset 0x422000 has entropy 8.00/8.00 - likely encrypted or) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 633.00 Td (compressed payload) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 617.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 620.00 Td (ATT&CK: Defense Evasion / Obfuscated Files or Information \(T1027\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 604.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 607.00 Td (Recommendation: Investigate whether the high-entropy region contains an encrypted) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 594.00 Td (payload or packed executable stage.) Tj ET 0 0 0 rg
+0.180 0.430 0.720 rg 48.00 565.00 26.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 574.00 Td (Low) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 80.80 576.00 Td (Obfuscation: Encoded data decoded successfully \(4\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 559.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 562.00 Td (Evidence: 1 base64/hex/URL encoded artifacts decoded) Tj ET 0 0 0 rg
+0.180 0.430 0.720 rg 48.00 533.00 26.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 542.00 Td (Low) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 80.80 544.00 Td (IOC: High IOC density \(4\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 527.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 530.00 Td (Evidence: 10 total IOCs extracted) Tj ET 0 0 0 rg
+0.180 0.430 0.720 rg 48.00 501.00 26.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 510.00 Td (Low) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 80.80 512.00 Td (Configuration: Static configuration artifacts extracted \(4\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 495.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 498.00 Td (Evidence: 36 likely configuration or secret-handling artifacts) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 482.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 485.00 Td (ATT&CK: Discovery / Data from Local System) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 469.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 472.00 Td (Recommendation: Review extracted config artifacts for live C2, token, wallet, campaign,) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 459.00 Td (or mutex values before sharing reports.) Tj ET 0 0 0 rg
+0.180 0.430 0.720 rg 48.00 430.00 26.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 439.00 Td (Low) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 80.80 441.00 Td (IOC: Embedded hash-like indicators \(3\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 424.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 427.00 Td (Evidence: multiple MD5/SHA1/SHA256-looking values were extracted) Tj ET 0 0 0 rg
+0.180 0.430 0.720 rg 48.00 398.00 26.80 14.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.50 Tf 52.00 407.00 Td (Low) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 10.30 Tf 80.80 409.00 Td (PE Posture: PE has a self-signed certificate \(3\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 392.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 395.00 Td (Evidence: CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 374.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 377.00 Td (3 additional findings omitted from PDF. See JSON/text report for full detail.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 352.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 356.00 Td (Cryptography and Secret Handling Assessment) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 346.00 m 564.00 346.00 l S 0 0 0 RG
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 328.00 Td (Cryptography indicators are interpreted as capability clues. Malware may use crypto for) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 315.00 Td (legitimate protocol handling, payload decryption, credential theft, or string/configuration) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 302.00 Td (obfuscation.) Tj ET 0 0 0 rg
+0.110 0.140 0.200 rg 48.00 267.00 516.00 20.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 52.00 273.00 Td (Primitive) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 170.00 273.00 Td (Purpose) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 346.00 273.00 Td (Conf.) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 8.20 Tf 394.00 273.00 Td (Evidence) Tj ET 0 0 0 rg
+0.980 0.990 1.000 rg 48.00 237.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 237.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 255.00 Td (Encoding/obfuscation layer) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 166.00 237.00 m 166.00 267.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 170.00 255.00 Td (Static obfuscation or configuration) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 170.00 245.00 Td (wrapping) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 342.00 237.00 m 342.00 267.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 346.00 255.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 390.00 237.00 m 390.00 267.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 394.00 255.00 Td (1 decoded artifacts) Tj ET 0 0 0 rg
+1.000 1.000 1.000 rg 48.00 207.00 516.00 30.00 re f 0 0 0 rg
+0.860 0.880 0.920 RG 0.6 w 48.00 207.00 516.00 30.00 re S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 52.00 225.00 Td (Symmetric crypto markers) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 166.00 207.00 m 166.00 237.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 170.00 225.00 Td (Possible AES-GCM or authenticated) Tj ET 0 0 0 rg
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 170.00 215.00 Td (decryption logic) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 342.00 207.00 m 342.00 237.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 346.00 225.00 Td (Medium) Tj ET 0 0 0 rg
+0.880 0.900 0.940 RG 0.4 w 390.00 207.00 m 390.00 237.00 l S 0 0 0 RG
+0.100 0.130 0.180 rg BT /F1 7.50 Tf 394.00 225.00 Td (AES/GCM/tag/IV/nonce style strings) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 183.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 187.00 Td (Hunting Guidance) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 177.00 m 564.00 177.00 l S 0 0 0 RG
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 159.00 Td (Use these points to operationalize the static findings in EDR, SIEM, proxy, DNS, and malware) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.30 Tf 48.00 146.00 Td (repository searches.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 124.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 127.00 Td (Hunt for outbound HTTP\(S\) traffic to extracted URLs, especially webhook or API) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 114.00 Td (endpoints.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 98.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 101.00 Td (Review DNS and proxy logs for the extracted domains and adjacent subdomains.) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 85.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 88.00 Td (Search for SHA256 a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc and) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 75.00 Td (any matching execution events.) Tj ET 0 0 0 rg
+
+endstream
+endobj
+20 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 21 0 R >>
+endobj
+21 0 obj
+<< /Length 7435 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 8) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 712.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 716.00 Td (Sample Metadata) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 706.00 m 564.00 706.00 l S 0 0 0 RG
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 688.00 Td (MD5:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 688.00 Td (b971e00a0514a9dd90ae4147fd2be083) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 674.00 Td (SHA1:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 674.00 Td (814b4d722a9bc8eff65d7833ccf9b47cf486c3f2) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 660.00 Td (SHA256:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 660.00 Td (a758ff0a172386bd3d1efaba38bc94cd899080eb53039097c1b043c2c8c8bafc) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 646.00 Td (SHA512:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 646.00 Td (4596403357bab28164b2172a40d8f8555bd3645fb58c5669b0aa87978debab0757487e) Tj ET
+BT /F1 9.50 Tf 166.00 634.00 Td (c6b7f1c5bb358c3be9ca1dd29ee26f336572a9dbf180f1e06d3fc96c5f) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 620.00 Td (PE import hash:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 620.00 Td (5292ba861fbedd8ccd6f23c56196bc91) Tj ET
+0.700 0.120 0.120 rg 48.00 594.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 598.00 Td (Indicators of Compromise) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 588.00 m 564.00 588.00 l S 0 0 0 RG
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 570.00 Td (URLs \(1\)) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 551.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 554.00 Td (https://go.dev/issue/66821\):) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 540.00 Td (Domains \(4\)) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 521.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 524.00 Td (eq.io) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 510.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 513.00 Td (go.dev) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 499.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 502.00 Td (godebugs.info) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 488.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 491.00 Td (time.local) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 477.00 Td (MD5 \(2\)) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 458.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 461.00 Td (dddddddddddddddddddddddddddddddd) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 447.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 450.00 Td (eddddddddddddddddddddddddddddddd) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 436.00 Td (SHA256 \(3\)) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 417.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 420.00 Td (0000000000000000000000000000000000000000000000000000000000000000) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 406.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 409.00 Td (5f566b8060af5dcf2bb32599f0d90d9b6c002cd445f22159b86edf45e23a5dae) Tj ET 0 0 0 rg
+0.280 0.330 0.400 rg 50.00 395.00 3.50 3.50 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F3 7.40 Tf 62.00 398.00 Td (aaaaaaaaaaaaaaaaaaaaabbbbbbbbbbbcccccccccccccccccccccccccccccccc) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 372.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 376.00 Td (Executable and Container Details) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 366.00 m 564.00 366.00 l S 0 0 0 RG
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 348.00 Td (PE details) Tj ET 0 0 0 rg
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 332.00 Td (Machine:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 332.00 Td (amd64) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 318.00 Td (Timestamp:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 318.00 Td (1970-01-01T00:00:00Z) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 304.00 Td (Subsystem:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 304.00 Td (windows-gui) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 290.00 Td (Image base:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 290.00 Td (0x140000000) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 276.00 Td (Entry point:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 276.00 Td (0x74dc0) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 262.00 Td (Managed .NET runtime:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 262.00 Td (false) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 248.00 Td (Certificate table:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 248.00 Td (true) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 234.00 Td (Signature:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 234.00 Td (signature present; 1 certificate\(s\) recovered) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 220.00 Td (Signer subject\(s\):) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 220.00 Td (CN=blobalkas.tv,O=JzyswPRF0wWV30,L=VfLufa,ST=6IVuYA8H6,C=US) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 206.00 Td (Self-signed:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 206.00 Td (true) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 192.00 Td (Security mitigations:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 192.00 Td (ASLR, DEP, HighEntropyVA, TerminalServerAware) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 178.00 Td (Missing mitigations:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 178.00 Td (CFG) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 164.00 Td (Image characteristics:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 164.00 Td (EXECUTABLE_IMAGE, LARGE_ADDRESS_AWARE) Tj ET
+0.240 0.280 0.340 rg BT /F2 9.20 Tf 48.00 150.00 Td (Overlay:) Tj ET 0 0 0 rg
+BT /F1 9.50 Tf 166.00 150.00 Td (offset=0x455400 size=2.4 KiB) Tj ET
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 136.00 Td (PE sections) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 117.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 120.00 Td (.text raw=0x600 size=1355264 entropy=6.21 executable=true writable=false) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 104.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 107.00 Td (.rdata raw=0x14b400 size=2945536 entropy=5.84 executable=false writable=false) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 91.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 94.00 Td (.data raw=0x41a600 size=72192 entropy=4.77 executable=false writable=true) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 78.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 81.00 Td (.pdata raw=0x42c000 size=22016 entropy=5.31 executable=false writable=false) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 65.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 68.00 Td (.xdata raw=0x431600 size=512 entropy=1.77 executable=false writable=false) Tj ET 0 0 0 rg
+
+endstream
+endobj
+22 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 23 0 R >>
+endobj
+23 0 obj
+<< /Length 8640 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 9) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 721.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 724.00 Td (.idata raw=0x431800 size=1536 entropy=3.98 executable=false writable=true) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 708.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 711.00 Td (.reloc raw=0x431e00 size=16896 entropy=5.43 executable=false writable=false) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 695.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 698.00 Td (.symtab raw=0x436000 size=128000 entropy=5.12 executable=false writable=false) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 685.00 Td (PE imports \(46 stored\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 666.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 669.00 Td (AddVectoredContinueHandler:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 653.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 656.00 Td (AddVectoredExceptionHandler:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 640.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 643.00 Td (CloseHandle:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 627.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 630.00 Td (CreateEventA:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 614.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 617.00 Td (CreateIoCompletionPort:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 601.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 604.00 Td (CreateThread:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 588.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 591.00 Td (CreateWaitableTimerExW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 575.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 578.00 Td (DuplicateHandle:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 562.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 565.00 Td (ExitProcess:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 549.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 552.00 Td (FreeEnvironmentStringsW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 536.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 539.00 Td (GetConsoleMode:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 523.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 526.00 Td (GetCurrentThreadId:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 510.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 513.00 Td (GetEnvironmentStringsW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 497.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 500.00 Td (GetErrorMode:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 484.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 487.00 Td (GetProcAddress:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 471.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 474.00 Td (GetProcessAffinityMask:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 458.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 461.00 Td (GetQueuedCompletionStatusEx:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 445.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 448.00 Td (GetStdHandle:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 432.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 435.00 Td (GetSystemDirectoryA:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 419.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 422.00 Td (GetSystemInfo:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 406.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 409.00 Td (GetThreadContext:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 393.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 396.00 Td (LoadLibraryExW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 380.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 383.00 Td (LoadLibraryW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 367.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 370.00 Td (PostQueuedCompletionStatus:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 354.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 357.00 Td (RaiseFailFastException:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 341.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 344.00 Td (ResumeThread:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 328.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 331.00 Td (RtlLookupFunctionEntry:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 315.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 318.00 Td (RtlVirtualUnwind:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 302.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 305.00 Td (SetConsoleCtrlHandler:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 289.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 292.00 Td (SetErrorMode:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 276.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 279.00 Td (SetEvent:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 263.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 266.00 Td (SetProcessPriorityBoost:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 250.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 253.00 Td (SetThreadContext:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 237.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 240.00 Td (SetWaitableTimer:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 224.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 227.00 Td (SuspendThread:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 211.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 214.00 Td (SwitchToThread:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 198.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 201.00 Td (TlsAlloc:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 185.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 188.00 Td (VirtualAlloc:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 172.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 175.00 Td (VirtualFree:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 159.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 162.00 Td (VirtualQuery:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 146.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 149.00 Td (WaitForMultipleObjects:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 133.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 136.00 Td (WaitForSingleObject:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 120.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 123.00 Td (WerGetFlags:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 107.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 110.00 Td (WerSetFlags:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 94.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 97.00 Td (WriteConsoleW:kernel32.dll) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 81.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 84.00 Td (WriteFile:kernel32.dll) Tj ET 0 0 0 rg
+
+endstream
+endobj
+24 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 25 0 R >>
+endobj
+25 0 obj
+<< /Length 9007 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 10) Tj ET 0 0 0 rg
+0.160 0.220 0.300 rg BT /F2 11.00 Tf 48.00 724.00 Td (High entropy regions) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 705.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 708.00 Td (offset=0x268000 length=65536 entropy=7.93) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 692.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 695.00 Td (offset=0x270000 length=65536 entropy=7.98) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 679.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 682.00 Td (offset=0x278000 length=65536 entropy=7.98) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 666.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 669.00 Td (offset=0x280000 length=65536 entropy=7.98) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 653.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 656.00 Td (offset=0x288000 length=65536 entropy=7.97) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 640.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 643.00 Td (offset=0x290000 length=65536 entropy=7.97) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 627.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 630.00 Td (offset=0x298000 length=65536 entropy=7.91) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 614.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 617.00 Td (offset=0x2a0000 length=65536 entropy=7.83) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 601.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 604.00 Td (offset=0x2a8000 length=65536 entropy=7.85) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 588.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 591.00 Td (offset=0x2b0000 length=65536 entropy=7.85) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 575.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 578.00 Td (offset=0x2b8000 length=65536 entropy=7.85) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 562.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 565.00 Td (offset=0x2c0000 length=65536 entropy=7.84) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 549.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 552.00 Td (offset=0x2c8000 length=65536 entropy=7.83) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 536.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 539.00 Td (offset=0x2d0000 length=65536 entropy=7.82) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 523.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 526.00 Td (offset=0x2d8000 length=65536 entropy=7.83) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 510.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 513.00 Td (offset=0x2e0000 length=65536 entropy=7.82) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 497.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 500.00 Td (offset=0x2e8000 length=65536 entropy=7.83) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 484.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 487.00 Td (offset=0x2f0000 length=65536 entropy=7.84) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 471.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 474.00 Td (offset=0x2f8000 length=65536 entropy=7.80) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 458.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 461.00 Td (offset=0x300000 length=65536 entropy=7.77) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 445.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 448.00 Td (offset=0x308000 length=65536 entropy=7.79) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 432.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 435.00 Td (offset=0x310000 length=65536 entropy=7.84) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 419.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 422.00 Td (offset=0x318000 length=65536 entropy=7.86) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 406.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 409.00 Td (offset=0x320000 length=65536 entropy=7.84) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 393.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 396.00 Td (offset=0x328000 length=65536 entropy=7.80) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 371.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 375.00 Td (Suspicious Functions and APIs) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 365.00 m 564.00 365.00 l S 0 0 0 RG
+0.700 0.120 0.120 rg 50.00 344.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 347.00 Td ([Medium] VirtualAlloc - memory allocation \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 331.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 334.00 Td ([Medium] OpenProcess - process access \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 318.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 321.00 Td ([High] SetThreadContext - process injection \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 305.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 308.00 Td ([Medium] GetThreadContext - process access \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 292.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 295.00 Td ([Medium] ResumeThread - process injection \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 279.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 282.00 Td ([Medium] GetVolumeInformation - sandbox fingerprinting \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 266.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 269.00 Td ([Low] LoadLibrary - dynamic loading \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 253.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 256.00 Td ([Low] GetProcAddress - dynamic loading \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 240.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 243.00 Td ([Low] WSAStartup - network \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 227.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 230.00 Td ([Medium] CreateNamedPipe - named pipe C2 \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 214.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 217.00 Td ([Medium] RegSetValue - persistence \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 201.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 204.00 Td ([Medium] CreateProcess - execution \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 188.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 191.00 Td ([Medium] ptrace - linux anti-debug/process access \(strings/imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 175.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 178.00 Td ([Low] GetProcAddress - dynamic loading \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 162.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 165.00 Td ([Medium] GetThreadContext - process access \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 149.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 152.00 Td ([Low] LoadLibrary - dynamic loading \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 136.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 139.00 Td ([Medium] ResumeThread - process injection \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 123.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 126.00 Td ([High] SetThreadContext - process injection \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 110.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 113.00 Td ([Medium] VirtualAlloc - memory allocation \(pe imports\)) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 88.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 92.00 Td (Suspicious String Highlights) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 82.00 m 564.00 82.00 l S 0 0 0 RG
+
+endstream
+endobj
+26 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R /F2 4 0 R /F3 5 0 R >> >> /Contents 27 0 R >>
+endobj
+27 0 obj
+<< /Length 4224 >>
+stream
+0.100 0.130 0.180 rg 0.00 748.00 612.00 44.00 re f 0 0 0 rg
+1.000 1.000 1.000 rg BT /F2 9.20 Tf 48.00 772.00 Td (FlatScan Malware Analysis Report) Tj ET 0 0 0 rg
+0.820 0.860 0.920 rg BT /F1 7.80 Tf 48.00 758.00 Td (vidar.exe) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 742.00 m 564.00 742.00 l S 0 0 0 RG
+0.70 0.72 0.76 RG 0.6 w 48.00 42.00 m 564.00 42.00 l S 0 0 0 RG
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 48.00 28.00 Td (Static analysis only. Validate findings with runtime telemetry before containment decisions.) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.30 Tf 360.00 28.00 Td (FlatScan v0.10.2  -  2026-08-13) Tj ET 0 0 0 rg
+0.380 0.420 0.480 rg BT /F1 7.60 Tf 558.00 28.00 Td (Page 11) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 721.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 724.00 Td (Decrypt) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 708.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 711.00 Td (Encrypt) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 695.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 698.00 Td (lock: lock countbad system huge page sizearena already initialized to unused region of) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 685.00 Td (span bytes failed with errno=runtime: VirtualAlloc of /sched/gomaxprocs:threadsmissing) Tj ET 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 672.00 Td (typ...) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 656.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 659.00 Td (crypto/internal/fips140/aes.encryptBlock) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 643.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 646.00 Td (crypto/internal/fips140/aes.decryptBlock) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 630.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 633.00 Td (crypto/internal/fips140/aes.encryptBlockGeneric) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 617.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 620.00 Td (crypto/internal/fips140/aes.decryptBlockGeneric) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 604.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 607.00 Td (crypto/internal/fips140/aes.\(*CBCEncrypter\).CryptBlocks) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 591.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 594.00 Td (crypto/internal/fips140/aes.\(*CBCDecrypter\).CryptBlocks) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 578.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 581.00 Td (crypto/internal/fips140/aes.NewCBCEncrypter) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 565.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 568.00 Td (crypto/internal/fips140/aes.NewCBCDecrypter) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 552.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 555.00 Td (crypto/internal/fips140/aes.encryptBlockAsm) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 539.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 542.00 Td (crypto/internal/fips140/aes.decryptBlockAsm) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 526.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 529.00 Td (crypto/internal/fips140/aes.EncryptBlockInternal) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 513.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 516.00 Td (VirtualAlloc) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 500.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 503.00 Td (crypto/internal/fips140/aes.encryptBlockAsm.abi0) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 50.00 487.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 490.00 Td (crypto/internal/fips140/aes.decryptBlockAsm.abi0) Tj ET 0 0 0 rg
+0.700 0.120 0.120 rg 48.00 465.00 5.00 18.00 re f 0 0 0 rg
+0.100 0.130 0.180 rg BT /F2 15.00 Tf 62.00 469.00 Td (Decoded Artifacts) Tj ET 0 0 0 rg
+0.70 0.72 0.76 RG 0.6 w 48.00 459.00 m 564.00 459.00 l S 0 0 0 RG
+0.700 0.120 0.120 rg 50.00 438.00 3.50 3.50 re f 0 0 0 rg
+0.120 0.140 0.180 rg BT /F1 9.20 Tf 62.00 441.00 Td (hex from ascii string at offset 2499462: DDDDDDDD) Tj ET 0 0 0 rg
+
+endstream
+endobj
+xref
+0 28
+0000000000 65535 f 
+0000000015 00000 n 
+0000000064 00000 n 
+0000000191 00000 n 
+0000000261 00000 n 
+0000000336 00000 n 
+0000000404 00000 n 
+0000000550 00000 n 
+0000004985 00000 n 
+0000005131 00000 n 
+0000014761 00000 n 
+0000014909 00000 n 
+0000028618 00000 n 
+0000028766 00000 n 
+0000037899 00000 n 
+0000038047 00000 n 
+0000050767 00000 n 
+0000050915 00000 n 
+0000061172 00000 n 
+0000061320 00000 n 
+0000070755 00000 n 
+0000070903 00000 n 
+0000078391 00000 n 
+0000078539 00000 n 
+0000087232 00000 n 
+0000087380 00000 n 
+0000096440 00000 n 
+0000096588 00000 n 
+trailer
+<< /Size 28 /Root 1 0 R >>
+startxref
+100865
+%%EOF
