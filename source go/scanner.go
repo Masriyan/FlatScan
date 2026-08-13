@@ -238,9 +238,18 @@ func ScanFile(cfg Config, progress *Progress) (ScanResult, error) {
 	// enrich against the optional offline threat-intel database. Both run after
 	// family classification + IOC triage so they reuse the final IOC set.
 	ExtractMalwareConfig(&result, corpus)
-	if records, err := LoadIntelDB(cfg.IntelDBPath); err != nil {
+	if records, skipped, err := loadIntelDB(cfg.IntelDBPath); err != nil {
+		// Warn on stderr, not just the debug log: a failed intel load means
+		// enrichment silently did not happen, and the analyst would otherwise
+		// read the resulting clean verdict as "no known threat matched".
+		fmt.Fprintf(os.Stderr, "[flatscan] WARNING: threat-intel database not loaded (%v); enrichment skipped\n", err)
 		debugf("intel db load failed: %v", err)
 	} else {
+		if len(skipped) > 0 {
+			fmt.Fprintf(os.Stderr, "[flatscan] WARNING: threat-intel database %s: %d unparseable line(s) skipped (first at line %d); those indicators cannot match\n",
+				cfg.IntelDBPath, len(skipped), skipped[0])
+			debugf("intel db: skipped %d malformed line(s): %v", len(skipped), skipped)
+		}
 		EnrichFromIntel(&result, records, debugf)
 	}
 

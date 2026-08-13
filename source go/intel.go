@@ -104,34 +104,59 @@ func importHashOf(result *ScanResult) string {
 }
 
 // LoadIntelDB reads a JSONL intel database. Missing path/file is not an error.
+//
+// Malformed lines are skipped rather than failing the whole load - one bad line
+// should not cost an analyst their entire intel database - but the count is
+// reported through skipped so the caller can warn. Silently dropping them is a
+// false negative with no symptom: the indicator simply never matches, and the
+// sample is reported clean.
 func LoadIntelDB(path string) ([]IntelRecord, error) {
+	records, _, err := loadIntelDB(path)
+	return records, err
+}
+
+// loadIntelDB is LoadIntelDB plus the diagnostics. skipped lists the 1-based
+// line numbers that could not be parsed.
+func loadIntelDB(path string) (records []IntelRecord, skipped []int, err error) {
 	if strings.TrimSpace(path) == "" {
-		return nil, nil
+		return nil, nil, nil
 	}
 	f, err := os.Open(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, nil
+			return nil, nil, nil
 		}
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close() //nolint:errcheck // read-only handle: Close discards nothing
 
-	var records []IntelRecord
 	scanner := bufio.NewScanner(f)
 	scanner.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+	lineNo := 0
 	for scanner.Scan() {
+		lineNo++
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
 		}
 		var rec IntelRecord
 		if err := json.Unmarshal([]byte(line), &rec); err != nil {
+			skipped = append(skipped, lineNo)
 			continue
 		}
-		if rec.Indicator != "" {
-			records = append(records, rec)
+		// A record with no indicator can never match anything, so it is a
+		// malformed entry rather than an intentionally empty one.
+		if rec.Indicator == "" {
+			skipped = append(skipped, lineNo)
+			continue
 		}
+		records = append(records, rec)
 	}
-	return records, scanner.Err()
+	// A scanner error means the file was only partially read - typically a line
+	// over the 4 MB cap. Returning partial records with a nil-checked error let
+	// a caller that ignores the error enrich against half a database.
+	if err := scanner.Err(); err != nil {
+		return nil, skipped, fmt.Errorf("intel db %s: %w", path, err)
+	}
+	return records, skipped, nil
 }
