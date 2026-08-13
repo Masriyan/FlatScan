@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -17,8 +19,44 @@ type Progress struct {
 	done    bool
 }
 
+// NewProgress builds a progress reporter. It renders only when enabled AND the
+// destination is a terminal: the bar redraws with carriage returns, so writing
+// it to a redirected stream fills log files and CI transcripts with hundreds of
+// partial-line fragments per scan.
 func NewProgress(enabled bool, out io.Writer) *Progress {
-	return &Progress{enabled: enabled, out: out, last: -1}
+	return &Progress{enabled: enabled && isTerminalWriter(out), out: out, last: -1}
+}
+
+// isTerminalWriter reports whether w is a terminal. Non-*os.File writers (test
+// buffers, pipes) are treated as terminals so that callers passing an in-memory
+// writer still observe progress output.
+func isTerminalWriter(w io.Writer) bool {
+	f, ok := w.(*os.File)
+	if !ok {
+		return true
+	}
+	return isTerminalFile(f)
+}
+
+// isTerminalFile reports whether f is an interactive terminal.
+//
+// A character-device check alone is not enough: /dev/null is a character
+// device, so `flatscan -f sample >/dev/null 2>&1` in a batch loop still counted
+// as interactive and paid the full 20-second startup splash per file. The null
+// device is the one char device that is explicitly *not* a place to draw a
+// progress bar, so it is excluded by name.
+func isTerminalFile(f *os.File) bool {
+	if f == nil {
+		return false
+	}
+	info, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	if info.Mode()&os.ModeCharDevice == 0 {
+		return false
+	}
+	return filepath.Clean(f.Name()) != os.DevNull
 }
 
 func (p *Progress) Set(percent int, message string) {

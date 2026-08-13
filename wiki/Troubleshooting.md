@@ -8,7 +8,7 @@ Common issues and how to resolve them.
 
 **`no such file or directory` when building** — remember the source directory has a space in its name. Quote it: `cd 'source go'`, not `cd source go`.
 
-**`cannot find module golang.org/x/arch`** — the only external dependency failed to download. Ensure the build host can reach the module proxy for the *build* (analysis itself needs no network), or pre-populate the module cache in an air-gapped setup.
+**`cannot find module golang.org/x/arch`** — you are on a pre-vendoring checkout. Current versions have no external dependencies: `go.mod` requires nothing, the disassembler ships in-tree at `internal/x86asm`, and `GOPROXY=off go build` succeeds. Pull the latest source, or delete a stale `go.sum` if one is present.
 
 ## "Unknown Flag" and Did-You-Mean
 

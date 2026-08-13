@@ -23,17 +23,25 @@ var batchScan = RunConfiguredScan
 var batchPanicLog io.Writer = os.Stderr
 
 // batchResult holds the summary of one file's scan in batch mode.
+// batchResult is one row of the --batch-json summary.
+//
+// The tags matter: without them Go emits the Go field names, which left a
+// single --batch-json file mixing a snake_case envelope ("scanned",
+// "malicious", "results") with PascalCase records ("FileName", "Score").
+// Consumers that parse --json and --batch-json with the same code — the SIEM
+// streaming case FlatScan advertises — had to special-case one of them.
+// The names below match the equivalent fields in ScanResult.
 type batchResult struct {
-	FileName string
-	Verdict  string
-	Score    int
-	FileType string
-	SHA256   string
-	Duration string
-	Findings int
-	IOCs     int
-	Size     int64
-	Error    string
+	FileName string `json:"file_name"`
+	Verdict  string `json:"verdict"`
+	Score    int    `json:"risk_score"`
+	FileType string `json:"file_type"`
+	SHA256   string `json:"sha256"`
+	Duration string `json:"duration"`
+	Findings int    `json:"findings"`
+	IOCs     int    `json:"iocs"`
+	Size     int64  `json:"size"`
+	Error    string `json:"error,omitempty"`
 }
 
 // RunBatchScan scans all regular files in a directory and prints a

@@ -20,14 +20,6 @@ const (
 	colorWhite   = "\033[97m"
 	colorOrange  = "\033[38;5;208m"
 	colorGray    = "\033[90m"
-
-	// Background colors for badges
-	bgRed    = "\033[41m"
-	bgOrange = "\033[48;5;208m"
-	bgYellow = "\033[43m"
-	bgGreen  = "\033[42m"
-	bgBlue   = "\033[44m"
-	bgGray   = "\033[100m"
 )
 
 // colorEnabled returns true when stdout is a terminal and NO_COLOR is not set.

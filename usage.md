@@ -458,10 +458,24 @@ graph LR
   "errors": 0,
   "duration": "4.2s",
   "results": [
-    { "file_name": "sample.exe", "verdict": "MALICIOUS", "score": 92, "findings": 11, ... }
+    {
+      "file_name": "sample.exe",
+      "verdict": "Likely malicious",
+      "risk_score": 92,
+      "file_type": "PE executable",
+      "sha256": "c851749f...",
+      "duration": "137ms",
+      "findings": 11,
+      "iocs": 6,
+      "size": 217088
+    }
   ]
 }
 ```
+
+The per-file record uses the same field names as the full `--json` result (`file_name`,
+`verdict`, `risk_score`, `file_type`, `sha256`), so one parser handles both outputs. `error` is
+present only on files that failed to scan; a failed file does not stop the rest of the batch.
 
 ### Watch: Monitor for New Files
 

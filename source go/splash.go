@@ -13,11 +13,7 @@ func ShouldShowSplash(cfg Config, stderr *os.File) bool {
 	if cfg.NoProgress || cfg.NoSplash || cfg.SplashSeconds <= 0 {
 		return false
 	}
-	info, err := stderr.Stat()
-	if err != nil {
-		return false
-	}
-	return info.Mode()&os.ModeCharDevice != 0
+	return isTerminalFile(stderr)
 }
 
 func RunStartupSplash(enabled bool, out io.Writer, cfg Config) {

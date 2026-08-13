@@ -34,8 +34,18 @@ func ClassifyMalwareFamiliesWithCorpus(result *ScanResult, stringsFound []Extrac
 		})
 	}
 
-	if hasFinding(result.Findings, "Ransomware") || hasAny(corpus, "your files have been encrypted", "decrypt your files", ".locked", ".encrypted", "ransom note") {
+	// Ransom-note phrases are specific enough to stand alone. Bare encrypted-file
+	// extensions are not: ".locked" is a substring of the Go runtime symbols
+	// "mp.lockedInt" and "internal/runtime/exithook.locked", so every Go-compiled
+	// binary matched it and was labelled "Generic ransomware" at High confidence —
+	// the top-ranked hypothesis, above the correct one. Require the extensions to
+	// be corroborated by an actual Ransomware-category finding or a note phrase.
+	ransomNote := hasAny(corpus, "your files have been encrypted", "decrypt your files", "ransom note")
+	ransomExt := hasAny(corpus, ".locked", ".encrypted")
+	if hasFinding(result.Findings, "Ransomware") || ransomNote {
 		add("Generic ransomware", "ransomware", "High", 90, "ransomware strings or findings")
+	} else if ransomExt && len(result.IOCs.CryptoWallets) > 0 {
+		add("Generic ransomware", "ransomware", "Medium", 68, "encrypted-file extension with cryptocurrency wallet address")
 	}
 	if hasFinding(result.Findings, "Credential Access") && (hasFinding(result.Findings, "Exfiltration") || len(result.IOCs.URLs) > 0) {
 		add("Information stealer", "stealer", "High", 88, "credential access and exfiltration/network indicators")

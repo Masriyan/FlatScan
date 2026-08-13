@@ -118,7 +118,11 @@ func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedStrin
 	if hasAny(corpus, "urldownloadtofile", "winhttpopen", "internetopen", "downloadstring", "webclient") && (len(result.IOCs.URLs) > 0 || len(result.IOCs.Domains) > 0 || len(result.IOCs.IPv4) > 0) {
 		AddFindingDetailed(result, "High", "Network", "Downloader behavior indicators", "network download APIs and network IOCs are present", 22, 0, "Command and Control", "Application Layer Protocol (T1071)", "Block and hunt for extracted network indicators in proxy, DNS, and EDR telemetry.")
 	}
-	if len(result.IOCs.URLs) > 0 && hasAny(corpus, "user-agent", "bot", "gate.php", "/api/", "telegram", "discord.com/api/webhooks") {
+	// "bot" goes through hasAnyWord, plus its distinctive compounds: as a bare
+	// substring it matched "both"/"bottom" in ordinary binaries and fired this
+	// finding on clean system utilities.
+	if len(result.IOCs.URLs) > 0 && (hasAny(corpus, "user-agent", "gate.php", "/api/", "telegram", "discord.com/api/webhooks", "botnet", "bot_id", "bot_token", "botid") ||
+		hasAnyWord(corpus, "bot")) {
 		AddFindingDetailed(result, "Medium", "Network", "Command-and-control style network strings", "URLs appear alongside bot, API, webhook, or user-agent strings", 12, 0, "Command and Control", "Web Service (T1102)", "Review HTTP telemetry for the listed URLs and any adjacent API/webhook traffic.")
 	}
 	if webhook := firstMatchingURL(result.IOCs.URLs, "discord.com/api/webhooks", "discordapp.com/api/webhooks"); webhook != "" {
@@ -153,7 +157,10 @@ func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedStrin
 	if hasAny(corpus, "\"encrypted_key\"", "encrypted_key", "decryptwithkey", "unable to decrypt") && hasAny(corpus, "bcryptdecrypt", "cryptunprotectdata", "dpapi", "decrypt") {
 		AddFindingDetailed(result, "High", "Credential Access", "Chromium credential decryption workflow", "encrypted_key and Windows crypto/decrypt routines are referenced", 26, 0, "Credential Access", "Credentials from Web Browsers (T1555.003)", "Assume browser secrets may be targeted; rotate passwords/tokens and inspect browser Login Data, Cookies, and Local State access telemetry.")
 	}
-	if isNativeExecutableLike(*result) && hasAny(corpus, "upx0", "upx1", "upx!", ".aspack", "themida", "vmprotect", "enigma protector", "mpress") {
+	// MPRESS is matched by its real section names (.mpress1/.mpress2, as in
+	// packerSignatures) rather than the bare token "mpress", which is a
+	// substring of "compress"/"decompress" and so matched most binaries.
+	if isNativeExecutableLike(*result) && hasAny(corpus, "upx0", "upx1", "upx!", ".aspack", "themida", "vmprotect", "enigma protector", ".mpress1", ".mpress2") {
 		AddFinding(result, "Medium", "Packing", "Known packer or protector marker", "UPX, ASPack, Themida, VMProtect, Enigma, or MPRESS marker present", 13, 0)
 	}
 	if !isArchiveLike(*result) && !isKnownCompressedFormat(result.FileType) && result.Entropy >= 7.70 {
@@ -180,7 +187,7 @@ func AnalyzePatternsWithCorpus(result *ScanResult, stringsFound []ExtractedStrin
 	if hasAny(corpus, "monero", "xmr wallet", "wallet address") && hasAny(corpus, "mining", "miner", "hashrate", "stratum") {
 		AddFinding(result, "High", "Cryptominer", "Monero mining artifact", "Monero wallet and mining strings co-occur", 20, 0)
 	}
-	if !isArchiveLike(*result) && len(result.HighEntropyRegions) >= 3 {
+	if !isArchiveLike(*result) && !isKnownCompressedFormat(result.FileType) && len(result.HighEntropyRegions) >= 3 {
 		AddFinding(result, "Medium", "Packing", "Multiple high-entropy regions", fmt.Sprintf("%d high-entropy regions found", len(result.HighEntropyRegions)), 10, 0)
 	}
 	if len(result.DecodedArtifacts) > 0 {
@@ -259,7 +266,11 @@ func suspiciousStringSamples(stringsFound []ExtractedString, limit int) []string
 
 func isKnownCompressedFormat(fileType string) bool {
 	ft := strings.ToLower(fileType)
-	for _, marker := range []string{"zip", "7z", "rar", "gz", "gzip", "bz2", "bzip2", "xz", "zst", "zstd", "lz4", "br", "lzma", "cab"} {
+	// "pdf" belongs here: a PDF stores its page content, fonts and images in
+	// FlateDecode streams, so essentially every real PDF measures 7.7+ overall
+	// entropy. Scoring that as packing flagged 30 of 40 ordinary system PDFs as
+	// suspicious. Entropy simply carries no signal for this format.
+	for _, marker := range []string{"zip", "7z", "rar", "gz", "gzip", "bz2", "bzip2", "xz", "zst", "zstd", "lz4", "br", "lzma", "cab", "pdf"} {
 		if strings.Contains(ft, marker) {
 			return true
 		}
@@ -283,4 +294,48 @@ func hasAny(text string, needles ...string) bool {
 		}
 	}
 	return false
+}
+
+// hasAnyWord is hasAny restricted to whole-word matches: a needle only counts
+// when the characters flanking it are not letters, digits, or underscores.
+//
+// Plain substring matching is wrong for short generic tokens. "bot" occurs
+// inside "both", "bottom" and "about"; "mpress" occurs inside "compress" and
+// "decompress" — words present in most ordinary binaries. Those accidental
+// matches fired real, scored findings on clean system utilities (tar, ssh,
+// bash, sort, ls all scored "Suspicious"). Use this for any needle that is a
+// short generic word; keep hasAny for distinctive multi-character markers such
+// as "gate.php" or "discord.com/api/webhooks", where a substring match is
+// exactly what is wanted.
+func hasAnyWord(text string, needles ...string) bool {
+	for _, needle := range needles {
+		needle = strings.ToLower(needle)
+		if needle == "" {
+			continue
+		}
+		for offset := 0; ; {
+			index := strings.Index(text[offset:], needle)
+			if index < 0 {
+				break
+			}
+			start := offset + index
+			end := start + len(needle)
+			if !isWordByte(text, start-1) && !isWordByte(text, end) {
+				return true
+			}
+			offset = start + 1
+		}
+	}
+	return false
+}
+
+// isWordByte reports whether text[i] is a word character (letter, digit, or
+// underscore). Out-of-range indexes count as non-word, so a needle at either
+// end of the corpus is treated as bounded.
+func isWordByte(text string, i int) bool {
+	if i < 0 || i >= len(text) {
+		return false
+	}
+	c := text[i]
+	return c == '_' || c >= '0' && c <= '9' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z'
 }

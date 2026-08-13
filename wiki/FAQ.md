@@ -38,15 +38,17 @@ Single-file (`-f`), batch (`--dir`), watch (`--dir --watch`), interactive wizard
 
 ### What dependencies does it need?
 
-Only `golang.org/x/arch` (for x86/x64 disassembly). Everything else is the Go standard library. No CGo, no runtime install — a single binary.
+None. `go.mod` requires nothing and there is no `go.sum`, so the build needs no network. The x86/x64 disassembler is vendored in-tree as `internal/x86asm` (an unmodified copy of `golang.org/x/arch/x86/x86asm`, BSD-3-Clause); everything else is the Go standard library. No cgo, no runtime install — a single binary.
 
 ### Which Go version is required to build it?
 
-Go **1.25.0 or newer**. Build with `cd 'source go' && go build -ldflags "-X main.version=0.10.0" -o ../flatscan .`.
+Go **1.25.0 or newer**. Build with `cd 'source go' && go build -ldflags "-X main.version=0.10.2" -o ../flatscan .`.
 
 ### Can it detect known malware families?
 
 Yes — named-family fingerprints cover RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook, XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT, and more, alongside CAPA-style capability rules and malware-config extraction.
+
+Attribution is deliberately conservative: naming a family requires a family-name marker in the sample **and** a corroborating evidence group, so generic stealer behavior alone never produces a family name. A **packed or obfuscated** sample whose name markers are unrecoverable is reported with a generic bucket ("Information stealer", "Remote access trojan") instead of a guessed family — expect this on heavily packed samples. See [Detection Engine](Detection-Engine#analysis-layers).
 
 ### What outputs can it produce?
 

@@ -54,7 +54,7 @@ corpus below pins the known-good verdicts.
 
 **Verification:** `go build`, `go vet`, `gofmt -l`, `go test ./...`, `go test -race ./...` all clean;
 `golangci-lint run` at **0 issues** (from 185); `govulncheck` reports no vulnerabilities; coverage
-**44.9% -> 50.3%**.
+**44.9% -> 50.6%**.
 
 ### Fixed - reliability
 
@@ -92,6 +92,66 @@ corpus below pins the known-good verdicts.
   section declaring size `0x1_0000_0100` was reported as `0x100`. Beyond misleading the analyst,
   these values feed the structural similarity fingerprint, so unrelated samples could fingerprint
   alike. They now saturate instead of wrapping.
+
+### Changed - dependency posture
+
+- **FlatScan now has zero external dependencies.** `go.mod` requires no modules, there is no
+  `go.sum`, and nothing is downloaded to build: `GOPROXY=off go build` succeeds on a clean
+  checkout. The x86/x64 disassembly engine, previously the module's one requirement
+  (`golang.org/x/arch v0.28.0`), is vendored unmodified into `internal/x86asm` under its original
+  BSD-3-Clause licence, attributed in `internal/x86asm/LICENSE` and documented — including the
+  re-sync procedure — in `internal/x86asm/README.md`.
+
+  This matters for the tool's actual deployment context: malware analysis routinely happens on
+  isolated or air-gapped hosts, and the supply chain for software that parses hostile input is now
+  exactly what is checked into this repository. It also settles the "zero-dependency" claim that
+  the previous release had to walk back — the claim is now literally true of `go.mod`, with the
+  vendored component disclosed rather than implied away.
+
+  **No behavior changed.** The vendored code is byte-identical to upstream, and all 61 samples in
+  the live corpus produce identical risk scores, verdicts, disassembly techniques and instruction
+  counts before and after. `go vet`, `gofmt`, `go test -race` and `golangci-lint` (0 issues) all
+  stay clean; `internal/x86asm` is excluded from lint in `.golangci.yml` because it is held to
+  upstream's standards and must stay byte-identical for re-syncs to remain a plain copy.
+
+### Fixed - detection precision
+
+Found by scanning a 561-sample live corpus (61 named families plus a 500-file random draw) and
+FlatScan's own binary. No sample's risk score or verdict changed as a result of these fixes: the
+only differences are family attributions that were never supported by evidence.
+
+- **A family could be named with no trace of its name in the sample.** `familyFingerprint` kept the
+  family-name markers as just another entry in `Groups` and required any `MinGroups` of them, so two
+  generic behavior groups were enough on their own. "Agent Tesla" fired on any file carrying
+  `credentials`/`keylog` plus `specialfolder`/`mailmessage` - which attributed Maldal.a, a 2001
+  mass-mailer worm, to a 2014 stealer, and put the wrong family name on Azorult, BlackKomet, NJRat
+  and VanToM-RAT as well. The name markers are now a mandatory `Anchor`, separate from the
+  corroborating groups: the family name must be present *and* corroborated. Remcos, the one sample
+  in the corpus whose name marker genuinely appears, keeps its attribution with an identical score
+  and evidence list.
+- **Scanning a detection tool named every family it can detect.** The research-artifact guard capped
+  such a file's score but left its family list intact, so the report read "Low suspicion" while
+  headlining a confident family attribution - the more visible half of the answer, and the wrong
+  half. FlatScan's own binary demonstrated it: scanning it reported all twelve supported families at
+  High confidence, because the fingerprint token tables are string literals compiled into it. When
+  the guard fires, family attribution is now withdrawn and recorded in
+  `benign_context.suppressed_families`, so the withdrawal stays inspectable rather than silent.
+- **Every Go-compiled binary was labelled ransomware.** The generic ransomware bucket matched the
+  bare substring `.locked`, which occurs inside the Go runtime symbols `mp.lockedInt` and
+  `internal/runtime/exithook.locked`. Any Go binary therefore matched at High confidence with score
+  90 - outranking, and displacing, the correct hypothesis: the Vidar stealer sample in the corpus
+  was reported as "Generic ransomware" and nothing else. Ransom-note phrases still attribute on
+  their own; the bare extension markers now require corroboration.
+
+### Fixed - output contract
+
+- **`--batch-json` mixed two naming conventions in one file.** `batchResult` carried no struct tags,
+  so Go emitted its field names and the per-file records came out PascalCase (`FileName`, `Score`)
+  inside a snake_case envelope (`scanned`, `malicious`, `results`) - and disagreed with the
+  `--json` field names for the same values. A consumer parsing both outputs, the SIEM-streaming case
+  FlatScan advertises, had to special-case one of them. Records now use `file_name`, `verdict`,
+  `risk_score`, `file_type`, `sha256`, `duration`, `findings`, `iocs`, `size`, `error`, matching
+  `ScanResult`. **Breaking change** for anything parsing the old PascalCase keys.
 
 ### Changed - performance
 

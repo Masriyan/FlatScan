@@ -62,6 +62,14 @@ linters:
         - G505
 
   exclusions:
+    # internal/x86asm is a vendored, unmodified copy of
+    # golang.org/x/arch/x86/x86asm (BSD-3-Clause, The Go Authors). It is
+    # upstream code held to upstream's standards, not FlatScan's, and it must
+    # stay byte-identical so a re-sync stays a plain copy. Linting it would
+    # either produce permanent noise or invite local edits that turn the next
+    # upstream re-sync into a merge.
+    paths:
+      - internal/x86asm
     rules:
       # Test fixtures deliberately construct malformed input.
       - path: _test\.go

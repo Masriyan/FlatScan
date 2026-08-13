@@ -5,7 +5,8 @@
 > versions audited and are retained as a point-in-time record. For current numbers see the
 > verification table in [README.md](README.md) and the Unreleased section of
 > [changelog.md](changelog.md): as of 2026-08-13 the tree is 93 source files, ~22.9k non-test LOC,
-> 176 tests, 50.3% coverage, and 0 `golangci-lint` issues.
+> 189 tests, 50.6% coverage, and 0 `golangci-lint` issues. FlatScan now has no external
+> dependencies at all: `go.mod` requires nothing and the disassembler is vendored in-tree.
 
 **Last Updated**: 2026-06-07
 **Current Version**: 0.7.0

@@ -44,14 +44,26 @@ func RunRegisteredPlugins(result *ScanResult, data []byte, extracted []Extracted
 			continue
 		}
 		start := time.Now()
+		before := len(result.Findings)
 		plugin.Run(result, data, extracted, corpus, cfg, debugf)
 		elapsed := time.Since(start)
 		debugf("plugin %s: completed in %s", plugin.Name(), elapsed)
+
+		// The summary reports what the plugin found, not how long it took.
+		// Wall-clock timing belongs in the debug log only: it was previously
+		// rendered into Summary ("ran in 2ms"), which made two scans of the
+		// same sample produce different JSON and different report text, so
+		// reports could not be diffed or hashed for chain of custody.
+		added := len(result.Findings) - before
+		if added < 0 {
+			added = 0
+		}
 		appendPlugin(result, PluginResult{
-			Name:    plugin.Name(),
-			Version: plugin.Version(),
-			Status:  "complete",
-			Summary: fmt.Sprintf("ran in %s", elapsed.Round(time.Millisecond)),
+			Name:     plugin.Name(),
+			Version:  plugin.Version(),
+			Status:   "complete",
+			Summary:  fmt.Sprintf("%d findings added", added),
+			Findings: added,
 		})
 	}
 }
@@ -82,7 +94,10 @@ func (p *HighEntropyBlobPlugin) Run(result *ScanResult, data []byte, _ []Extract
 			maxOffset = offset
 		}
 	}
-	if maxEntropy >= 7.90 {
+	// Natively compressed containers (ZIP family, PDF) are made of deflate
+	// streams, so a maximum-entropy 4KB block is the expected shape rather than
+	// evidence of a packed payload.
+	if maxEntropy >= 7.90 && !isKnownCompressedFormat(result.FileType) && !isArchiveLike(*result) {
 		AddFindingDetailed(result, "Medium", "Packing", "Large high-entropy blob detected",
 			fmt.Sprintf("4KB block at offset 0x%x has entropy %.2f/8.00 — likely encrypted or compressed payload", maxOffset, maxEntropy),
 			8, int64(maxOffset),

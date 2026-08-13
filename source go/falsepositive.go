@@ -96,9 +96,46 @@ func AssessResearchArtifact(result *ScanResult, corpus string) {
 		ScoreCap:      researchArtifactScoreCap,
 	}
 
+	withdrawFamilyAttribution(result)
+
 	AddFindingDetailed(result, "Info", "Context",
 		"Likely security tool, signature set, or analysis artifact",
 		reason, 0, 0,
 		"", "",
 		"Confirm provenance: indicator matches here are most likely catalogued references, not behavior. Treat the risk score as capped and review the listed evidence manually before acting.")
+}
+
+// withdrawFamilyAttribution removes family hypotheses from a file the guard has
+// identified as a detection artifact, recording them in BenignContext instead.
+//
+// Family classification is corpus-string matching, so it inverts on this class
+// of file: a signature set, rule pack or analysis tool quotes every family name
+// it can detect, which is precisely what the fingerprints look for. FlatScan's
+// own binary demonstrated the failure — scanning it named all twelve supported
+// families at High confidence, because the fingerprint token tables are string
+// literals compiled into it. Capping the score alone was not enough: the score
+// read "Low suspicion" while the report still headlined a confident family
+// attribution, which is the more visible and more misleading half of the answer.
+func withdrawFamilyAttribution(result *ScanResult) {
+	if result == nil || result.BenignContext == nil || len(result.FamilyMatches) == 0 {
+		return
+	}
+	names := make([]string, 0, len(result.FamilyMatches))
+	for _, m := range result.FamilyMatches {
+		names = append(names, m.Family)
+	}
+	result.BenignContext.SuppressedFamilies = uniqueSorted(names)
+	result.FamilyMatches = nil
+
+	// The classifier also emits a headline "Malware family hypothesis" finding.
+	// Leaving it behind would restate the withdrawn attribution in the findings
+	// table and in every downstream report format.
+	kept := result.Findings[:0]
+	for _, f := range result.Findings {
+		if f.Category == "Classifier" && f.Title == "Malware family hypothesis" {
+			continue
+		}
+		kept = append(kept, f)
+	}
+	result.Findings = kept
 }

@@ -101,7 +101,11 @@ func embeddedCompressionMarkers(data []byte, limit int) []string {
 		if offset <= 0 {
 			return
 		}
-		out = appendUnique(out, fmt.Sprintf("%s at 0x%x", kind, offset))
+		// Plain append: the loop below scans forward, so each entry carries a
+		// strictly larger offset and no two entries can be equal. appendUnique
+		// would rebuild a map of everything found so far on every marker,
+		// making a marker-dense file quadratic for a dedup that never fires.
+		out = append(out, fmt.Sprintf("%s at 0x%x", kind, offset))
 	}
 	for i := 1; i+2 < len(data) && len(out) < limit; i++ {
 		switch {

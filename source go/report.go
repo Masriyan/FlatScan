@@ -692,6 +692,69 @@ func writeFormatDetails(b *strings.Builder, result ScanResult) {
 			writeList(b, result.MachO.Imports, 80)
 		}
 	}
+	if result.PDF != nil {
+		p := result.PDF
+		fmt.Fprintln(b, "\nPDF details:")
+		fmt.Fprintf(b, "- Version: %s\n", nonEmpty(p.Version, "unknown"))
+		fmt.Fprintf(b, "- Objects: %d | streams: %d (%d decompressed)\n", p.ObjectCount, p.StreamCount, p.StreamsDecompressed)
+		if p.IncrementalUpdates > 1 {
+			fmt.Fprintf(b, "- Incremental updates: %d\n", p.IncrementalUpdates)
+		}
+		if p.Encrypted {
+			fmt.Fprintln(b, "- Encrypted: yes")
+		}
+		if p.Linearized {
+			fmt.Fprintln(b, "- Linearized: yes")
+		}
+		if len(p.Keywords) > 0 {
+			var parts []string
+			for _, hit := range p.Keywords {
+				part := fmt.Sprintf("%s x%d", hit.Keyword, hit.Count)
+				if hit.Obfuscated {
+					part += " (hex-escaped)"
+				}
+				parts = append(parts, part)
+			}
+			fmt.Fprintf(b, "- Structure: %s\n", strings.Join(parts, ", "))
+		}
+		if len(p.ObfuscatedNames) > 0 {
+			fmt.Fprintln(b, "- Obfuscated names:")
+			writeList(b, p.ObfuscatedNames, 40)
+		}
+		if len(p.EmbeddedFiles) > 0 {
+			fmt.Fprintf(b, "- Embedded files: %s\n", strings.Join(p.EmbeddedFiles, ", "))
+		}
+		if len(p.LaunchTargets) > 0 {
+			fmt.Fprintf(b, "- Launch targets: %s\n", strings.Join(p.LaunchTargets, ", "))
+		}
+		if len(p.EmbeddedPayloads) > 0 {
+			fmt.Fprintf(b, "- Embedded payload types: %s\n", strings.Join(p.EmbeddedPayloads, ", "))
+		}
+		if len(p.ExecutableLinks) > 0 {
+			fmt.Fprintln(b, "- Executable link targets:")
+			writeList(b, p.ExecutableLinks, 40)
+		}
+		if len(p.ArchiveLinks) > 0 {
+			fmt.Fprintln(b, "- Archive link targets:")
+			writeList(b, p.ArchiveLinks, 40)
+		}
+		if len(p.Masquerades) > 0 {
+			fmt.Fprintln(b, "- Disguised names:")
+			var parts []string
+			for _, hit := range p.Masquerades {
+				part := fmt.Sprintf("%s — %s", hit.Value, hit.Technique)
+				if hit.LooksLike != "" {
+					part += fmt.Sprintf(" (reads as %q)", hit.LooksLike)
+				}
+				parts = append(parts, part)
+			}
+			writeList(b, parts, 40)
+		}
+		if len(p.JavaScript) > 0 {
+			fmt.Fprintf(b, "- JavaScript recovered (%d):\n", len(p.JavaScript))
+			writeList(b, p.JavaScript, 20)
+		}
+	}
 	if result.Code != nil {
 		c := result.Code
 		fmt.Fprintln(b, "\nCode analysis (disassembly):")

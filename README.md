@@ -4,12 +4,12 @@
 
 <img src="Images/banner.png" alt="FlatScan Banner" width="100%"/>
 
-**Static Malware Analysis Engine — cgo-free, single pure-Go module, statically linked**
+**Static Malware Analysis Engine — zero external dependencies, cgo-free, statically linked**
 
 [![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?style=flat&logo=go)](https://go.dev)
 [![Version](https://img.shields.io/badge/Version-0.10.2-e94560?style=flat)]()
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-176%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/Tests-189%20passing-brightgreen)]()
 [![Rules](https://img.shields.io/badge/Rules-36-blue)]()
 [![Score](https://img.shields.io/badge/Quality-10%2F10-gold)]()
 
@@ -76,7 +76,7 @@ graph LR
 
 ## Architecture Overview
 
-FlatScan is built as a multi-stage analysis pipeline with parallel execution, a plugin system, and a single pure-Go external module (`golang.org/x/arch`, the disassembly engine) — no cgo, no runtime or system dependencies.
+FlatScan is built as a multi-stage analysis pipeline with parallel execution, a plugin system, and **no external dependencies** — `go.mod` requires nothing, and the pure-Go disassembly engine is vendored in-tree as `internal/x86asm` (an unmodified copy of `golang.org/x/arch/x86/x86asm`, BSD-3-Clause). No cgo, no runtime or system dependencies, no network needed to build.
 
 ```mermaid
 graph TB
@@ -137,7 +137,7 @@ graph TB
 
 | Principle | Implementation |
 |-----------|---------------|
-| **Minimal, cgo-free deps** | Go standard library plus one pure-Go module — `golang.org/x/arch v0.28.0` (disassembly engine, added in FlatScan 0.8.0). No cgo, no native libraries, no runtime dependencies |
+| **Zero external dependencies** | `go.mod` requires nothing and there is no `go.sum`. The Go standard library plus one vendored, unmodified package — `internal/x86asm`, a copy of `golang.org/x/arch/x86/x86asm` (BSD-3-Clause, disassembly engine) held in-tree so the build needs no download and no network. No cgo, no native libraries, no runtime dependencies |
 | **Static Only** | Never executes the sample — reads bytes and metadata |
 | **Thread-Safe** | `parallelRun()` with mutex-protected findings, race-detector verified. Analysis stages recover panics individually, so one malformed sample cannot abort a batch |
 | **Platform Portable** | Builds for Linux, macOS, Windows; mmap on Linux with transparent fallback |
@@ -148,9 +148,9 @@ graph TB
 | Check | Result |
 |-------|--------|
 | `go build` / `go vet` / `gofmt -l` | Clean |
-| `go test ./...` | 176 tests (324 cases including subtests), all passing |
+| `go test ./...` | 189 tests (344 cases including subtests), all passing |
 | `go test -race ./...` | Clean |
-| `go test -cover ./...` | 50.3% of statements |
+| `go test -cover ./...` | 50.6% of statements |
 | `golangci-lint run` | 0 issues (errcheck, govet, staticcheck, gosec, errorlint, ineffassign, unused, bodyclose, nilerr, misspell, unconvert, wastedassign) |
 | `govulncheck ./...` | No vulnerabilities found |
 
@@ -251,7 +251,7 @@ sequenceDiagram
 - IOC triage with built-in PKI, schema, OID, and loopback allowlists
 - **IOC confidence & categorization** — every indicator tagged `ioc` / `suspicious-infra` / `benign-infra` / `build-artifact` / `compiler-metadata` / `source-path` / `package-namespace` with a confidence weight; non-actionable noise (Rust/Cargo/PDB/namespace) is excluded from `--extract-ioc` and STIX (0.9.0)
 - **Multi-evidence correlation engine** — serious capabilities require corroborating evidence groups; every finding carries a numeric `confidence` and `evidence_count` so a lone generic string never reads as high-confidence (0.9.0)
-- **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook/XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT (multi-signal) (0.9.0)
+- **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook/XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT. Attribution requires a family-name marker **plus** a corroborating evidence group, so generic stealer behavior never names a family and a packed sample whose name markers are unrecoverable falls back to a generic bucket rather than being guessed at (0.9.0)
 - **Similarity matching** against a JSONL reference store (`--similarity-db`) — "N% similar to <known sample>" (0.9.0)
 - **CAPA-style capability rules** over strings + imports (incl. hashdb-resolved) + disasm techniques + IOC categories → ATT&CK; **YARA-quality scoring** (compiler-string exclusion + FP-risk) (0.9.0)
 - **Malware config extraction** (C2/mutex/token/webhook/wallet/campaign), **offline threat-intel enrichment** (`--intel-db`), and **expected-behavior prediction** for sandbox/EDR validation (0.9.0)
@@ -384,10 +384,13 @@ go build -o ../flatscan .
 go build -ldflags "-X main.version=0.10.2" -o ../flatscan .
 ```
 
-> Since 0.8.0, the build pulls one pure-Go module — `golang.org/x/arch` (the
-> disassembly engine). `go build` fetches it automatically; for offline/air-gapped
-> builds run `go mod vendor` once on a connected host and commit the `vendor/`
-> directory. The build remains **cgo-free** — no native libraries required.
+> The build has **no external dependencies**: `go.mod` requires nothing, there is
+> no `go.sum`, and nothing is downloaded. It therefore works offline and
+> air-gapped out of the box — `GOPROXY=off go build` succeeds on a clean checkout.
+> The x86/x64 disassembly engine is `internal/x86asm`, an unmodified vendored copy
+> of `golang.org/x/arch/x86/x86asm` (BSD-3-Clause, The Go Authors), attributed in
+> `internal/x86asm/LICENSE` and documented in `internal/x86asm/README.md`. The
+> build is **cgo-free** — no native libraries required.
 
 ### Scan Commands
 
@@ -1028,7 +1031,7 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 - Generated YARA and Sigma rules are starting points for hunting — review before deployment
 - Safe carving reports offsets and hashes; it does not extract payloads to disk
 - PKCS#7/CMS signature parsing is dependency-free and best-effort
-- The local case database is JSONL, not SQLite, to keep FlatScan lightweight and cgo-free (the only third-party module is the pure-Go `golang.org/x/arch` disassembler)
+- The local case database is JSONL, not SQLite, to keep FlatScan lightweight and cgo-free (the only third-party code is the vendored pure-Go `internal/x86asm` disassembler)
 - MITRE mapping is static-evidence mapping, not proof that the behavior executed
 - PDF reports are generated by FlatScan's internal PDF writer (no external dependencies)
 
@@ -1045,8 +1048,8 @@ FlatScan performs **static analysis only**. It does not execute samples. That re
 | [contributing.md](contributing.md) | Code style, testing, adding detections, PR guidelines |
 | [security.md](security.md) | Security policy, safe handling, output safety, dependency policy |
 | [changelog.md](changelog.md) | Version history with all changes |
-| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.10.1) and the 5-year direction |
-| [flatscan_qa_report.md](flatscan_qa_report.md) | Latest full QA / hardening audit (0.10.1) |
+| [roadmap.md](roadmap.md) | What's shipped (0.1.0–0.10.2) and the 5-year direction |
+| [flatscan_qa_report.md](flatscan_qa_report.md) | Full QA / hardening audit (0.10.0, historical record) |
 | [QC_REPORT.md](QC_REPORT.md) | Cumulative quality-assurance audit log per release |
 
 ---

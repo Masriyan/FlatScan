@@ -38,17 +38,23 @@ func ExtractMalwareConfig(result *ScanResult, corpus string) {
 	}
 
 	// C2: actionable network IOCs (drop benign/namespace noise via the classifier).
+	//
+	// Plain append inside these loops: the IOC slices are already deduplicated,
+	// and uniqueSorted below collapses the combined list anyway. appendUnique
+	// rebuilds a map of everything accumulated so far on each value, so a
+	// sample with many indicators paid O(n^2) for a dedup that is redundant
+	// twice over.
 	for _, u := range result.IOCs.URLs {
 		if actionableIOCCategory(classifyIOCValue("url", u).Category) {
-			cfg.C2 = appendUnique(cfg.C2, u)
+			cfg.C2 = append(cfg.C2, u)
 		}
 	}
 	for _, d := range result.IOCs.Domains {
 		if actionableIOCCategory(classifyIOCValue("domain", d).Category) {
-			cfg.C2 = appendUnique(cfg.C2, d)
+			cfg.C2 = append(cfg.C2, d)
 		}
 	}
-	cfg.C2 = appendUnique(cfg.C2, result.IOCs.IPv4...)
+	cfg.C2 = append(cfg.C2, result.IOCs.IPv4...)
 	cfg.C2 = limitStrings(uniqueSorted(cfg.C2), 25)
 
 	cfg.Mutexes = result.IOCs.Mutexes
@@ -58,9 +64,10 @@ func ExtractMalwareConfig(result *ScanResult, corpus string) {
 	for _, u := range result.IOCs.URLs {
 		lu := strings.ToLower(u)
 		if strings.Contains(lu, "/api/webhooks") || strings.Contains(lu, "api.telegram.org/bot") {
-			cfg.Webhooks = appendUnique(cfg.Webhooks, u)
+			cfg.Webhooks = append(cfg.Webhooks, u)
 		}
 	}
+	cfg.Webhooks = uniqueSorted(cfg.Webhooks)
 
 	// Telegram bot tokens, campaign/build IDs, version — from the corpus.
 	cfg.BotTokens = uniqueSorted(telegramBotRe.FindAllString(corpus, 8))

@@ -153,7 +153,7 @@ graph LR
 
 | Rule | Rationale |
 |------|-----------|
-| Prefer the Go standard library; keep the build cgo-free | Minimal dependencies is a core design principle — the only third-party module is the pure-Go `golang.org/x/arch` (disassembly). New third-party or cgo deps need maintainer sign-off |
+| Prefer the Go standard library; keep the build cgo-free | Zero dependencies is a core design principle — `go.mod` requires nothing and there is no `go.sum`, so the build works offline. The only third-party code is the vendored, unmodified `internal/x86asm` (disassembly); do not edit it, and see `internal/x86asm/README.md` before re-syncing it. Any new third-party or cgo dependency needs maintainer sign-off |
 | Run `gofmt` on modified files | Consistent formatting |
 | Prefer clear data structures | Over ad hoc string-only logic |
 | Add comments only where non-obvious | Don't over-comment |

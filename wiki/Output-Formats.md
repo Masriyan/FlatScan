@@ -29,7 +29,8 @@ The complete machine-readable result. Use `--json -` to stream to stdout for pip
 | `pe` | PE header intelligence (ASLR/DEP/CFG posture, Rich hash, TLS callbacks, Authenticode). Also `elf`, `macho`, `code`. |
 | `payload_tree[]` | Recursively resolved payload nodes (encoding/source/preview + nested IOCs). |
 | `similarity` | Similarity match info against the corpus. |
-| `family_matches[]` | Named-family fingerprint hits. |
+| `family_matches[]` | Family hypotheses: named-family fingerprint hits plus generic buckets, ranked by `score`. |
+| `benign_context` | Present only when the false-positive guard identifies the file as a signature set, rule pack, or analysis tool: `reason`, `archetypes`, `tool_markers`, `score_cap`, `original_score`, and `suppressed_families` (family hypotheses withdrawn because this file quotes family names as references rather than exhibiting them). |
 | `profile` | Analyst profile: `classification`, `malware_type`, `confidence`, `confidence_score`, `business_impact`, `key_capabilities`. |
 | `carved_artifacts[]`, `config_artifacts[]`, `dga_domains[]`, `rule_matches[]`, `plugins[]` | Supporting evidence collections. |
 

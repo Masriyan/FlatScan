@@ -471,3 +471,65 @@ func TestAssessResearchArtifactReasonIsActionable(t *testing.T) {
 		t.Fatal("no Context finding recorded; the capped verdict would be unexplained in the report")
 	}
 }
+
+// TestResearchArtifactWithdrawsFamilyAttribution pins the failure FlatScan's own
+// binary exposed: scanning it named all twelve supported families at High
+// confidence, because the fingerprint token tables are string literals compiled
+// into it. The score cap alone left the report headlining a confident family
+// attribution while the score said "Low suspicion".
+func TestResearchArtifactWithdrawsFamilyAttribution(t *testing.T) {
+	result := &ScanResult{
+		FamilyMatches: []FamilyMatch{
+			{Family: "RedLine Stealer", Category: "stealer", Score: 92},
+			{Family: "njRAT", Category: "rat", Score: 92},
+		},
+		Findings: []Finding{
+			{Category: "Classifier", Title: "Malware family hypothesis", Evidence: "RedLine Stealer (High)"},
+			{Category: "Network", Title: "keep me"},
+		},
+	}
+
+	corpus := buildResearchArtifactCorpus()
+	AssessResearchArtifact(result, corpus)
+
+	if result.BenignContext == nil {
+		t.Fatalf("guard did not fire on a signature-set-like corpus; cannot test withdrawal")
+	}
+	if len(result.FamilyMatches) != 0 {
+		t.Errorf("family attribution should be withdrawn, got: %#v", result.FamilyMatches)
+	}
+	if len(result.BenignContext.SuppressedFamilies) != 2 {
+		t.Errorf("withdrawn families should be recorded, got: %v", result.BenignContext.SuppressedFamilies)
+	}
+	for _, f := range result.Findings {
+		if f.Title == "Malware family hypothesis" {
+			t.Errorf("headline family finding should be removed with the attribution")
+		}
+	}
+	if !hasFindingTitle(result.Findings, "keep me") {
+		t.Errorf("unrelated findings must be preserved")
+	}
+}
+
+// TestResearchArtifactKeepsFamiliesOnLiveSample is the counterpart: a focused
+// malware sample does not trip the guard, so its attribution must survive.
+func TestResearchArtifactKeepsFamiliesOnLiveSample(t *testing.T) {
+	result := &ScanResult{
+		FamilyMatches: []FamilyMatch{{Family: "Remcos RAT", Category: "rat", Score: 92}},
+	}
+	AssessResearchArtifact(result, "remcos\nbreaking-security\noffline keylogger\nwatchdog")
+	if len(result.FamilyMatches) != 1 {
+		t.Fatalf("live sample attribution must be preserved, got: %#v", result.FamilyMatches)
+	}
+}
+
+// buildResearchArtifactCorpus returns a corpus that looks like a signature set:
+// headline indicators for several unrelated archetypes plus security-tool
+// vocabulary. Kept as a helper so the guard's input stays readable in tests.
+func buildResearchArtifactCorpus() string {
+	return "your files have been encrypted\n" + // ransomware
+		"stratum+tcp\nxmrig\n" + // cryptominer
+		"sekurlsa\nmimikatz\n" + // credential-dump
+		"vssadmin delete\n" + // wiper
+		"yara rule\nsigma rule\nmitre\natt&ck\n"
+}

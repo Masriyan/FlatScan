@@ -16,7 +16,7 @@ default path.
 
 | Principle | What it means for the roadmap |
 |-----------|-------------------------------|
-| **Minimal, cgo-free dependencies** | The core stays on the Go standard library plus a single pinned, pure-Go module (`golang.org/x/arch`, for disassembly). Network/ML/heavy parsers arrive via the plugin interface, not new `go.mod` deps; cgo stays out of the default build. |
+| **Zero-dependency, cgo-free** | `go.mod` requires nothing and there is no `go.sum`; the core is the Go standard library plus the vendored in-tree `internal/x86asm` disassembler (an unmodified copy of `golang.org/x/arch/x86/x86asm`, BSD-3-Clause). Network/ML/heavy parsers arrive via the plugin interface, never as new `go.mod` requirements; cgo stays out of the default build. |
 | **Static only** | The engine never executes a sample. Dynamic insight is *imported* (sandbox reports), never produced by running malware. |
 | **Offline-first** | A full scan must always work air-gapped. Any enrichment (TI lookups, model downloads) is explicit, documented, and disable-able. |
 | **Analyst + management in one pass** | Every capability must serve both machine output (JSON/STIX/YARA) and human reporting (HTML/PDF). |

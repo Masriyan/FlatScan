@@ -30,11 +30,53 @@ var (
 
 func ExtractIOCsFromStrings(stringsFound []ExtractedString) IOCSet {
 	var out IOCSet
-	for _, item := range stringsFound {
-		MergeIOCSet(&out, ExtractIOCs(item.Value))
+
+	// Accumulate through a set that lives across the whole loop rather than
+	// merging per string. MergeIOCSet dedups via appendUnique, which rebuilds a
+	// map of the entire destination on every call — with one indicator per
+	// extracted string that is O(n^2), and it dominated the scan: a 1.2 MB text
+	// file holding 60k URLs took over 50 seconds, and 8k URLs took 9.4s where
+	// 1k took 0.24s. The dedup result is identical; only the cost changes.
+	fields := iocStringFields(&out)
+	seen := make([]map[string]struct{}, len(fields))
+	for i := range seen {
+		seen[i] = make(map[string]struct{})
 	}
+
+	for _, item := range stringsFound {
+		found := ExtractIOCs(item.Value)
+		for _, peHash := range found.PEHashes {
+			addPEHashIOC(&out, peHash)
+		}
+		src := iocStringFields(&found)
+		for i, values := range src {
+			for _, value := range *values {
+				if value == "" {
+					continue
+				}
+				if _, ok := seen[i][value]; ok {
+					continue
+				}
+				seen[i][value] = struct{}{}
+				*fields[i] = append(*fields[i], value)
+			}
+		}
+	}
+
 	NormalizeIOCSet(&out)
 	return out
+}
+
+// iocStringFields returns pointers to every flat indicator slice in set, in a
+// fixed order. Callers pair a source and destination set by index, so the order
+// only has to be stable between two calls — not meaningful on its own.
+func iocStringFields(set *IOCSet) []*[]string {
+	return []*[]string{
+		&set.URLs, &set.Domains, &set.IPv4, &set.IPv6, &set.Emails,
+		&set.MD5, &set.SHA1, &set.SHA256, &set.SHA512, &set.CVEs,
+		&set.RegistryKeys, &set.WindowsPaths, &set.UnixPaths,
+		&set.Mutexes, &set.NamedPipes, &set.CryptoWallets,
+	}
 }
 
 func ExtractIOCs(text string) IOCSet {

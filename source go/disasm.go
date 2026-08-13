@@ -6,7 +6,7 @@ import (
 	"debug/pe"
 	"fmt"
 
-	"golang.org/x/arch/x86/x86asm"
+	"flatscan/internal/x86asm"
 )
 
 // Instruction-level (disassembly) analysis.
@@ -19,8 +19,10 @@ import (
 // entry point and detects those techniques at the instruction level.
 //
 // Scope: x86/x64 PE and ELF (the dominant native-malware targets), gated to
-// standard/deep modes. Pure Go (golang.org/x/arch) — no cgo. It is defensive
-// about adversarial bytes: a decode error advances one byte and never panics.
+// standard/deep modes. Pure Go, no cgo: the decoder is internal/x86asm, a
+// vendored unmodified copy of golang.org/x/arch/x86/x86asm (BSD-3-Clause), so
+// the build needs no module download and no network. It is defensive about
+// adversarial bytes: a decode error advances one byte and never panics.
 
 const (
 	maxDisasmBytesStandard = 64 * 1024

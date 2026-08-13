@@ -271,7 +271,7 @@ The `--web` mode (0.6.0+) runs a small local HTTP server. It is designed as a **
 
 | Version | Network Activity |
 |---------|-----------------|
-| **Current (0.8.0)** | **No external network activity at runtime.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. The `golang.org/x/arch` dependency (disassembly) is **build-time only** and pure Go — it adds no runtime network or native-library behavior. |
+| **Current (0.8.0)** | **No external network activity at runtime.** All analysis is local and static. The optional `--web` mode serves a UI over **loopback HTTP only** (`127.0.0.1`) and makes no outbound connections. The vendored `internal/x86asm` disassembler is pure Go and in-tree — it adds no runtime network or native-library behavior, and nothing is fetched at build time. |
 | **Future** | Any enrichment features will be explicitly opt-in, clearly documented, safe for sensitive data, and easy to disable in offline environments. |
 
 ---
@@ -287,9 +287,13 @@ graph LR
     B -->|Must| F[Parser/archive libraries reviewed carefully]
 ```
 
-The project uses **the Go standard library plus a single pinned, pure-Go dependency** —
-`golang.org/x/arch` (the Go team's own architecture package, used by the 0.8.0 disassembly
-engine). The build stays **cgo-free**. If further dependencies are added:
+The project uses **the Go standard library and nothing else that is fetched**: `go.mod`
+requires no modules and there is no `go.sum`, so no code is downloaded at build time and the
+supply chain is exactly what is checked into this repository. The one piece of third-party
+code is `internal/x86asm`, an unmodified vendored copy of `golang.org/x/arch/x86/x86asm`
+(BSD-3-Clause, the Go team's own architecture package, used by the 0.8.0 disassembly engine),
+reviewable in-tree and attributed in `internal/x86asm/LICENSE`. The build stays **cgo-free**.
+If further dependencies are added:
 
 | Requirement | Reason |
 |-------------|--------|

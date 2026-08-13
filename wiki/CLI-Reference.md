@@ -1,6 +1,6 @@
 # CLI Reference
 
-This is the exhaustive flag reference for FlatScan v0.10.0, grouped exactly as in `flatscan --help`. Each flag lists its type, default, and a one-line description.
+This is the exhaustive flag reference for FlatScan v0.10.2, grouped exactly as in `flatscan --help`. Each flag lists its type, default, and a one-line description.
 
 ## SCAN TARGET
 

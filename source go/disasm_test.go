@@ -112,8 +112,22 @@ func TestHashAlgorithmsKnownVectors(t *testing.T) {
 	if got := djb2Hash("hello"); got != 261238937 {
 		t.Fatalf("djb2(hello) = %d", got)
 	}
-	// ROR13 is order-sensitive: hashing a name twice must be identical.
-	if ror13Hash("VirtualAlloc") != ror13Hash("VirtualAlloc") {
-		t.Fatal("ror13 not stable")
+	// ROR13 known vectors. Comparing the function against itself (the previous
+	// form of this check) is a tautology that can never fail — these are the
+	// values the shellcode API-hash tables are built from, so a change in the
+	// rotate or accumulate order must break the test.
+	if got := ror13Hash("VirtualAlloc"); got != 2444216916 {
+		t.Fatalf("ror13(VirtualAlloc) = %d, want 2444216916", got)
+	}
+	if got := ror13Hash("LoadLibraryA"); got != 3960360590 {
+		t.Fatalf("ror13(LoadLibraryA) = %d, want 3960360590", got)
+	}
+	// The NUL-terminated variant must differ: including the terminator is what
+	// distinguishes the two hashing conventions found in real loaders.
+	if got := ror13HashNull("VirtualAlloc"); got != 1386515838 {
+		t.Fatalf("ror13Null(VirtualAlloc) = %d, want 1386515838", got)
+	}
+	if ror13Hash("VirtualAlloc") == ror13HashNull("VirtualAlloc") {
+		t.Fatal("ror13 and ror13Null must not collide on the same name")
 	}
 }

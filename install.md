@@ -22,8 +22,9 @@ This guide covers building, verifying, cross-compiling, and setting up a safe an
 
 | Requirement | Version | Required? |
 |------------|---------|-----------|
-| **Go** | 1.25+ | ✅ Yes (the `golang.org/x/arch` disassembly dep, added in 0.8.0, raised the module's Go directive to 1.25). Tested on Go 1.26.5 |
+| **Go** | 1.25+ | ✅ Yes (the module's Go directive is `go 1.25.0`). Tested on Go 1.26.5 |
 | **OS** | Linux, macOS, or Windows | ✅ Yes — see the tested-platform note below |
+| **Network** | none | ❌ No — `go.mod` requires nothing and there is no `go.sum`, so the build works offline and air-gapped (`GOPROXY=off go build`) |
 | **Terminal** | Any shell | ✅ Yes |
 | `file` | any | Optional — `--external-tools` |
 | `exiftool` | any | Optional — `--external-tools` |
@@ -127,7 +128,7 @@ go vet ./...
 Expected version:
 
 ```text
-FlatScan 0.9.0
+FlatScan 0.10.2
 ```
 
 ### Launch the Web GUI (optional smoke test)
@@ -147,11 +148,11 @@ All commands below run from inside `source go/` (the binary lands at the repo ro
 | Build | `go build -o ../flatscan .` | No errors |
 | Tests | `go test ./...` | Pass (see note below) |
 | Vet | `go vet ./...` | No warnings |
-| Version | `../flatscan --version` | `FlatScan 0.9.0` |
+| Version | `../flatscan --version` | `FlatScan 0.10.2` |
 | Help | `./flatscan --help` | Usage text incl. `WEB` section |
 | Web GUI | `./flatscan --web` | Prints listening URL; serves UI on `127.0.0.1:5000` |
 
-> **Note:** As of v0.9.0, the full suite (**77 test functions** across the `*_test.go` files, including the 0.9.0 precision modules — IOC categorization, correlation, family fingerprints, similarity matching, capability rules, and config/intel/behavior) passes and the race detector is clean. The pre-existing data race in `parallelRun` (tracked in 0.6.0) and the `TestRenderHTMLReport` drift were both fixed in 0.7.0. See [QC_REPORT.md](QC_REPORT.md) for the full audit history.
+> **Note:** The full suite (**189 test functions**, 344 cases including subtests, across the `*_test.go` files — covering the precision modules: IOC categorization, correlation, family fingerprints, similarity matching, capability rules, config/intel/behavior, plus the false-positive-guard corpus regression) passes and the race detector is clean. The pre-existing data race in `parallelRun` (tracked in 0.6.0) and the `TestRenderHTMLReport` drift were both fixed in 0.7.0. See [QC_REPORT.md](QC_REPORT.md) for the full audit history.
 
 ---
 

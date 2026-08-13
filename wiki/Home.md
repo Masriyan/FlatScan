@@ -1,6 +1,6 @@
 # FlatScan
 
-FlatScan is an **offline, single-binary static malware analysis tool** written in Go (v0.10.0). It ingests a suspect file (or a directory of them), parses its format, extracts strings/entropy/IOCs, disassembles code, resolves obfuscated payloads recursively, correlates evidence into a weighted risk score, and produces analyst- and management-ready reports — **without ever executing the sample and without making any network calls in default mode.** It is designed to safely ingest live malware in an isolated environment.
+FlatScan is an **offline, single-binary static malware analysis tool** written in Go (v0.10.2). It ingests a suspect file (or a directory of them), parses its format, extracts strings/entropy/IOCs, disassembles code, resolves obfuscated payloads recursively, correlates evidence into a weighted risk score, and produces analyst- and management-ready reports — **without ever executing the sample and without making any network calls in default mode.** It is designed to safely ingest live malware in an isolated environment.
 
 ## Feature Highlights
 
@@ -8,7 +8,7 @@ FlatScan is an **offline, single-binary static malware analysis tool** written i
 - **Multi-format parsing** — PE, ELF, Mach-O, APK/DEX, PDF, Office (docm/xlsm/pptm/MSIX), archives (zip/7z/rar/gz), scripts, `.lnk`.
 - **Deep code intelligence** — x86/x64 disassembly, PE header posture (ASLR/DEP/CFG, Rich hash, TLS callbacks, Authenticode), hashdb import resolution (ROR13/DJB2/SDBM).
 - **Recursive payload resolution** — peels base64/hex/gzip/zlib/XOR/carving layers into a `payload_tree`.
-- **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook, XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT, and more.
+- **Named-family fingerprints** — RedLine, LummaC2, StealC, Vidar, Raccoon, Agent Tesla, FormBook, XLoader, AsyncRAT, Quasar, Remcos, XWorm, njRAT, and more. Naming a family requires a name marker plus corroborating evidence, so a packed sample falls back to a generic bucket rather than a guessed attribution.
 - **IOC extraction, triage & categorization** with confidence scoring and multi-evidence correlation.
 - **CAPA-style capability rules**, malware-config extraction, DGA scoring, similarity matching, offline threat-intel enrichment.
 - **Many outputs** — terminal report, JSON, CSV/JSONL, PDF, HTML, YARA, Sigma, STIX 2.1, IOC text export, zipped report-pack.
@@ -36,7 +36,7 @@ FlatScan is an **offline, single-binary static malware analysis tool** written i
 
 ```bash
 # Build (Go 1.25+)
-cd 'source go' && go build -ldflags "-X main.version=0.10.0" -o ../flatscan .
+cd 'source go' && go build -ldflags "-X main.version=0.10.2" -o ../flatscan .
 
 # Scan a single file
 ./flatscan -f suspicious.exe

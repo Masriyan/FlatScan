@@ -48,7 +48,8 @@ func scriptTypeByExt(lowerName string) string {
 func isScriptType(fileType string) bool {
 	switch fileType {
 	case "PowerShell script", "Batch script", "VBScript", "JScript",
-		"Windows Script File", "HTA application", "Shell script", "script/text", "text":
+		"Windows Script File", "HTA application", "Shell script", "script/text", "text",
+		"HTML application", "HTML document":
 		return true
 	}
 	return false
@@ -121,8 +122,24 @@ func scanScriptContent(result *ScanResult, cfg Config, content, source string) {
 		MergeIOCSet(&result.IOCs, ExtractIOCs(reverseString(layer)))
 	}
 
-	// combined: lower-cased raw + reversed + every decoded layer, so behavioral
-	// matching sees through the obfuscation.
+	// Replay fragment-at-a-time string building over the raw body and every
+	// decoded layer. Droppers assemble "adodb.stream" or an XMLHTTP call from
+	// dozens of one- and two-character appends, so the token never appears in
+	// the file and every check below would otherwise miss it.
+	split := resolveSplitLiterals(content)
+	for _, layer := range layers {
+		layerSplit := resolveSplitLiterals(layer)
+		split.Values = append(split.Values, layerSplit.Values...)
+		split.Assignments += layerSplit.Assignments
+		split.Lines += layerSplit.Lines
+	}
+	for _, value := range split.Values {
+		MergeIOCSet(&result.IOCs, ExtractIOCs(value))
+	}
+
+	// combined: lower-cased raw + reversed + every decoded layer + every
+	// reconstructed literal, so behavioral matching sees through the
+	// obfuscation.
 	var b strings.Builder
 	b.WriteString(strings.ToLower(content))
 	b.WriteByte('\n')
@@ -130,6 +147,10 @@ func scanScriptContent(result *ScanResult, cfg Config, content, source string) {
 	b.WriteByte('\n')
 	for _, layer := range layers {
 		b.WriteString(strings.ToLower(layer))
+		b.WriteByte('\n')
+	}
+	for _, value := range split.Values {
+		b.WriteString(strings.ToLower(value))
 		b.WriteByte('\n')
 	}
 	combined := b.String()
@@ -169,9 +190,16 @@ func scanScriptContent(result *ScanResult, cfg Config, content, source string) {
 	// --- Download-and-execute cradle ---
 	hasDownload := hasAny(combined, "downloadstring", "downloadfile", "downloaddata", "invoke-webrequest",
 		"net.webclient", "system.net.webclient", "start-bitstransfer", "wget ", " curl ",
-		"certutil -urlcache", "certutil.exe -urlcache", "bitsadmin", "xmlhttp", "msxml2.serverxmlhttp")
+		"certutil -urlcache", "certutil.exe -urlcache", "bitsadmin", "xmlhttp", "msxml2.serverxmlhttp",
+		// WSH/VBScript cradle: XMLHTTP fetches the payload and ADODB.Stream
+		// writes it to disk via SaveToFile.
+		"adodb.stream", "winhttp.winhttprequest", "urldownloadtofile", ".savetofile")
 	hasExec := hasAny(combined, "invoke-expression", " iex ", "iex(", "iex ", ".invoke(", "start-process",
-		"saps ", "createobject(\"wscript.shell\")", ".run", "shellexecute", "cmd /c", "cmd.exe /c")
+		"saps ", "createobject(\"wscript.shell\")", ".run", "shellexecute", "cmd /c", "cmd.exe /c",
+		// "cript.shell" rather than "wscript.shell": split-literal builders
+		// routinely leave the "WS" prefix in a different variable, so the
+		// reconstructed value starts mid-token.
+		"cript.shell", "shell.application")
 	switch {
 	case hasDownload && hasExec:
 		AddFindingDetailed(result, "High", "Network",
@@ -223,6 +251,26 @@ func scanScriptContent(result *ScanResult, cfg Config, content, source string) {
 			14, 0,
 			"Defense Evasion", "Obfuscated Files or Information (T1027)",
 			"De-obfuscate the reconstructed string to reveal the underlying command.")
+	}
+	// Fragment-at-a-time string building. Scored on the technique rather than
+	// on what was recovered: a script that assembles hundreds of literals a
+	// character at a time is hiding its tokens by construction, and that holds
+	// even when reconstruction cannot resolve them into a recognizable API
+	// name. Benign code concatenates strings, but not at this density — the
+	// thresholds require both a large absolute count and a large share of all
+	// lines so that ordinary string-building code does not qualify.
+	if split.Assignments >= 40 && split.Density() >= 5 {
+		severity, score := "Medium", 16
+		if split.Assignments >= 200 {
+			severity, score = "High", 26
+		}
+		AddFindingDetailed(result, severity, "Obfuscation",
+			"Split-literal string obfuscation",
+			fmt.Sprintf("%d append assignments across %d lines (%d%%) rebuild strings a fragment at a time in %s; %d values reconstructed",
+				split.Assignments, split.Lines, split.Density(), source, len(split.Values)),
+			score, 0,
+			"Defense Evasion", "Obfuscated Files or Information (T1027.010)",
+			"The reconstructed strings hold the real API names and C2 URLs; hunt on those rather than on literals in the file.")
 	}
 	if hasAny(combined, "[array]::reverse", ".length..0", "[-1..-", "$_.length..0") {
 		AddFindingDetailed(result, "Medium", "Obfuscation",

@@ -184,7 +184,9 @@ flatscan -f sample.bin -m deep --similarity-db ./refs.jsonl --intel-db ./intel.j
 > **0.9.0 precision additions:** every finding carries a numeric `confidence` and
 > `evidence_count` (serious capabilities require multiple corroborating signals, so a lone
 > generic string never reads as high-confidence); named-family fingerprints attribute
-> RedLine/Lumma/StealC/AsyncRAT/… when corroborated; and CAPA-style capability rules detect
+> RedLine/Lumma/StealC/AsyncRAT/… only when a family-name marker is present *and* corroborated,
+> so a packed sample whose name markers are unrecoverable falls back to a generic bucket rather
+> than being guessed at; and CAPA-style capability rules detect
 > behaviors (e.g. process injection) even when APIs are resolved by hash.
 
 ---

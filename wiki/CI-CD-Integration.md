@@ -62,7 +62,7 @@ jobs:
       - name: Build FlatScan
         run: |
           cd 'source go'
-          go build -ldflags "-X main.version=0.10.0" -o ../flatscan .
+          go build -ldflags "-X main.version=0.10.2" -o ../flatscan .
       - name: Scan build artifacts
         run: ./flatscan --dir ./dist --ci --ci-threshold 55 --batch-json flatscan-results.json
       - name: Upload results
@@ -81,7 +81,7 @@ The job fails automatically when FlatScan exits `20` (or `10`, per your threshol
 flatscan:
   image: golang:1.25
   script:
-    - cd 'source go' && go build -ldflags "-X main.version=0.10.0" -o ../flatscan . && cd ..
+    - cd 'source go' && go build -ldflags "-X main.version=0.10.2" -o ../flatscan . && cd ..
     - ./flatscan --dir ./dist --ci --ci-threshold 55 --batch-json flatscan-results.json
   artifacts:
     when: always

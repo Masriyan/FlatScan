@@ -6,7 +6,7 @@ FlatScan is a single, statically-linked Go binary. There is no installer and no 
 
 - **Go 1.25.0 or newer** (the module declares `go 1.25.0`).
 - A checkout of the FlatScan repository. The Go source lives under `source go/` — **note the space in the directory name; always quote it.**
-- The only third-party dependency is `golang.org/x/arch` (fetched automatically by `go build`). Everything else is the Go standard library.
+- **No third-party dependencies to fetch.** `go.mod` requires nothing and there is no `go.sum`, so `go build` works offline and air-gapped. Everything is the Go standard library plus `internal/x86asm`, a vendored unmodified copy of `golang.org/x/arch/x86/x86asm` (BSD-3-Clause) that ships in the tree.
 
 Verify your toolchain:
 
@@ -20,10 +20,10 @@ From the repository root:
 
 ```bash
 cd 'source go'
-go build -ldflags "-X main.version=0.10.0" -o ../flatscan .
+go build -ldflags "-X main.version=0.10.2" -o ../flatscan .
 ```
 
-This produces a `flatscan` binary in the repository root. The `-ldflags "-X main.version=0.10.0"` injects the version string reported by `--version`.
+This produces a `flatscan` binary in the repository root. The `-ldflags "-X main.version=0.10.2"` injects the version string reported by `--version`.
 
 ## Verifying the Build
 
@@ -32,7 +32,7 @@ This produces a `flatscan` binary in the repository root. The `-ldflags "-X main
 ../flatscan --help         # prints the full grouped flag reference
 ```
 
-A healthy build prints `0.10.0` for `--version` and exits `0`. Run a smoke scan against a known-clean file:
+A healthy build prints `0.10.2` for `--version` and exits `0`. Run a smoke scan against a known-clean file:
 
 ```bash
 ../flatscan -f /bin/ls
@@ -45,12 +45,12 @@ Go cross-compiles without a C toolchain. Set `GOOS`/`GOARCH` before `go build`:
 
 ```bash
 cd 'source go'
-GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-linux-amd64 .
-GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-linux-arm64 .
-GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-windows-amd64.exe .
-GOOS=windows GOARCH=arm64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-windows-arm64.exe .
-GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-darwin-amd64 .
-GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=0.10.0" -o ../dist/flatscan-darwin-arm64 .
+GOOS=linux   GOARCH=amd64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-linux-amd64 .
+GOOS=linux   GOARCH=arm64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-linux-arm64 .
+GOOS=windows GOARCH=amd64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-windows-amd64.exe .
+GOOS=windows GOARCH=arm64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-windows-arm64.exe .
+GOOS=darwin  GOARCH=amd64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-darwin-amd64 .
+GOOS=darwin  GOARCH=arm64 go build -ldflags "-X main.version=0.10.2" -o ../dist/flatscan-darwin-arm64 .
 ```
 
 ### Target Matrix

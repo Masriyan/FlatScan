@@ -499,6 +499,7 @@ type ScanResult struct {
 	PE                 *PEInfo              `json:"pe,omitempty"`
 	ELF                *ELFInfo             `json:"elf,omitempty"`
 	MachO              *MachOInfo           `json:"macho,omitempty"`
+	PDF                *PDFInfo             `json:"pdf,omitempty"`
 	Code               *CodeInfo            `json:"code,omitempty"`
 	MalwareConfig      *MalwareConfig       `json:"malware_config,omitempty"`
 	Enrichment         []EnrichmentMatch    `json:"enrichment,omitempty"`
@@ -523,4 +524,9 @@ type BenignContext struct {
 	MITRETechRefs int      `json:"mitre_technique_refs,omitempty"`
 	ScoreCap      int      `json:"score_cap"`
 	OriginalScore int      `json:"original_score"`
+	// SuppressedFamilies lists family hypotheses that were withdrawn because
+	// this file is a detection artifact: its family-name strings are catalogued
+	// references, not evidence of what it does. Recorded rather than discarded
+	// so the withdrawal stays inspectable — nothing about the verdict is hidden.
+	SuppressedFamilies []string `json:"suppressed_families,omitempty"`
 }
