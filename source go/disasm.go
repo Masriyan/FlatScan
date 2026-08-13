@@ -49,6 +49,15 @@ func AnalyzeCode(result *ScanResult, cfg Config, data []byte) {
 	if codeEnd > codeStart+limit {
 		codeEnd = codeStart + limit
 	}
+	// Defense in depth, not a fix for a known-reachable case: codeStart and
+	// codeEnd are derived from separate header fields, and `data[start:end]`
+	// panics if end ever precedes start. No crafted ELF/PE was found that
+	// reaches this state today — debug/elf rejects the wrapping headers first —
+	// so this is a cheap invariant guarding future changes to codeWindow rather
+	// than a live vulnerability.
+	if codeEnd <= codeStart {
+		return
+	}
 
 	scanCode(result, mode, arch, data[codeStart:codeEnd], codeStart)
 }
@@ -89,11 +98,16 @@ func scanCode(result *ScanResult, mode int, arch string, code []byte, baseOffset
 		// Collect immediates for hash-database resolution (Task 2).
 		for _, arg := range inst.Args {
 			if imm, ok := arg.(x86asm.Imm); ok {
-				v := uint32(uint64(int64(imm)))
-				if v > 0xFFFF { // hashes are 32-bit and large; skip small constants
+				// Taking the low 32 bits of the immediate is the point: API
+				// hashes are 32-bit, and a sign-extended 64-bit immediate must
+				// be folded back down to match the hash tables.
+				v := uint32(uint64(int64(imm))) //nolint:gosec // G115: deliberate low-32-bit extraction for hash matching
+				if v > 0xFFFF {                 // hashes are 32-bit and large; skip small constants
 					immediates[v] = struct{}{}
 				}
-				if uint64(int64(imm))&0xFFFFFFFF == vmwareBackdoorMagic {
+				// Same deliberate 32-bit fold as above: the backdoor magic is a
+				// 32-bit constant, so compare only the low word.
+				if uint64(int64(imm))&0xFFFFFFFF == vmwareBackdoorMagic { //nolint:gosec // G115: deliberate low-32-bit mask for constant comparison
 					vmwareMagic = true
 				}
 			}
@@ -266,8 +280,11 @@ func codeWindow(fileType string, data []byte) (mode int, codeStart, codeEnd int6
 				vsize = uint64(s.Size)
 			}
 			if entryRVA >= uint64(s.VirtualAddress) && entryRVA < uint64(s.VirtualAddress)+vsize {
+				// Saturate rather than wrap: a negative start would survive the
+				// caller's "start < len(data)" test and panic the slice, while a
+				// saturated one is rejected cleanly.
 				start := entryRVA - uint64(s.VirtualAddress) + uint64(s.Offset)
-				return mode, int64(start), int64(uint64(s.Offset) + uint64(s.Size)), arch
+				return mode, saturateI64(start), saturateI64(uint64(s.Offset) + uint64(s.Size)), arch
 			}
 		}
 		return 0, -1, 0, ""
@@ -292,12 +309,12 @@ func codeWindow(fileType string, data []byte) (mode int, codeStart, codeEnd int6
 				continue
 			}
 			if entry >= s.Addr && entry < s.Addr+s.Size {
-				return mode, int64(entry - s.Addr + s.Offset), int64(s.Offset + s.Size), arch
+				return mode, saturateI64(entry - s.Addr + s.Offset), saturateI64(s.Offset + s.Size), arch
 			}
 		}
 		for _, p := range ef.Progs {
 			if p.Type == elf.PT_LOAD && p.Flags&elf.PF_X != 0 && entry >= p.Vaddr && entry < p.Vaddr+p.Filesz {
-				return mode, int64(entry - p.Vaddr + p.Off), int64(p.Off + p.Filesz), arch
+				return mode, saturateI64(entry - p.Vaddr + p.Off), saturateI64(p.Off + p.Filesz), arch
 			}
 		}
 		return 0, -1, 0, ""

@@ -515,7 +515,9 @@ func axmlAttributeValue(pool []string, rawValue uint32, valueType byte, data uin
 	case 0x03:
 		return axmlString(pool, data)
 	case 0x10:
-		return strconv.FormatInt(int64(int32(data)), 10)
+		// TYPE_INT_DEC is a signed 32-bit value; the int32 reinterpretation of
+		// the raw word is the format's definition, not an accidental narrowing.
+		return strconv.FormatInt(int64(int32(data)), 10) //nolint:gosec // G115: intentional signed reinterpretation of a 32-bit AXML attribute
 	case 0x11:
 		return fmt.Sprintf("0x%x", data)
 	case 0x12:

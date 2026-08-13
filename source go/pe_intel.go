@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
+	"math"
 )
 
 // PE OptionalHeader.DllCharacteristics flags. debug/pe does not export these,
@@ -203,7 +204,16 @@ func parseTLSCallbacks(file *pe.File, data []byte) int {
 	if cbVA == 0 || cbVA <= imageBase {
 		return 0
 	}
-	cbOff, ok := rvaToOffset(file, uint32(cbVA-imageBase))
+	// AddressOfCallBacks is a full 64-bit VA on PE32+, so the RVA is a 64-bit
+	// difference. Truncating it to uint32 would fold an out-of-image address
+	// down into a small RVA that resolves to a valid — but entirely wrong —
+	// file offset, and cbOff is then used to index data. Reject anything that
+	// does not fit a real 32-bit RVA instead of wrapping it into range.
+	cbRVA := cbVA - imageBase
+	if cbRVA > math.MaxUint32 {
+		return 1
+	}
+	cbOff, ok := rvaToOffset(file, uint32(cbRVA))
 	if !ok {
 		return 1
 	}

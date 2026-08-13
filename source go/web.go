@@ -636,7 +636,9 @@ func randBytes(n int) []byte {
 	if _, err := rand.Read(b); err != nil {
 		seed := time.Now().UnixNano()
 		for i := range b {
-			b[i] = byte(seed >> (uint(i) * 8))
+			// Deliberate byte extraction from the seed, not a lossy narrowing
+			// of a meaningful quantity.
+			b[i] = byte(seed >> (uint(i) * 8)) //nolint:gosec // G115: intentional byte slicing of the fallback seed
 		}
 	}
 	return b

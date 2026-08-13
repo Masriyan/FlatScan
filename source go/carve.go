@@ -83,8 +83,10 @@ func PromoteCarvedPayloadIOCs(result *ScanResult) {
 			continue
 		}
 		entry := entries[path]
-		size := uint64(artifact.Length)
-		compressedSize := uint64(artifact.Length)
+		// Length is set from len(chunk) at carve time, so it is never negative
+		// and the unsigned conversion cannot wrap.
+		size := uint64(artifact.Length)           //nolint:gosec // G115: Length originates from len(), always >= 0
+		compressedSize := uint64(artifact.Length) //nolint:gosec // G115: Length originates from len(), always >= 0
 		ratio := 0.0
 		if entry.Name != "" {
 			size = entry.Size

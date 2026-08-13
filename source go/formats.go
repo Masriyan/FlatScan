@@ -357,10 +357,13 @@ func analyzeELF(result *ScanResult, cfg Config) error {
 		entropy := ShannonEntropy(data)
 		executable := section.Flags&elf.SHF_EXECINSTR != 0
 		info.Sections = append(info.Sections, SectionInfo{
-			Name:       section.Name,
-			Virtual:    uint32(section.Addr),
-			RawOffset:  uint32(section.Offset),
-			RawSize:    uint32(section.Size),
+			Name: section.Name,
+			// ELF section headers are 64-bit and attacker-controlled; saturate
+			// rather than truncate so an absurd field cannot be reported as a
+			// small plausible one.
+			Virtual:    saturateU32(section.Addr),
+			RawOffset:  saturateU32(section.Offset),
+			RawSize:    saturateU32(section.Size),
 			Entropy:    entropy,
 			Executable: executable,
 			Writable:   section.Flags&elf.SHF_WRITE != 0,
@@ -369,7 +372,9 @@ func analyzeELF(result *ScanResult, cfg Config) error {
 			maxExecEntropy = entropy
 		}
 		if section.Flags&elf.SHF_EXECINSTR != 0 && section.Flags&elf.SHF_WRITE != 0 {
-			AddFinding(result, "Medium", "ELF", "Writable and executable ELF section", section.Name, 10, int64(section.Offset))
+			// Saturate: a wrapped negative offset would render as a nonsensical
+			// location in the report.
+			AddFinding(result, "Medium", "ELF", "Writable and executable ELF section", section.Name, 10, saturateI64(section.Offset))
 		}
 	}
 	result.ELF = info
@@ -438,10 +443,12 @@ func analyzeMachO(result *ScanResult, cfg Config) error {
 	for _, section := range file.Sections {
 		data, _ := section.Data()
 		info.Sections = append(info.Sections, SectionInfo{
-			Name:      section.Name,
-			Virtual:   uint32(section.Addr),
+			Name: section.Name,
+			// Mach-O Addr/Size are 64-bit file fields; saturate rather than
+			// truncate. Offset is already uint32 in the Mach-O section header.
+			Virtual:   saturateU32(section.Addr),
 			RawOffset: section.Offset,
-			RawSize:   uint32(section.Size),
+			RawSize:   saturateU32(section.Size),
 			Entropy:   ShannonEntropy(data),
 		})
 	}
