@@ -114,10 +114,19 @@ func StoreCaseRecord(cfg Config, result *ScanResult) error {
 		result.Case = &CaseRecord{CaseID: caseID, DatabasePath: dbPath, Stored: false, Error: err.Error()}
 		return err
 	}
-	defer handle.Close()
 	if _, err := handle.Write(append(data, '\n')); err != nil {
+		handle.Close()
 		result.Case = &CaseRecord{CaseID: caseID, DatabasePath: dbPath, Stored: false, Error: err.Error()}
 		return err
+	}
+	// Close before declaring the record stored. The write above only fills the
+	// kernel buffer; a full disk or a failing filesystem surfaces at close. With
+	// a deferred close the record was marked Stored:true and nil returned
+	// *before* the close ran, so a case that never reached the database was
+	// reported to the analyst as successfully filed.
+	if err := handle.Close(); err != nil {
+		result.Case = &CaseRecord{CaseID: caseID, DatabasePath: dbPath, Stored: false, Error: err.Error()}
+		return fmt.Errorf("case database close: %w", err)
 	}
 	result.Case = &CaseRecord{
 		CaseID:        caseID,

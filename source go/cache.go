@@ -96,7 +96,10 @@ func (c *ScanCache) Put(sha256 string, result ScanResult) {
 	}
 	tmpName := tmp.Name()
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		// Error path: the write already failed, so the temp file is discarded
+		// either way and a close error adds nothing. The success path's close
+		// (below) is what matters, and it is checked.
+		_ = tmp.Close()
 		_ = os.Remove(tmpName)
 		return
 	}

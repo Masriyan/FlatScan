@@ -563,9 +563,18 @@ func (s *webServer) handleDownload(w http.ResponseWriter, r *http.Request) {
 }
 
 // zipDir streams a deflate zip of every file under dir to w.
-func zipDir(w io.Writer, dir string) error {
+//
+// The writer is closed explicitly rather than via defer: zip.Writer.Close
+// writes the central directory, so discarding its error would hand the analyst
+// a truncated archive that reports as a successful download.
+func zipDir(w io.Writer, dir string) (err error) {
 	zw := zip.NewWriter(w)
-	defer zw.Close()
+	defer func() {
+		closeErr := zw.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -598,12 +607,22 @@ func zipDir(w io.Writer, dir string) error {
 }
 
 // writeUpload copies an uploaded multipart file to dst.
-func writeUpload(dst string, src multipart.File) (int64, error) {
+//
+// Close is checked, not deferred-and-discarded: it is where buffered data is
+// flushed and where ENOSPC surfaces. Reporting success on a partially written
+// sample would mean scanning a truncated file and reporting a verdict on bytes
+// the uploader never sent.
+func writeUpload(dst string, src multipart.File) (n int64, err error) {
 	out, err := os.Create(dst)
 	if err != nil {
 		return 0, err
 	}
-	defer out.Close()
+	defer func() {
+		closeErr := out.Close()
+		if err == nil {
+			err = closeErr
+		}
+	}()
 	return io.Copy(out, src)
 }
 
